@@ -1,0 +1,14 @@
+---
+name: ChessTwo
+level-name: ChessTwo
+gamemode: sumo
+spawns:
+  1:
+    x: 259
+    "y": 11
+    z: 255
+  2:
+    x: 259
+    "y": 11
+    z: 265
+...

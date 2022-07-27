@@ -1,0 +1,14 @@
+---
+name: Andesit
+level-name: Andesit
+gamemode: sumo
+spawns:
+  1:
+    x: 269
+    "y": 22
+    z: 353
+  2:
+    x: 270
+    "y": 22
+    z: 344
+...

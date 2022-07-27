@@ -1,0 +1,14 @@
+---
+name: CobblestoneTwo
+level-name: CobblestoneTwo
+gamemode: sumo
+spawns:
+  1:
+    x: 3
+    "y": 37
+    z: 238
+  2:
+    x: 4
+    "y": 37
+    z: 246
+...

@@ -1,0 +1,8 @@
+name: NPC
+main: npc\Loader
+api: 3.0.0
+version: 1.0.0-relese
+author: kezumi
+commands:
+  npc:
+    description: Make NPC with custom NameTag

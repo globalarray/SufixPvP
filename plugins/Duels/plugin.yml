@@ -1,0 +1,9 @@
+name: Duels
+main: duels\Duels
+api: 3.0.0
+version: 1.0
+commands:
+  xyz:
+    description: show your XYZ
+  duels:
+    description: Duels Main command

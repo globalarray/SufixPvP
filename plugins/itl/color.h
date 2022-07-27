@@ -1,0 +1,5 @@
+#define RESET   "\033[0m"
+#define RED     "\033[38;5;203m"
+#define YELLOW  "\033[38;5;227m"
+#define GREEN "\033[38;5;83m"
+#define AQUA "\033[38;5;87m"

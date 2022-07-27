@@ -1,0 +1,19 @@
+name: SufixEngine
+api: 3.0.0
+main: ddosnik\Loader
+version: 1.3 (https://vk.com/showyouass)
+author: ddosnik (vk.com/ddosnik)
+soon: бля ждем бандану 2 40к заболевщих за сутки короновирус
+commands:
+  setgroup:
+   description: Выдать ранк
+  quit:
+   description: Телепортироваться в лобби
+  ban:
+   description: Забанить игрока
+  unban:
+   description: Разбанить игрока
+  tpw:
+   description: ху
+  balance:
+   description: Узнать свой баланс

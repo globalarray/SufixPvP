@@ -1,0 +1,5 @@
+name: SufixAC
+main: ddosnik\anticheat\Loader
+api: 3.0.0
+author: kezumi & ddosnik
+version: 1.0.0
