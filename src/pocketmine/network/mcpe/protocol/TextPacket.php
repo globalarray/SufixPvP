@@ -59,13 +59,6 @@ class TextPacket extends DataPacket{
 			case self::TYPE_SYSTEM:
 				$this->message = $this->getString();
 				break;
-
-			case self::TYPE_TRANSLATION:
-				$this->message = $this->getString();
-				$count = $this->getUnsignedVarInt();
-				for($i = 0; $i < $count; ++$i){
-					$this->parameters[] = $this->getString();
-				}
 		}
 	}
 
@@ -83,13 +76,6 @@ class TextPacket extends DataPacket{
 			case self::TYPE_SYSTEM:
 				$this->putString($this->message);
 				break;
-
-			case self::TYPE_TRANSLATION:
-				$this->putString($this->message);
-				$this->putUnsignedVarInt(count($this->parameters));
-				foreach($this->parameters as $p){
-					$this->putString($p);
-				}
 		}
 	}
 
