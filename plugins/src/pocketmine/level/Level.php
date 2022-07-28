@@ -49,7 +49,6 @@ use pocketmine\block\SnowLayer;
 use pocketmine\block\Sugarcane;
 use pocketmine\block\Wheat;
 use pocketmine\entity\Arrow;
-use pocketmine\entity\Effect;
 use pocketmine\entity\Entity;
 use pocketmine\entity\Item as DroppedItem;
 use pocketmine\event\block\BlockBreakEvent;
@@ -67,6 +66,7 @@ use pocketmine\event\Timings;
 use pocketmine\inventory\InventoryHolder;
 use pocketmine\item\Item;
 use pocketmine\level\format\Chunk;
+use pocketmine\level\format\EmptySubChunk;
 use pocketmine\level\format\io\BaseLevelProvider;
 use pocketmine\level\format\io\LevelProvider;
 use pocketmine\level\generator\GenerationTask;
@@ -108,6 +108,16 @@ use pocketmine\tile\Chest;
 use pocketmine\tile\Tile;
 use pocketmine\utils\Random;
 use pocketmine\utils\ReversePriorityQueue;
+use function abs;
+use function count;
+use function get_class;
+use function is_array;
+use function is_subclass_of;
+use function lcg_value;
+use function max;
+use function microtime;
+use function min;
+use function mt_rand;
 
 #include <rules/Level.h>
 
@@ -440,6 +450,13 @@ class Level implements ChunkManager, Metadatable{
 		$this->closed = true;
 	}
 
+    /**
+     * Broadcasts a packet to every player who has the target position within their view distance.
+     */
+    public function broadcastPacketToViewers(Vector3 $pos, DataPacket $packet) : void{
+        $this->addChunkPacket($pos->getFloorX() >> 4, $pos->getFloorZ() >> 4, $packet);
+    }
+
 	public function addSound(Sound $sound, array $players = null){
 		$pk = $sound->encode();
 
@@ -499,7 +516,7 @@ class Level implements ChunkManager, Metadatable{
 		$pk = new LevelEventPacket();
 		$pk->evid = $evid;
 		$pk->data = $data;
-		list($pk->x, $pk->y, $pk->z) = [$pos->x, $pos->y, $pos->z];
+		[$pk->x, $pk->y, $pk->z] = [$pos->x, $pos->y, $pos->z];
 		$this->addChunkPacket($pos->x >> 4, $pos->z >> 4, $pk);
 	}
 
@@ -520,7 +537,7 @@ class Level implements ChunkManager, Metadatable{
 		$pk->extraData = $extraData;
 		$pk->unknownBool = $unknown;
 		$pk->disableRelativeVolume = $disableRelativeVolume;
-		list($pk->x, $pk->y, $pk->z) = [$pos->x, $pos->y, $pos->z];
+		[$pk->x, $pk->y, $pk->z] = [$pos->x, $pos->y, $pos->z];
 		$this->addChunkPacket($pos->x >> 4, $pos->z >> 4, $pk);
 	}
 
@@ -974,14 +991,14 @@ class Level implements ChunkManager, Metadatable{
 				$entity->scheduleUpdate();
 			}
 
-
 			foreach($chunk->getSubChunks() as $Y => $subChunk){
-				if(!$subChunk->isEmpty()){
-					$k = mt_rand(0, 0x7fffffff);
-					for($i = 0; $i < 3; ++$i, $k >>= 10){
+				if(!($subChunk instanceof EmptySubChunk)){
+					$k = mt_rand(0, 0xfffffffff); //36 bits
+					for($i = 0; $i < 3; ++$i){
 						$x = $k & 0x0f;
-						$y = ($k >> 8) & 0x0f;
-						$z = ($k >> 16) & 0x0f;
+						$y = ($k >> 4) & 0x0f;
+						$z = ($k >> 8) & 0x0f;
+						$k >>= 12;
 
 						$blockId = $subChunk->getBlockId($x, $y, $z);
 						if(isset($this->randomTickBlocks[$blockId])){
@@ -2546,7 +2563,7 @@ class Level implements ChunkManager, Metadatable{
 		$chunk->initChunk($this);
 
 		$this->server->getPluginManager()->callEvent(new ChunkLoadEvent($this, $chunk, !$chunk->isGenerated()));
-		
+
 		if(!$chunk->isLightPopulated() and $chunk->isPopulated() and $this->getServer()->getProperty("chunk-ticking.light-updates", false)){
 			$this->getServer()->getScheduler()->scheduleAsyncTask(new LightPopulationTask($this, $chunk));
 		}
