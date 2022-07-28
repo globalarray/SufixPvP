@@ -19,13 +19,14 @@
  *
 */
 
+declare(strict_types=1);
+
 namespace pocketmine\inventory;
 
 use pocketmine\item\Item;
-use pocketmine\inventory\ShulkerBoxInventory;
 use pocketmine\Player;
 
-class BaseTransaction implements Transaction {
+class BaseTransaction implements Transaction{
 	/** @var Inventory */
 	protected $inventory;
 	/** @var int */
@@ -35,127 +36,65 @@ class BaseTransaction implements Transaction {
 	/** @var float */
 	protected $creationTime;
 	/** @var int */
-	protected $transactionType = Transaction::TYPE_NORMAL;
-	/** @var int */
-	protected $failures = 0;
-	/** @var bool */
-	protected $wasSuccessful = false;
-	/** @var string */
-	protected $achievements = [];
+ 	protected $transactionType = Transaction::TYPE_NORMAL;
+ 	/** @var int */
+ 	protected $failures = 0;
+ 	/** @var bool */
+ 	protected $wasSuccessful = false;
 
-	/**
-	 * @param Inventory $inventory
-	 * @param int       $slot
-	 * @param Item      $targetItem
-	 * @param string[]  $achievements
-	 * @param int       $transactionType
-	 */
-	public function __construct($inventory, $slot, Item $targetItem, $achievements = [], $transactionType = Transaction::TYPE_NORMAL){
+ 	/**
+  	 * @param Inventory $inventory
+  	 * @param int       $slot
+  	 * @param Item      $targetItem
+ 	 * @param string[]  $achievements
+ 	 * @param int       $transactionType
+  	 */
+	public function __construct(Inventory $inventory, int $slot, Item $targetItem, int $transactionType = Transaction::TYPE_NORMAL){
 		$this->inventory = $inventory;
-		$this->slot = (int) $slot;
+		$this->slot = $slot;
 		$this->targetItem = clone $targetItem;
 		$this->creationTime = microtime(true);
 		$this->transactionType = $transactionType;
-		$this->achievements = $achievements;
 	}
 
-	/**
-	 * @return float|mixed
-	 */
-	public function getCreationTime(){
+	public function getCreationTime() : float{
 		return $this->creationTime;
 	}
 
-	/**
-	 * @return Inventory
-	 */
 	public function getInventory(){
 		return $this->inventory;
 	}
 
-	/**
-	 * @return int
-	 */
-	public function getSlot(){
+	public function getSlot() : int{
 		return $this->slot;
 	}
 
-	/**
-	 * @return Item
-	 */
-	public function getTargetItem(){
+	public function getTargetItem() : Item{
 		return clone $this->targetItem;
 	}
-	
-	/**
-	 * @return Item
-	 */
-	public function getSourceItem(){
-		if(!$this->inventory) {
-            return Item::get(Item::AIR);
-        }
-        
-		return clone $this->inventory->getItem($this->slot);
-	}
 
-	/**
-	 * @param Item $item
-	 */
-	public function setTargetItem(Item $item){
-		$this->targetItem = clone $item;
-	}
-
-	/**
-	 * @return int
-	 */
-	public function getFailures(){
-		return $this->failures;
-	}
+ 	public function setTargetItem(Item $item){
+ 		$this->targetItem = clone $item;
+ 	}
+ 
+ 	public function getFailures(){
+ 		return $this->failures;
+ 	}
 
 	public function addFailure(){
 		$this->failures++;
 	}
 
-	/**
-	 * @return bool
-	 */
 	public function succeeded(){
 		return $this->wasSuccessful;
 	}
 
-	/**
-	 * @param bool $value
-	 */
 	public function setSuccess($value = true){
 		$this->wasSuccessful = $value;
 	}
 
-	/**
-	 * @return int
-	 */
 	public function getTransactionType(){
 		return $this->transactionType;
-	}
-
-	/**
-	 * @return array|string|\string[]
-	 */
-	public function getAchievements(){
-		return $this->achievements;
-	}
-
-	/**
-	 * @return bool
-	 */
-	public function hasAchievements(){
-		return count($this->achievements) !== 0;
-	}
-
-	/**
-	 * @param string $achievementName
-	 */
-	public function addAchievement(string $achievementName){
-		$this->achievements[] = $achievementName;
 	}
 
 	/**
@@ -170,6 +109,7 @@ class BaseTransaction implements Transaction {
 			return;
 		}
 
+		$targets = [];
 		if($this->wasSuccessful){
 			$targets = $this->getInventory()->getViewers();
 			unset($targets[spl_object_hash($source)]);
@@ -181,8 +121,9 @@ class BaseTransaction implements Transaction {
 
 	/**
 	 * Returns the change in inventory resulting from this transaction
-	 *
-	 * @return array ("in" => items added to the inventory, "out" => items removed from the inventory)
+	 * @return Item[
+	 *				"in" => items added to the inventory
+	 *				"out" => items removed from the inventory
 	 * ]
 	 */
 	public function getChange(){
@@ -197,13 +138,13 @@ class BaseTransaction implements Transaction {
 			$countDiff = $this->targetItem->getCount() - $sourceItem->getCount();
 			$item->setCount(abs($countDiff));
 
-			if($countDiff < 0){     //Count decreased
+			if($countDiff < 0){	//Count decreased
 				return ["in" => null,
-					"out" => $item];
+						"out" => $item];
 			}elseif($countDiff > 0){ //Count increased
 				return [
-					"in" => $item,
-					"out" => null];
+						"in" => $item,
+						"out" => null];
 			}else{
 				//Should be impossible (identical items and no count change)
 				//This should be caught by the first condition even if it was possible
@@ -212,17 +153,17 @@ class BaseTransaction implements Transaction {
 		}elseif($sourceItem->getId() !== Item::AIR and $this->targetItem->getId() === Item::AIR){
 			//Slot emptied (item removed)
 			return ["in" => null,
-				"out" => clone $sourceItem];
+					"out" => clone $sourceItem];
 
 		}elseif($sourceItem->getId() === Item::AIR and $this->targetItem->getId() !== Item::AIR){
 			//Slot filled (item added)
 			return ["in" => $this->getTargetItem(),
-				"out" => null];
+					"out" => null];
 
 		}else{
 			//Some other slot change - an item swap (tool damage changes will be ignored as they are processed server-side before any change is sent by the client
 			return ["in" => $this->getTargetItem(),
-				"out" => clone $sourceItem];
+					"out" => clone $sourceItem];
 		}
 	}
 
@@ -237,12 +178,9 @@ class BaseTransaction implements Transaction {
 		if($this->getInventory()->processSlotChange($this)){ //This means that the transaction should be handled the normal way
 			if(!$source->getServer()->allowInventoryCheats and !$source->isCreative()){
 				$change = $this->getChange();
-
 				if($change === null){ //No changes to make, ignore this transaction
-					$this->getInventory()->setItem($this->getSlot(), $this->getTargetItem(), false);
 					return true;
 				}
-
 				/* Verify that we have the required items */
 				if($change["out"] instanceof Item){
 					if(!$this->getInventory()->slotContains($this->getSlot(), $change["out"])){
@@ -254,7 +192,6 @@ class BaseTransaction implements Transaction {
 						return false;
 					}
 				}
-
 				/* All checks passed, make changes to floating inventory
 				 * This will not be reached unless all requirements are met */
 				if($change["out"] instanceof Item){
@@ -266,16 +203,7 @@ class BaseTransaction implements Transaction {
 			}
 			$this->getInventory()->setItem($this->getSlot(), $this->getTargetItem(), false);
 		}
-
-		/* Process transaction achievements, like getting iron from a furnace */
-		foreach($this->achievements as $achievement){
-			$source->awardAchievement($achievement);
-		}
-
-		if($this->getInventory() instanceof ShulkerBoxInventory) {
-			$this->getInventory()->getHolder()->saveNBT();
-		}
-
 		return true;
 	}
+
 }

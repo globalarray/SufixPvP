@@ -2,11 +2,11 @@
 
 /*
  *
- *  ____            _        _   __  __ _                  __  __ ____  
- * |  _ \ ___   ___| | _____| |_|  \/  (_)_ __   ___      |  \/  |  _ \ 
+ *  ____            _        _   __  __ _                  __  __ ____
+ * |  _ \ ___   ___| | _____| |_|  \/  (_)_ __   ___      |  \/  |  _ \
  * | |_) / _ \ / __| |/ / _ \ __| |\/| | | '_ \ / _ \_____| |\/| | |_) |
- * |  __/ (_) | (__|   <  __/ |_| |  | | | | | |  __/_____| |  | |  __/ 
- * |_|   \___/ \___|_|\_\___|\__|_|  |_|_|_| |_|\___|     |_|  |_|_| 
+ * |  __/ (_) | (__|   <  __/ |_| |  | | | | | |  __/_____| |  | |  __/
+ * |_|   \___/ \___|_|\_\___|\__|_|  |_|_|_| |_|\___|     |_|  |_|_|
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -15,9 +15,11 @@
  *
  * @author PocketMine Team
  * @link http://www.pocketmine.net/
- * 
+ *
  *
 */
+
+declare(strict_types=1);
 
 namespace pocketmine\block;
 
@@ -31,65 +33,30 @@ class SnowLayer extends Flowable{
 
 	protected $id = self::SNOW_LAYER;
 
-	/**
-	 * SnowLayer constructor.
-	 *
-	 * @param int $meta
-	 */
 	public function __construct($meta = 0){
 		$this->meta = $meta;
 	}
 
-	/**
-	 * @return string
-	 */
-	public function getName() : string{
+	public function getName(){
 		return "Snow Layer";
 	}
 
-	/**
-	 * @return bool
-	 */
 	public function canBeReplaced(){
-		return $this->meta < 7; //8 snow layers
+		return true;
 	}
 
-	/**
-	 * @return float
-	 */
 	public function getHardness(){
 		return 0.1;
 	}
 
-	/**
-	 * @return int
-	 */
 	public function getToolType(){
 		return Tool::TYPE_SHOVEL;
 	}
 
-	private function canBeSupportedBy(Block $b) : bool{
-		return $b->isSolid() or ($b->getId() === $this->getId() and $b->getDamage() === 7);
-	}
 
-	/**
-	 * @param Item        $item
-	 * @param Block       $block
-	 * @param Block       $target
-	 * @param int         $face
-	 * @param float       $fx
-	 * @param float       $fy
-	 * @param float       $fz
-	 * @param Player|null $player
-	 *
-	 * @return bool
-	 */
 	public function place(Item $item, Block $block, Block $target, $face, $fx, $fy, $fz, Player $player = null){
-		if($block->getId() === $this->getId() and $block->getDamage() < 7){
-			$this->setDamage($block->getDamage() + 1);
-		}
-
-		if($this->canBeSupportedBy($block->getSide(Vector3::SIDE_DOWN))){
+		if($block->getSide(Vector3::SIDE_DOWN)->isSolid()){
+			//TODO: fix placement
 			$this->getLevel()->setBlock($block, $this, true);
 
 			return true;
@@ -98,29 +65,25 @@ class SnowLayer extends Flowable{
 		return false;
 	}
 
-	/**
-	 * @param int $type
-	 *
-	 * @return bool|int
-	 */
 	public function onUpdate($type){
 		if($type === Level::BLOCK_UPDATE_NORMAL){
-			if(!$this->canBeSupportedBy($this->getSide(Vector3::SIDE_DOWN))){
-				$this->getLevel()->setBlock($this, new Air(), false, false);
+			if(!$this->getSide(Vector3::SIDE_DOWN)->isSolid()){
+				$this->getLevel()->setBlock($this, Block::get(Block::AIR), false, false);
 
 				return Level::BLOCK_UPDATE_NORMAL;
+			}
+		}elseif($type === Level::BLOCK_UPDATE_RANDOM){
+			if($this->level->getBlockLightAt($this->x, $this->y, $this->z) >= 12){
+				$this->getLevel()->setBlock($this, Block::get(Block::AIR), false, false);
+
+				return Level::BLOCK_UPDATE_RANDOM;
 			}
 		}
 
 		return false;
 	}
 
-	/**
-	 * @param Item $item
-	 *
-	 * @return array
-	 */
-	public function getDrops(Item $item) : array{
+	public function getDrops(Item $item){
 		if($item->isShovel() !== false){
 			return [
 				[Item::SNOWBALL, 0, 1],

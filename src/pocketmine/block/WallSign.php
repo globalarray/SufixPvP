@@ -19,26 +19,20 @@
  *
 */
 
+declare(strict_types=1);
+
 namespace pocketmine\block;
 
 use pocketmine\level\Level;
 
-class WallSign extends SignPost {
+class WallSign extends SignPost{
 
 	protected $id = self::WALL_SIGN;
 
-	/**
-	 * @return string
-	 */
-	public function getName() : string{
+	public function getName(){
 		return "Wall Sign";
 	}
 
-	/**
-	 * @param int $type
-	 *
-	 * @return bool|int
-	 */
 	public function onUpdate($type){
 		$faces = [
 			2 => 3,

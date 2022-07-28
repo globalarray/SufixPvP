@@ -14,10 +14,12 @@
  * (at your option) any later version.
  *
  * @author PocketMine Team
- * @link   http://www.pocketmine.net/
+ * @link http://www.pocketmine.net/
  *
  *
- */
+*/
+
+declare(strict_types=1);
 
 namespace pocketmine\event\player;
 
@@ -27,7 +29,7 @@ use pocketmine\Player;
 /**
  * Called when a player does an animation
  */
-class PlayerAnimationEvent extends PlayerEvent implements Cancellable {
+class PlayerAnimationEvent extends PlayerEvent implements Cancellable{
 	public static $handlerList = null;
 
 	/**
@@ -35,7 +37,6 @@ class PlayerAnimationEvent extends PlayerEvent implements Cancellable {
 	 * Use the constants in {@link pocketmine\network\mcpe\protocol\AnimatePacket} instead.
 	 */
 	const ARM_SWING = 1;
-	const WAKE_UP = 3;
 
 	/** @var int */
 	private $animationType;
@@ -44,7 +45,7 @@ class PlayerAnimationEvent extends PlayerEvent implements Cancellable {
 	 * @param Player $player
 	 * @param int    $animation
 	 */
-	public function __construct(Player $player, int $animation){
+	public function __construct(Player $player, $animation = self::ARM_SWING){
 		$this->player = $player;
 		$this->animationType = $animation;
 	}

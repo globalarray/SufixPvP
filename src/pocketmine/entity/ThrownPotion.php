@@ -1,35 +1,40 @@
 <?php
 
-/*
+/**
  *
- *  _____   _____   __   _   _   _____  __    __  _____
- * /  ___| | ____| |  \ | | | | /  ___/ \ \  / / /  ___/
- * | |     | |__   |   \| | | | | |___   \ \/ /  | |___
- * | |  _  |  __|  | |\   | | | \___  \   \  /   \___  \
- * | |_| | | |___  | | \  | | |  ___| |   / /     ___| |
- * \_____/ |_____| |_|  \_| |_| /_____/  /_/     /_____/
+ *  ____       _                          _
+ * |  _ \ _ __(_)___ _ __ ___   __ _ _ __(_)_ __   ___
+ * | |_) | '__| / __| '_ ` _ \ / _` | '__| | '_ \ / _ \
+ * |  __/| |  | \__ \ | | | | | (_| | |  | | | | |  __/
+ * |_|   |_|  |_|___/_| |_| |_|\__,_|_|  |_|_| |_|\___|
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
+ * Prismarine is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * @author iTX Technologies
- * @link https://itxtech.org
+ * @author Prismarine Team
+ * @link   https://github.com/PrismarineMC/Prismarine
+ *
  *
  */
 
+declare(strict_types=1);
+
 namespace pocketmine\entity;
 
+use pocketmine\entity\Living;
 use pocketmine\item\Potion;
 use pocketmine\level\Level;
-use pocketmine\level\particle\SpellParticle;
+use pocketmine\level\particle\SplashPotionParticle;
 use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\nbt\tag\ShortTag;
 use pocketmine\network\mcpe\protocol\AddEntityPacket;
+use pocketmine\network\mcpe\protocol\LevelSoundEventPacket;
 use pocketmine\Player;
+use pocketmine\utils\Color;
 
-class ThrownPotion extends Projectile {
+class ThrownPotion extends Projectile{
 	const NETWORK_ID = 86;
 
 	const DATA_POTION_ID = 37;
@@ -56,8 +61,6 @@ class ThrownPotion extends Projectile {
 		}
 
 		parent::__construct($level, $nbt, $shootingEntity);
-
-		unset($this->dataProperties[self::DATA_SHOOTER_ID]);
 		$this->setDataProperty(self::DATA_POTION_ID, self::DATA_TYPE_SHORT, $this->getPotionId());
 	}
 
@@ -71,37 +74,74 @@ class ThrownPotion extends Projectile {
 	public function splash(){
 		if(!$this->hasSplashed){
 			$this->hasSplashed = true;
-			$color = Potion::getColor($this->getPotionId());
-			$this->getLevel()->addParticle(new SpellParticle($this, $color[0], $color[1], $color[2]));
-			$radius = 6;
-			foreach ($this->getLevel()->getNearbyEntities($this->getBoundingBox()->grow($radius, $radius, $radius)) as $p) {
-				foreach(Potion::getEffectsById($this->getPotionId()) as $effect){
-					$p->addEffect($effect);
+			$color = [0x38, 0x5d, 0xc6];
+			$effect = Potion::getEffectByMeta($this->getPotionId());
+			if($effect !== null){
+				$color = $effect->getColor();
+			}
+			$this->getLevel()->addParticle(new SplashPotionParticle($this, $color[0], $color[1], $color[2]));
+			$this->getLevel()->broadcastLevelSoundEvent($this, LevelSoundEventPacket::SOUND_GLASS);
+			if($effect !== null){
+				foreach($this->getLevel()->getNearbyEntities($this->getBoundingBox()->grow(4.125, 2.125, 4.125)) as $e){
+					if($e instanceof Living){
+						$distanceSquared = $e->distanceSquared($this);
+						if($distanceSquared > 16){
+							continue;
+						}
+						$modifier = 0.25 * (4 - floor(sqrt($distanceSquared)));
+						if($modifier <= 0){
+							continue;
+						}
+						$eff = clone $effect;
+						if($eff->isInstant()){
+							$eff->setPotency($modifier);
+						}else{
+							$duration = (int) round($effect->getDuration() * 0.75 * $modifier);
+							if($duration < 20){
+								continue;
+							}
+							$eff->setDuration($duration);
+						}
+						$e->addEffect($eff);
+					}
 				}
 			}
 
-			$this->flagForDespawn();
+			$this->kill();
 		}
 	}
 
+	public function onCollideWithEntity(Entity $entity){
+		if($entity instanceof Player and $entity->isSpectator()){
+			return;
+		}
+		
+		$this->splash();
+	}
+
 	/**
-	 * @param $tickDiff
+	 * @param $currentTick
 	 *
 	 * @return bool
 	 */
-	public function entityBaseTick($tickDiff = 1){
+	public function onUpdate($currentTick){
 		if($this->closed){
 			return false;
 		}
 
-		$hasUpdate = parent::entityBaseTick($tickDiff);
+		$this->timings->startTiming();
 
-		$this->age++;
+		$hasUpdate = parent::onUpdate($currentTick);
 
-		if($this->age > 1200 or $this->isCollided){
+		if($this->age > 1200){
+			$this->kill();
+			$hasUpdate = true;
+		}elseif($this->isCollided){
 			$this->splash();
 			$hasUpdate = true;
 		}
+
+		$this->timings->stopTiming();
 
 		return $hasUpdate;
 	}
@@ -112,7 +152,7 @@ class ThrownPotion extends Projectile {
 	public function spawnTo(Player $player){
 		$pk = new AddEntityPacket();
 		$pk->type = ThrownPotion::NETWORK_ID;
-		$pk->eid = $this->getId();
+		$pk->entityRuntimeId = $this->getId();
 		$pk->x = $this->x;
 		$pk->y = $this->y;
 		$pk->z = $this->z;

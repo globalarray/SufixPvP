@@ -19,11 +19,15 @@ class BaseClassLoader extends \Threaded implements ClassLoader{
 
 	/** @var \ClassLoader */
 	private $parent;
-	/** @var \Threaded|string[] */
+	/** @var string[] */
 	private $lookup;
-	/** @var \Threaded|string[] */
+	/** @var string[] */
 	private $classes;
 
+
+	/**
+	 * @param ClassLoader $parent
+	 */
 	public function __construct(ClassLoader $parent = null){
 		$this->parent = $parent;
 		$this->lookup = new \Threaded;
@@ -35,8 +39,6 @@ class BaseClassLoader extends \Threaded implements ClassLoader{
 	 *
 	 * @param string $path
 	 * @param bool   $prepend
-	 *
-	 * @return void
 	 */
 	public function addPath($path, $prepend = false){
 
@@ -47,7 +49,7 @@ class BaseClassLoader extends \Threaded implements ClassLoader{
 		}
 
 		if($prepend){
-			$this->lookup->synchronized(function($path){
+			$this->synchronized(function($path){
 				$entries = $this->getAndRemoveLookupEntries();
 				$this->lookup[] = $path;
 				foreach($entries as $entry){
@@ -58,14 +60,11 @@ class BaseClassLoader extends \Threaded implements ClassLoader{
 			$this->lookup[] = $path;
 		}
 	}
-
-	/**
-	 * @return string[]
-	 */
+	
 	protected function getAndRemoveLookupEntries(){
 		$entries = [];
-		while($this->lookup->count() > 0){
-			$entries[] = $this->lookup->shift();
+		while($this->count() > 0){
+			$entries[] = $this->shift();
 		}
 		return $entries;
 	}
@@ -113,9 +112,7 @@ class BaseClassLoader extends \Threaded implements ClassLoader{
 	 * @return bool
 	 */
 	public function register($prepend = false){
-		return spl_autoload_register(function(string $name) : void{
-			$this->loadClass($name);
-		}, true, $prepend);
+		spl_autoload_register([$this, "loadClass"], true, $prepend);
 	}
 
 	/**
@@ -153,13 +150,18 @@ class BaseClassLoader extends \Threaded implements ClassLoader{
 	 * @return string|null
 	 */
 	public function findClass($name){
-		$baseName = str_replace("\\", DIRECTORY_SEPARATOR, $name);
+		$components = explode("\\", $name);
+
+		$baseName = implode(DIRECTORY_SEPARATOR, $components);
 
 
 		foreach($this->lookup as $path){
-			$filename = $path . DIRECTORY_SEPARATOR . $baseName . ".php";
-			if(file_exists($filename)){
-				return $filename;
+			if(PHP_INT_SIZE === 8 and file_exists($path . DIRECTORY_SEPARATOR . $baseName . "__64bit.php")){
+				return $path . DIRECTORY_SEPARATOR . $baseName . "__64bit.php";
+			}elseif(PHP_INT_SIZE === 4 and file_exists($path . DIRECTORY_SEPARATOR . $baseName . "__32bit.php")){
+				return $path . DIRECTORY_SEPARATOR . $baseName . "__32bit.php";
+			}elseif(file_exists($path . DIRECTORY_SEPARATOR . $baseName . ".php")){
+				return $path . DIRECTORY_SEPARATOR . $baseName . ".php";
 			}
 		}
 

@@ -19,70 +19,51 @@
  *
 */
 
+declare(strict_types=1);
+
 namespace pocketmine\item;
 
 use pocketmine\entity\Entity;
+use pocketmine\entity\Human;
 use pocketmine\event\entity\EntityEatItemEvent;
 use pocketmine\network\mcpe\protocol\EntityEventPacket;
+use pocketmine\network\mcpe\protocol\LevelSoundEventPacket;
 use pocketmine\Player;
 
-abstract class Food extends Item implements FoodSource {
-	/**
-	 * @return bool
-	 */
+abstract class Food extends Item implements FoodSource{
 	public function canBeConsumed() : bool{
 		return true;
 	}
 
-	public function requiresHunger() : bool{
-		return true;
-	}
-
-	/**
-	 * @param Entity $entity
-	 *
-	 * @return bool
-	 */
 	public function canBeConsumedBy(Entity $entity) : bool{
-		if (!$this->requiresHunger()) {
-			return $entity instanceof Player;
-		}
-		return $entity instanceof Player and ($entity->getFood() < $entity->getMaxFood()) and $this->canBeConsumed();
+		return $entity instanceof Human and $entity->getFood() < $entity->getMaxFood();
 	}
 
-	/**
-	 * @return Food|Item
-	 */
 	public function getResidue(){
 		if($this->getCount() === 1){
 			return Item::get(0);
 		}else{
 			$new = clone $this;
-			$new->pop();
+			$new->count--;
 			return $new;
 		}
 	}
 
-	/**
-	 * @return array
-	 */
 	public function getAdditionalEffects() : array{
 		return [];
 	}
 
-	/**
-	 * @param Entity $human
-	 */
 	public function onConsume(Entity $human){
 		$pk = new EntityEventPacket();
-		$pk->eid = $human->getId();
+		$pk->entityRuntimeId = $human->getId();
 		$pk->event = EntityEventPacket::USE_ITEM;
 		if($human instanceof Player){
 			$human->dataPacket($pk);
 		}
 		$human->getLevel()->getServer()->broadcastPacket($human->getViewers(), $pk);
+		$human->getLevel()->broadcastLevelSoundEvent($human->add(0, 2, 0), LevelSoundEventPacket::SOUND_BURP);
 
-		$human->getLevel()->getServer()->getPluginManager()->callEvent($ev = new EntityEatItemEvent($human, $this));
+		$ev = new EntityEatItemEvent($human, $this);
 
 		$human->addSaturation($ev->getSaturationRestore());
 		$human->addFood($ev->getFoodRestore());

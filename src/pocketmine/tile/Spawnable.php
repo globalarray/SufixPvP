@@ -19,6 +19,8 @@
  *
 */
 
+declare(strict_types=1);
+
 namespace pocketmine\tile;
 
 use pocketmine\level\Level;
@@ -28,6 +30,7 @@ use pocketmine\network\mcpe\protocol\BlockEntityDataPacket;
 use pocketmine\Player;
 
 abstract class Spawnable extends Tile{
+
 	/** @var string|null */
 	private $spawnCompoundCache = null;
 	/** @var NBT|null */
@@ -53,34 +56,9 @@ abstract class Spawnable extends Tile{
 		return true;
 	}
 
-	/**
-	 * Spawnable constructor.
-	 *
-	 * @param Level       $level
-	 * @param CompoundTag $nbt
-	 */
 	public function __construct(Level $level, CompoundTag $nbt){
 		parent::__construct($level, $nbt);
 		$this->spawnToAll();
-	}
-
-	public function spawnToAll(){
-		if($this->closed){
-			return;
-		}
-
-		$this->level->broadcastPacketToViewers($this, $this->createSpawnPacket());
-	}
-
-	/**
-	 * Performs actions needed when the tile is modified, such as clearing caches and respawning the tile to players.
-	 * WARNING: This MUST be called to clear spawn-compound and chunk caches when the tile's spawn compound has changed!
-	 */
-	protected function onChanged(){
-		$this->spawnCompoundCache = null;
-		$this->spawnToAll();
-
-		$this->level->clearChunkCache($this->getFloorX() >> 4, $this->getFloorZ() >> 4);
 	}
 
 	/**
@@ -102,10 +80,42 @@ abstract class Spawnable extends Tile{
 		return $this->spawnCompoundCache;
 	}
 
+	public function spawnToAll(){
+		if($this->closed){
+			return;
+		}
+
+		$this->level->broadcastPacketToViewers($this, $this->createSpawnPacket());
+	}
+
+	protected function onChanged(){
+		$this->spawnCompoundCache = null;
+		$this->spawnToAll();
+
+		$this->level->clearChunkCache($this->getFloorX() >> 4, $this->getFloorZ() >> 4);
+	}
+
 	/**
 	 * @return CompoundTag
 	 */
-	public abstract function getSpawnCompound();
+	final public function getSpawnCompound() : CompoundTag{
+		$nbt = new CompoundTag("", [
+			$this->namedtag->id,
+			$this->namedtag->x,
+			$this->namedtag->y,
+			$this->namedtag->z
+		]);
+		$this->addAdditionalSpawnData($nbt);
+		return $nbt;
+	}
+
+	/**
+	 * An extension to getSpawnCompound() for
+	 * further modifying the generic tile NBT.
+	 *
+	 * @param CompoundTag $nbt
+	 */
+	abstract public function addAdditionalSpawnData(CompoundTag $nbt);
 
 	/**
 	 * Called when a player updates a block entity's NBT data

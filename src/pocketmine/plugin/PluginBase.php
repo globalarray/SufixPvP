@@ -24,7 +24,6 @@ namespace pocketmine\plugin;
 use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
 use pocketmine\command\PluginIdentifiableCommand;
-use pocketmine\scheduler\TaskScheduler;
 use pocketmine\Server;
 use pocketmine\utils\Config;
 
@@ -55,9 +54,6 @@ abstract class PluginBase implements Plugin {
 	/** @var PluginLogger */
 	private $logger;
 
-	/** @var TaskScheduler */
-	private $scheduler;
-
 	/**
 	 * Called when the plugin is loaded, before calling onEnable()
 	 */
@@ -76,7 +72,7 @@ abstract class PluginBase implements Plugin {
 	/**
 	 * @return bool
 	 */
-	public final function isEnabled(){
+	public final function isEnabled() : bool{
 		return $this->isEnabled === true;
 	}
 
@@ -97,21 +93,21 @@ abstract class PluginBase implements Plugin {
 	/**
 	 * @return bool
 	 */
-	public final function isDisabled(){
+	public final function isDisabled() : bool{
 		return $this->isEnabled === false;
 	}
 
 	/**
 	 * @return string
 	 */
-	public final function getDataFolder(){
+	public final function getDataFolder() : ?string{
 		return $this->dataFolder;
 	}
 
 	/**
 	 * @return PluginDescription
 	 */
-	public final function getDescription(){
+	public final function getDescription() : PluginDescription {
 		return $this->description;
 	}
 
@@ -132,14 +128,13 @@ abstract class PluginBase implements Plugin {
 		    $this->file = rtrim($file, "/" . DIRECTORY_SEPARATOR) . "/";
 			$this->configFile = $this->dataFolder . "config.yml";
 			$this->logger = new PluginLogger($this);
-			$this->scheduler = new TaskScheduler($this->logger);
 		}
 	}
 
 	/**
 	 * @return PluginLogger
 	 */
-	public function getLogger(){
+	public function getLogger() : PluginLogger{
 		return $this->logger;
 	}
 
@@ -176,7 +171,7 @@ abstract class PluginBase implements Plugin {
 	 *
 	 * @return bool
 	 */
-	public function onCommand(CommandSender $sender, Command $command, string $commandLabel, array $args) : bool{
+	public function onCommand(CommandSender $sender, Command $cmd, string $label, array $args) : bool{
 		return false;
 	}
 
@@ -210,7 +205,7 @@ abstract class PluginBase implements Plugin {
 	 *
 	 * @return bool
 	 */
-	public function saveResource($filename, $replace = false){
+	public function saveResource($filename, $replace = false) : bool{
 		if(trim($filename) === ""){
 			return false;
 		}
@@ -239,7 +234,7 @@ abstract class PluginBase implements Plugin {
 	 *
 	 * @return string[]
 	 */
-	public function getResources(){
+	public function getResources() : array{
 		$resources = [];
 		if(is_dir($this->file . "resources/")){
 			foreach(new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($this->file . "resources/")) as $resource){
@@ -255,7 +250,7 @@ abstract class PluginBase implements Plugin {
 	/**
 	 * @return Config
 	 */
-	public function getConfig(){
+	public function getConfig() : Config{
 		if(!isset($this->config)){
 			$this->reloadConfig();
 		}
@@ -275,7 +270,7 @@ abstract class PluginBase implements Plugin {
 	/**
 	 *
 	 */
-	public function saveDefaultConfig(){
+	public function saveDefaultConfig() : bool{
 		if(!file_exists($this->configFile)){
 			$this->saveResource("config.yml", false);
 		}
@@ -294,14 +289,14 @@ abstract class PluginBase implements Plugin {
 	/**
 	 * @return Server
 	 */
-	public final function getServer(){
+	public final function getServer() : Server{
 		return $this->server;
 	}
 
 	/**
 	 * @return string
 	 */
-	public final function getName(){
+	public final function getName() : string{
 		return $this->description->getName();
 	}
 
@@ -326,10 +321,4 @@ abstract class PluginBase implements Plugin {
 		return $this->loader;
 	}
 
-	/**
-	 * @return TaskScheduler
-	 */
-	public function getScheduler() : TaskScheduler{
-		return $this->scheduler;
-	}
 }

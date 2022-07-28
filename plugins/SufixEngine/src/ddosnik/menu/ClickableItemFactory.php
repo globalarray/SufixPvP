@@ -34,6 +34,7 @@ class ClickableItemFactory {
 			self::$list['ffa_fist'] = JoinArenaFistItem::class;
 			self::$list['ffa_resistance'] = JoinArenaResistanceItem::class;
 			self::$list['item_quit'] = QuitItem::class;
+			self::$list['item_cloaks'] = CloaksListItem::class;
 		}
 	}
 

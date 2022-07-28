@@ -101,8 +101,8 @@ class EventHandler implements Listener{
 
     public function handleJoin(PlayerJoinEvent $event) : void{
         $player = $event->getPlayer();
-        $this->main->getScheduler()->scheduleDelayedTask(new SendGuardian($player), 90);
-        $this->main->getScheduler()->scheduleDelayedTask(new HelloTitle($player), 100);
+        $this->main->getServer()->getScheduler()->scheduleDelayedTask(new SendGuardian($player), 90);
+        $this->main->getServer()->getScheduler()->scheduleDelayedTask(new HelloTitle($player), 100);
         $this->log(TextFormat::GREEN . $player->getName() . TextFormat::WHITE . ' присоединился на сервер');
         $this->createData($player);
     }

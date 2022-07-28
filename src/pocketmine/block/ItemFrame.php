@@ -2,61 +2,50 @@
 
 /*
  *
- *  _____   _____   __   _   _   _____  __    __  _____
- * /  ___| | ____| |  \ | | | | /  ___/ \ \  / / /  ___/
- * | |     | |__   |   \| | | | | |___   \ \/ /  | |___
- * | |  _  |  __|  | |\   | | | \___  \   \  /   \___  \
- * | |_| | | |___  | | \  | | |  ___| |   / /     ___| |
- * \_____/ |_____| |_|  \_| |_| /_____/  /_/     /_____/
+ *  ____            _        _   __  __ _                  __  __ ____
+ * |  _ \ ___   ___| | _____| |_|  \/  (_)_ __   ___      |  \/  |  _ \
+ * | |_) / _ \ / __| |/ / _ \ __| |\/| | | '_ \ / _ \_____| |\/| | |_) |
+ * |  __/ (_) | (__|   <  __/ |_| |  | | | | | |  __/_____| |  | |  __/
+ * |_|   \___/ \___|_|\_\___|\__|_|  |_|_|_| |_|\___|     |_|  |_|_|
  *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
+ * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * @author iTX Technologies
- * @link https://itxtech.org
+ * @author PocketMine Team
+ * @link http://www.pocketmine.net/
  *
- */
+ *
+*/
+
+declare(strict_types=1);
 
 namespace pocketmine\block;
 
 use pocketmine\item\Item;
 use pocketmine\level\Level;
-use pocketmine\level\sound\ItemFrameAddItemSound;
-use pocketmine\level\sound\ItemFrameRotateItemSound;
-use pocketmine\nbt\tag\{ByteTag, CompoundTag, FloatTag, IntTag, StringTag};
+use pocketmine\nbt\tag\{
+	ByteTag, CompoundTag, FloatTag, IntTag, StringTag
+};
 use pocketmine\Player;
 use pocketmine\tile\ItemFrame as TileItemFrame;
 use pocketmine\tile\Tile;
 
-class ItemFrame extends Flowable {
+class ItemFrame extends Flowable{
 	protected $id = Block::ITEM_FRAME_BLOCK;
 
-	/**
-	 * ItemFrame constructor.
-	 *
-	 * @param int $meta
-	 */
 	public function __construct($meta = 0){
 		$this->meta = $meta;
 	}
 
-	/**
-	 * @return string
-	 */
-	public function getName() : string{
+	public function getName(){
 		return "Item Frame";
 	}
 
-	/**
-	 * @param Item        $item
-	 * @param Player|null $player
-	 *
-	 * @return bool
-	 */
 	public function onActivate(Item $item, Player $player = null){
-		if(!(($tile = $this->level->getTile($this)) instanceof TileItemFrame)){
+		$tile = $this->level->getTile($this);
+		if(!($tile instanceof TileItemFrame)){
 			$nbt = new CompoundTag("", [
 				new StringTag("id", Tile::ITEM_FRAME),
 				new IntTag("x", $this->x),
@@ -70,22 +59,24 @@ class ItemFrame extends Flowable {
 
 		if($tile->hasItem()){
 			$tile->setItemRotation(($tile->getItemRotation() + 1) % 8);
-			$this->getLevel()->addSound(new ItemFrameRotateItemSound($this));
-		}elseif(!$item->isNull()){
-			$tile->setItem($item->pop());
-			$this->getLevel()->addSound(new ItemFrameAddItemSound($this));
+		}else{
+			if($item->getCount() > 0){
+				$frameItem = clone $item;
+				$frameItem->setCount(1);
+				$item->setCount($item->getCount() - 1);
+				$tile->setItem($frameItem);
+				if($player instanceof Player and $player->isSurvival()){
+					$player->getInventory()->setItemInHand($item->getCount() <= 0 ? Item::get(Item::AIR) : $item);
+				}
+			}
 		}
 
 		return true;
 	}
 
-	/**
-	 * @param Item $item
-	 *
-	 * @return mixed
-	 */
 	public function onBreak(Item $item){
-		if(($tile = $this->level->getTile($this)) instanceof TileItemFrame){
+		$tile = $this->level->getTile($this);
+		if($tile instanceof TileItemFrame){
 			//TODO: add events
 			if(lcg_value() <= $tile->getItemDropChance() and $tile->getItem()->getId() !== Item::AIR){
 				$this->level->dropItem($tile->getBlock(), $tile->getItem());
@@ -94,11 +85,6 @@ class ItemFrame extends Flowable {
 		return parent::onBreak($item);
 	}
 
-	/**
-	 * @param int $type
-	 *
-	 * @return bool|int
-	 */
 	public function onUpdate($type){
 		if($type === Level::BLOCK_UPDATE_NORMAL){
 			$sides = [
@@ -107,7 +93,7 @@ class ItemFrame extends Flowable {
 				2 => 2,
 				3 => 3
 			];
-		    if(isset($sides[$this->meta]) and !$this->getSide($sides[$this->meta])->isSolid()){
+			if(!$this->getSide($sides[$this->meta])->isSolid()){
 				$this->level->useBreakOn($this);
 				return Level::BLOCK_UPDATE_NORMAL;
 			}
@@ -115,20 +101,8 @@ class ItemFrame extends Flowable {
 		return false;
 	}
 
-	/**
-	 * @param Item        $item
-	 * @param Block       $block
-	 * @param Block       $target
-	 * @param int         $face
-	 * @param float       $fx
-	 * @param float       $fy
-	 * @param float       $fz
-	 * @param Player|null $player
-	 *
-	 * @return bool
-	 */
 	public function place(Item $item, Block $block, Block $target, $face, $fx, $fy, $fz, Player $player = null){
-		if($face === 0 or $face === 1 or !$target->isSolid()){
+		if($face === 0 or $face === 1){
 			return false;
 		}
 
@@ -163,12 +137,7 @@ class ItemFrame extends Flowable {
 
 	}
 
-	/**
-	 * @param Item $item
-	 *
-	 * @return array
-	 */
-	public function getDrops(Item $item) : array{
+	public function getDrops(Item $item){
 		return [
 			[Item::ITEM_FRAME, 0, 1]
 		];

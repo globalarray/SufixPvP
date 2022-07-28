@@ -36,9 +36,9 @@ final class EventHandler implements Listener{
 	public function handleEntityLevelChange(EntityLevelChangeEvent $event) : void{
 		if(($player = $event->getEntity()) instanceof Player){
 			if($event->getTarget() === $this->main->getServer()->getDefaultLevel()){
-				$this->main->getServer()->getAsyncPool()->submitTask(new ParticleSpawn($this->main->getParticles(), $player->getName()));
+				$this->main->getServer()->getScheduler()->scheduleAsyncTask(new ParticleSpawn($this->main->getParticles(), $player->getName()));
 			}else{
-				$this->main->getServer()->getAsyncPool()->submitTask(new ParticleDespawn($this->main->getParticles(), $player->getName()));
+				$this->main->getServer()->getScheduler()->scheduleAsyncTask(new ParticleDespawn($this->main->getParticles(), $player->getName()));
 			}
 		}
 	}
@@ -52,7 +52,7 @@ final class EventHandler implements Listener{
 		$player = $event->getPlayer();
 		ParticleUpdate::getInstance()->statistics($this->main);
 		if($player->getLevel() === $this->main->getServer()->getDefaultLevel()){
-			$this->main->getServer()->getAsyncPool()->submitTask(new ParticleSpawn($this->main->getParticles(), $player->getName()));
+			$this->main->getServer()->getScheduler()->scheduleAsyncTask(new ParticleSpawn($this->main->getParticles(), $player->getName()));
 		}
 	}
 }

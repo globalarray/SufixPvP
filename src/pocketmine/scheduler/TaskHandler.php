@@ -19,6 +19,8 @@
  *
 */
 
+declare(strict_types=1);
+
 namespace pocketmine\scheduler;
 
 use pocketmine\event\Timings;
@@ -45,111 +47,121 @@ class TaskHandler{
 	protected $cancelled = false;
 
 	/** @var TimingsHandler */
-	private $timings;
+	public $timings;
 
-	/** @var string */
-	private $taskName;
-	/** @var string */
-	private $ownerName;
+	public $timingName = null;
 
 	/**
-	 * @param Task        $task
-	 * @param int         $taskId
-	 * @param int         $delay
-	 * @param int         $period
-	 * @param string|null $ownerName
+	 * @param string $timingName
+	 * @param Task   $task
+	 * @param int    $taskId
+	 * @param int    $delay
+	 * @param int    $period
 	 */
-	public function __construct(Task $task, int $taskId, int $delay = -1, int $period = -1, ?string $ownerName = null){
-		if($task->getHandler() !== null){
-			throw new \InvalidArgumentException("Cannot assign multiple handlers to the same task");
-		}
+	public function __construct(string $timingName, Task $task, int $taskId, int $delay = -1, int $period = -1){
 		$this->task = $task;
 		$this->taskId = $taskId;
 		$this->delay = $delay;
 		$this->period = $period;
-		$this->taskName = $task->getName();
-		$this->ownerName = $ownerName ?? "Unknown";
-		$this->timings = Timings::getScheduledTaskTimings($this, $period);
+		$this->timingName = $timingName ?? "Unknown";
+		$this->timings = Timings::getPluginTaskTimings($this, $period);
 		$this->task->setHandler($this);
 	}
 
-	public function isCancelled(){
-		return $this->cancelled;
+	/**
+	 * @return bool
+	 */
+	public function isCancelled() : bool{
+		return $this->cancelled === true;
 	}
 
-	public function getNextRun(){
+	/**
+	 * @return int
+	 */
+	public function getNextRun() : int{
 		return $this->nextRun;
 	}
 
 	/**
-	 * @return void
+	 * @param int $ticks
 	 */
-	public function setNextRun($ticks){
+	public function setNextRun(int $ticks){
 		$this->nextRun = $ticks;
 	}
 
+	/**
+	 * @return int
+	 */
 	public function getTaskId() : int{
 		return $this->taskId;
 	}
 
-	public function getTask(){
+	/**
+	 * @return Task
+	 */
+	public function getTask() : Task{
 		return $this->task;
 	}
 
-	public function getDelay(){
+	/**
+	 * @return int
+	 */
+	public function getDelay() : int{
 		return $this->delay;
 	}
 
-	public function isDelayed(){
+	/**
+	 * @return bool
+	 */
+	public function isDelayed() : bool{
 		return $this->delay > 0;
 	}
 
-	public function isRepeating(){
+	/**
+	 * @return bool
+	 */
+	public function isRepeating() : bool{
 		return $this->period > 0;
 	}
 
-	public function getPeriod(){
+	/**
+	 * @return int
+	 */
+	public function getPeriod() : int{
 		return $this->period;
 	}
 
 	/**
-	 * @return void
+	 * WARNING: Do not use this, it's only for internal use.
+	 * Changes to this function won't be recorded on the version.
 	 */
 	public function cancel(){
-		try{
-			if(!$this->isCancelled()){
-				$this->task->onCancel();
-			}
-		}finally{
-			$this->remove();
+		if(!$this->isCancelled()){
+			$this->task->onCancel();
 		}
+		$this->remove();
 	}
 
-	/**
-	 * @return void
-	 */
 	public function remove(){
 		$this->cancelled = true;
 		$this->task->setHandler(null);
 	}
 
 	/**
-	 * @return void
+	 * @param int $currentTick
 	 */
 	public function run(int $currentTick){
-		$this->timings->startTiming();
-		try{
-			$this->task->onRun($currentTick);
-		}finally{
-			$this->timings->stopTiming();
+		$this->task->onRun($currentTick);
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getTaskName() : string{
+		if($this->timingName !== null){
+			return $this->timingName;
 		}
-	}
 
-	public function getTaskName(){
-		return $this->taskName;
-	}
-
-	public function getOwnerName() : string{
-		return $this->ownerName;
+		return get_class($this->task);
 	}
 }

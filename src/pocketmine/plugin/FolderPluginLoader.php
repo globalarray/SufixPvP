@@ -30,9 +30,11 @@
 
 namespace pocketmine\plugin;
 
+use pocketmine\Server;
+
+
 use pocketmine\event\plugin\PluginDisableEvent;
 use pocketmine\event\plugin\PluginEnableEvent;
-use pocketmine\Server;
 use pocketmine\utils\MainLogger;
 use pocketmine\utils\TextFormat;
 
@@ -110,12 +112,8 @@ class FolderPluginLoader implements PluginLoader {
 	 *
 	 * @return array|string
 	 */
-	public function getPluginFilters(){
+	public function getPluginFilters() : string{
 		return "/[^\\.]/";
-	}
-
-	public function canLoadPlugin(string $path) : bool{
-		return is_dir($path) and file_exists($path . "/plugin.yml") and file_exists($path . "/src/");
 	}
 
 	/**

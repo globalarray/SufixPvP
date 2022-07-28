@@ -1,187 +1,193 @@
-# Основной файл конфигурации для PocketMine-MP
-# Эти параметры не могут быть включены в server.properties
-# Некоторые из этих настроек безопасны, другие могут сломать ваш сервер при неправильном изменении
-# Новые настройки/значения по умолчанию не будут автоматически отображаться в этом файле при обновлении.
+# Main configuration file for PocketMine-MP
+# These settings are the ones that cannot be included in server.properties
+# Some of these settings are safe, others can break your server if modified incorrectly
+# New settings/defaults won't appear automatically on this file when upgrading.
 
 settings:
- #Трехбуквенный языковой код для серверной локализации
- #Проверьте свой языковой код на https://en.wikipedia.org/wiki/List_of_ISO_639-2_codes
+ #Three-letter language code for server-side localization
+ #Check your language code on https://en.wikipedia.org/wiki/List_of_ISO_639-2_codes
  language: "rus"
- #Отправлять ли все строки, переведенные в локаль сервера, или позволить устройству обрабатывать их
+ #Whether to send all strings translated to server locale or let the device handle them
  force-language: false
- #Когда сервер выключится, игроки будут выгнаны, и это будет отображаться на экране.
  shutdown-message: "Server closed"
- #Разрешить перечисление плагинов через Query
- query-plugins: false
- #Включить плагин и профилирование ядра по умолчанию
+ #Allow listing plugins via Query
+ query-plugins: true
+ #Show a console message when a plugin uses deprecated API methods
+ deprecated-verbose: true
+ #Enable plugin and core profiling by default
  enable-profiling: false
- #Результаты будут добавляться только в том случае, если измерение тиков ниже или равно заданному значению (по умолчанию 20)
+ #Will only add results when tick measurement is below or equal to given value (default 20)
  profile-report-trigger: 20
- #Количество работников AsyncTask.
- #Используется для плагинов асинхронных задач, генерации мира, сжатия и веб-коммуникации.
- #Установите это примерно на ваше количество ядер.
- #Если установлено значение auto, оно будет пытаться определить количество ядер (или использовать 2).
+ #Number of AsyncTask workers.
+ #Used for plugin asynchronous tasks, world generation, compression and web communication.
+ #Set this approximately to your number of cores.
+ #If set to auto, it'll try to detect the number of cores (or use 2)
  async-workers: auto
- #Позволяет использовать непроизводственные, разрабатываемые сборки. ВНИМАНИЕ: НЕ включайте это, если вы не уверены, что знаете, что делаете.
- enable-testing: false
 
 memory:
- #Глобальный программный лимит памяти в мегабайтах. Установите 0, чтобы отключить
- #Это вызовет триггеры с низким объемом памяти и вызовет событие для освобождения памяти, когда использование превысит это
+ #Global soft memory limit in megabytes. Set to 0 to disable
+ #This will trigger low-memory-triggers and fire an event to free memory when the usage goes over this
  global-limit: 0
 
- #Основной поток мягкой памяти ограничен в мегабайтах. Установите 0, чтобы отключить
- #Это вызовет триггеры с низким объемом памяти и вызовет событие для освобождения памяти, когда использование превысит это
+ #Main thread soft memory limit in megabytes. Set to 0 to disable
+ #This will trigger low-memory-triggers and fire an event to free memory when the usage goes over this
  main-limit: 0
 
- #Основной поток жесткого лимит памяти в мегабайтах. Установите 0, чтобы отключить
- #Это остановит сервер при превышении лимита
- main-hard-limit: 0
+ #Main thread hard memory limit in megabytes. Set to 0 to disable
+ #This will stop the server when the limit is surpassed
+ main-hard-limit: 1024
 
- #Жесткий предел памяти потоков AsyncWorker в мегабайтах. Установите 0, чтобы отключить
- #Это приведет к сбою задачи, выполняемой в данный момент, если она превысит заданный лимит
- #ПРИМЕЧАНИЕ: ДАННЫЙ ПРЕДЕЛ применяется к работнику, а НЕ ко всему процессу.
- #Не ставьте тут 8 миллионов гигабайт, в случае утечки озу в таксе плагина, таск захватит хоть 1ТБ памяти.
- async-worker-hard-limit: 256
-
- #Период в тиках для проверки памяти (по умолчанию 1 секунда)
+ #Period in ticks to check memory (default 1 second)
  check-rate: 20
 
- #Продолжать запускать триггеры с малым объемом памяти и события, находясь на малой памяти
+ #Continue firing low-memory-triggers and event while on low memory
  continuous-trigger: true
 
- #Только если memory.continuous-trigger включен. Указывает скорость в шагах memory.check-rate (по умолчанию 30 секунд)
+ #Only if memory.continuous-trigger is enabled. Specifies the rate in memory.check-rate steps (default 30 seconds)
  continuous-trigger-rate: 30
 
  garbage-collection:
- #Период в тиках для запуска сборщика мусора вручную (по умолчанию 30 минут), установите 0, чтобы отключить
- #Это влияет только на основной поток. Другие темы должны запускать свои собственные коллекции
- period: 36000
+  #Period in ticks to fire the garbage collector manually (default 30 minutes), set to 0 to disable
+  #This only affect the main thread. Other threads should fire their own collections
+  period: 36000
 
- #Запускать асинхронные задачи по сбору мусора у рабочих
- collect-async-worker: true
+  #Fire asynchronous tasks to collect garbage from workers
+  collect-async-worker: true
 
- #Триггер на низком уровне памяти
- low-memory-trigger: true
-
- #Настройки, управляющие дампом памяти.
- memory-dump:
-  #Дамп памяти из асинхронных рабочих процессов, а также из основного потока. Если у вас возникают проблемы с ошибками сегментации при дампе памяти, отключите этот параметр.
-  dump-async-worker: true
+  #Trigger on low memory
+  low-memory-trigger: true
 
  max-chunks:
-  #Максимальное расстояние рендеринга для каждого игрока при низком уровне памяти. Установите значение 0, чтобы отключить
+  #Maximum render distance per player when low memory is triggered
   chunk-radius: 4
 
-  #Делать сборку мусора на триггере
+  #Do chunk garbage collection on trigger
   trigger-chunk-collect: true
 
+  #Trigger on low memory
+  low-memory-trigger: true
+
  world-caches:
-  #Запретить добавление в общий кэш чанков пакетов при нехватке памяти
   disable-chunk-cache: true
-  #Очистить кеш мира, когда памяти мало
   low-memory-trigger: true
 
 
 network:
- #Порог для пакетных пакетов, в байтах. Только эти пакеты будут сжаты
- #Установите 0, чтобы сжать все, -1, чтобы отключить.
+ #Threshold for batching packets, in bytes. Only these packets will be compressed
+ #Set to 0 to compress everything, -1 to disable.
  batch-threshold: 256
- #Уровень сжатия, используемый при отправке пакетных пакетов. Более высокий = использует больше ЦП, меньше = больше использует пропускную способность
- compression-level: 6
- #Используйте AsyncTasks для сжатия. Добавляет половину / одну задержку тика, меньше нагрузку на процессор в основном потоке
+ #Compression level used when sending batched packets. Higher = more CPU, less bandwidth usage
+ compression-level: 7
+ #Use AsyncTasks for compression. Adds half/one tick delay, less CPU load on main thread
  async-compression: false
- #Экспериментальный. Используйте UPnP для автоматической переадресации портов
+ #Experimental, only for Windows. Tries to use UPnP to automatically port forward
  upnp-forwarding: false
- #Максимальный размер в байтах пакетов, передаваемых по сети (по умолчанию 1492 байта). Пакеты большего размера, чем этот будут
- #фрагментированы или разделены на более мелкие части. Клиенты могут запросить размеры MTU до этого числа, но не более.
- max-mtu-size: 1492
 
 debug:
- #Если больше 1, в консоли будут отображаться отладочные сообщения.
+ #To enable assertion execution, set zend.assertions in your php.ini to 1
+ assertions:
+  #Warn if assertions are enabled in php.ini, due to assertions may impact on runtime performance if enabled.
+  warn-if-enabled: false
+ #If > 1, it will show debug messages in the console
  level: 2
- #Если true, будет записывать логи.
- logs: false
-
+ #Enables /status, /gc
+ commands: true
+ 
 player:
- #Выберите, следует ли включить сохранение данных игрока.
+ #Choose whether to enable player data saving.
  save-player-data: true
- anti-cheat:
-  #Если параметр установлен в false, будет пытаться предотвратить читы на скорости и noclip. Может вызвать проблемы с движением.
-  allow-movement-cheats: true
 
 level-settings:
- #Формат по умолчанию, который уровни будут использовать при создании
- default-format: pocketmine_chunkutils
+ #The default format that levels will use when created
+ default-format: pmanvil
+ #Automatically change levels tick rate to maintain 20 ticks per second
+ auto-tick-rate: true
+ auto-tick-rate-limit: 20
+ #Sets the base tick rate (1 = 20 ticks per second, 2 = 10 ticks per second, etc.)
+ base-tick-rate: 1
+ #Tick all players each tick even when other settings disallow this.
+ always-tick-players: false
 
 chunk-sending:
- #Чтобы изменить нормальное расстояние рендеринга сервера, измените view-distance в server.properties.
- #Количество чанков, отправленных игрокам за тик
+ #To change server normal render distance, change view-distance in server.properties.
+ #Amount of chunks sent to players per tick
  per-tick: 4
- #Радиус кусков, которые необходимо отправить до появления игрока
+ #Radius of chunks that need to be sent before spawning the player
  spawn-radius: 4
+ #Save a serialized copy of the chunk in memory for faster sending
+ #Useful in mostly-static worlds where lots of players join at the same time
+ cache-chunks: false
 
 chunk-ticking:
- #Максимальное количество чанков, обработанных на каждый тик
+ #Max amount of chunks processed each tick
  per-tick: 40
- #Радиус кусков вокруг игрока, чтобы отметить
+ #Radius of chunks around a player to tick
  tick-radius: 3
  light-updates: false
  clear-tick-list: true
- #Идентификаторы блоков, чтобы не выполнять случайную пометку.
+ #IDs of blocks not to perform random ticking on.
  disable-block-ticking:
   #- 2 # grass
 
 chunk-generation:
- #Максимум. количество порций в очереди ожидания для заполнения
- population-queue-size: 32
+ #Max. amount of chunks in the waiting queue to be generated
+ queue-size: 8
+ #Max. amount of chunks in the waiting queue to be populated
+ population-queue-size: 8
 
 ticks-per:
- animal-spawns: 0
+ animal-spawns: 400
  monster-spawns: 1
  autosave: 6000
  cache-cleanup: 900
+
 spawn-limits:
-  monsters: 0
-  animals: 0
-  water-animals: 0
-  ambient: 0
+  monsters: 70
+  animals: 15
+  water-animals: 5
+  ambient: 15
 
 auto-report:
- #Отправить отчеты о сбоях для обработки
- enabled: false
+ #Send crash reports for processing
+ enabled: true
  send-code: true
  send-settings: true
- send-phpinfo: true
+ send-phpinfo: false
+ use-https: true
  host: crash.pmmp.io
 
-commands:
- #Здесь вы можете настроить серверные команды
- #Укажите имена команд для переопределения набора по умолчанию здесь.
- #Если для команды не указано пользовательское значение, будет использоваться значение по умолчанию.
- #ПРИМЕЧАНИЕ. Некоторые команды нельзя отключить, например, такие важные, как /stop, /reload, и так далее.
- default: true
- #Установите значения переопределения для каждой команды здесь
- #Например, раскомментирование ниже отключит /plugins and /version
- #версия: false
- #плагины: false
+anonymous-statistics:
+ #Sends anonymous statistics for data aggregation, plugin usage tracking
+ enabled: true
+ host: stats.pocketmine.net
+
+auto-updater:
+ enabled: false
+ on-update:
+  warn-console: true
+  warn-ops: true
+ #Can be development, alpha, beta or stable.
+ preferred-channel: stable
+ #If using a development version, it will suggest changing the channel
+ suggest-channels: true
+ host: update.pmmp.io
 
 timings:
- #Выберите хост, чтобы использовать для просмотра результатов таймингов.
+ #Choose the host to use for viewing your timings results.
  host: timings.pmmp.io
 
 console:
- #Выберите (true или false), следует ли включить отчет о состоянии сервера в заголовке консоли.
- #Заметка: заголовок будет отключен независимо от того, включены ли цвета в консоли.
- title-tick: false
+ #Choose whether to enable server stats reporting on the console title.
+ #NOTE: The title ticker will be disabled regardless if console colours are not enabled.
+ title-tick: true
 
 aliases:
- #Примеры:
- #Показать версию: version
- #Сохранить стоп: [save-all, stop]
+ #Examples:
+ #showtheversion: version
+ #savestop: [save-all, stop]
 
 worlds:
- #Эти настройки переопределяют генераторную установку в server.properties и позволяют загружать несколько уровней
+ #These settings will override the generator set in server.properties and allows loading multiple levels
  #Example:
  #world:
  # seed: 404

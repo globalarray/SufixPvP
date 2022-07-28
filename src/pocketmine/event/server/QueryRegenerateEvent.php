@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  *
  *  ____            _        _   __  __ _                  __  __ ____
  * |  _ \ ___   ___| | _____| |_|  \/  (_)_ __   ___      |  \/  |  _ \
@@ -14,54 +14,67 @@
  * (at your option) any later version.
  *
  * @author PocketMine Team
- * @link   http://www.pocketmine.net/
+ * @link http://www.pocketmine.net/
  *
  *
- */
+*/
+
+declare(strict_types=1);
 
 namespace pocketmine\event\server;
 
+use pocketmine\Player;
+use pocketmine\plugin\Plugin;
 use pocketmine\Server;
 use pocketmine\utils\Binary;
 
-class QueryRegenerateEvent extends ServerEvent {
+class QueryRegenerateEvent extends ServerEvent{
 	public static $handlerList = null;
 
 	const GAME_ID = "MINECRAFTPE";
 
+	/** @var int */
+	private $timeout;
+	/** @var string */
 	private $serverName;
+	/** @var bool */
 	private $listPlugins;
-	/** @var \pocketmine\plugin\Plugin[] */
+	/** @var Plugin[] */
 	private $plugins;
-	/** @var \pocketmine\Player[] */
+	/** @var Player[] */
 	private $players;
 
+	/** @var string */
 	private $gametype;
+	/** @var string */
 	private $version;
+	/** @var string */
 	private $server_engine;
+	/** @var string */
 	private $map;
+	/** @var int */
 	private $numPlayers;
+	/** @var int */
 	private $maxPlayers;
+	/** @var string */
 	private $whitelist;
+	/** @var int */
 	private $port;
+	/** @var string */
 	private $ip;
 
+	/** @var array */
 	private $extraData = [];
-
-	/** @var string|null */
-	private $longQueryCache = null;
-	/** @var string|null */
-	private $shortQueryCache = null;
 
 
 	/**
-	 * QueryRegenerateEvent constructor.
-	 *
 	 * @param Server $server
+	 * @param int    $timeout
 	 */
-	public function __construct(Server $server){
+	public function __construct(Server $server, int $timeout = 5){
+		$this->timeout = $timeout;
 		$this->serverName = $server->getMotd();
-		$this->listPlugins = (bool) $server->getProperty("settings.query-plugins", true);
+		$this->listPlugins = $server->getProperty("settings.query-plugins", true);
 		$this->plugins = $server->getPluginManager()->getPlugins();
 		$this->players = [];
 		foreach($server->getOnlinePlayers() as $player){
@@ -72,7 +85,7 @@ class QueryRegenerateEvent extends ServerEvent {
 
 		$this->gametype = ($server->getGamemode() & 0x01) === 0 ? "SMP" : "CMP";
 		$this->version = $server->getVersion();
-		$this->server_engine = $server->getName() . " (" . $server->getCodename() . ")";
+		$this->server_engine = $server->getName() . " " . $server->getPocketMineVersion();
 		$this->map = $server->getDefaultLevel() === null ? "unknown" : $server->getDefaultLevel()->getName();
 		$this->numPlayers = count($this->players);
 		$this->maxPlayers = $server->getMaxPlayers();
@@ -82,114 +95,118 @@ class QueryRegenerateEvent extends ServerEvent {
 
 	}
 
-	private function destroyCache() : void{
-		$this->longQueryCache = null;
-		$this->shortQueryCache = null;
+	/**
+	 * Gets the min. timeout for Query Regeneration
+	 *
+	 * @return int
+	 */
+	public function getTimeout() : int{
+		return $this->timeout;
+	}
+
+	/**
+	 * @param int $timeout
+	 */
+	public function setTimeout(int $timeout){
+		$this->timeout = $timeout;
 	}
 
 	/**
 	 * @return string
 	 */
-	public function getServerName(){
+	public function getServerName() : string{
 		return $this->serverName;
 	}
 
 	/**
-	 * @param $serverName
+	 * @param string $serverName
 	 */
-	public function setServerName($serverName){
+	public function setServerName(string $serverName){
 		$this->serverName = $serverName;
-		$this->destroyCache();
 	}
 
 	/**
-	 * @return mixed
+	 * @return bool
 	 */
-	public function canListPlugins(){
+	public function canListPlugins() : bool{
 		return $this->listPlugins;
 	}
 
 	/**
-	 * @param $value
+	 * @param bool $value
 	 */
-	public function setListPlugins($value){
-		$this->listPlugins = (bool) $value;
-		$this->destroyCache();
+	public function setListPlugins(bool $value){
+		$this->listPlugins = $value;
 	}
 
 	/**
-	 * @return \pocketmine\plugin\Plugin[]
+	 * @return Plugin[]
 	 */
-	public function getPlugins(){
+	public function getPlugins() : array{
 		return $this->plugins;
 	}
 
 	/**
-	 * @param \pocketmine\plugin\Plugin[] $plugins
+	 * @param Plugin[] $plugins
 	 */
 	public function setPlugins(array $plugins){
 		$this->plugins = $plugins;
-		$this->destroyCache();
 	}
 
 	/**
-	 * @return \pocketmine\Player[]
+	 * @return Player[]
 	 */
-	public function getPlayerList(){
+	public function getPlayerList() : array{
 		return $this->players;
 	}
 
 	/**
-	 * @param \pocketmine\Player[] $players
+	 * @param Player[] $players
 	 */
 	public function setPlayerList(array $players){
 		$this->players = $players;
-		$this->destroyCache();
 	}
 
 	/**
 	 * @return int
 	 */
-	public function getPlayerCount(){
+	public function getPlayerCount() : int{
 		return $this->numPlayers;
 	}
 
 	/**
-	 * @param $count
+	 * @param int $count
 	 */
-	public function setPlayerCount($count){
-		$this->numPlayers = (int) $count;
-		$this->destroyCache();
+	public function setPlayerCount(int $count){
+		$this->numPlayers = $count;
 	}
 
 	/**
 	 * @return int
 	 */
-	public function getMaxPlayerCount(){
+	public function getMaxPlayerCount() : int{
 		return $this->maxPlayers;
 	}
 
 	/**
-	 * @param $count
+	 * @param int $count
 	 */
-	public function setMaxPlayerCount($count){
-		$this->maxPlayers = (int) $count;
-		$this->destroyCache();
+	public function setMaxPlayerCount(int $count){
+		$this->maxPlayers = $count;
 	}
 
 	/**
 	 * @return string
 	 */
-	public function getWorld(){
+	public function getWorld() : string{
 		return $this->map;
 	}
 
 	/**
-	 * @param $world
+	 * @param string $world
 	 */
-	public function setWorld($world){
-		$this->map = (string) $world;
-		$this->destroyCache();
+	public function setWorld(string $world){
+		$this->map = $world;
 	}
 
 	/**
@@ -197,7 +214,7 @@ class QueryRegenerateEvent extends ServerEvent {
 	 *
 	 * @return array
 	 */
-	public function getExtraData(){
+	public function getExtraData() : array{
 		return $this->extraData;
 	}
 
@@ -206,16 +223,12 @@ class QueryRegenerateEvent extends ServerEvent {
 	 */
 	public function setExtraData(array $extraData){
 		$this->extraData = $extraData;
-		$this->destroyCache();
 	}
 
 	/**
 	 * @return string
 	 */
-	public function getLongQuery(){
-		if($this->longQueryCache !== null){
-			return $this->longQueryCache;
-		}
+	public function getLongQuery() : string{
 		$query = "";
 
 		$plist = $this->server_engine;
@@ -258,13 +271,14 @@ class QueryRegenerateEvent extends ServerEvent {
 		}
 		$query .= "\x00";
 
-		return $this->longQueryCache = $query;
+		return $query;
 	}
 
 	/**
 	 * @return string
 	 */
-	public function getShortQuery(){
-		return $this->shortQueryCache ?? ($this->shortQueryCache = $this->serverName . "\x00" . $this->gametype . "\x00" . $this->map . "\x00" . $this->numPlayers . "\x00" . $this->maxPlayers . "\x00" . Binary::writeLShort($this->port) . $this->ip . "\x00");
+	public function getShortQuery() : string{
+		return $this->serverName . "\x00" . $this->gametype . "\x00" . $this->map . "\x00" . $this->numPlayers . "\x00" . $this->maxPlayers . "\x00" . Binary::writeLShort($this->port) . $this->ip . "\x00";
 	}
+
 }

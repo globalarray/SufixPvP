@@ -19,17 +19,14 @@
  *
 */
 
-namespace pocketmine\scheduler;
+declare(strict_types=1);
 
-use function gc_collect_cycles;
-use function gc_enable;
-use function gc_mem_caches;
+namespace pocketmine\scheduler;
 
 class GarbageCollectionTask extends AsyncTask{
 
 	public function onRun(){
 		gc_enable();
 		gc_collect_cycles();
-		gc_mem_caches();
 	}
 }

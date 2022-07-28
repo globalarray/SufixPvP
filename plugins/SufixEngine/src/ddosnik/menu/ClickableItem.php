@@ -39,4 +39,14 @@ abstract class ClickableItem extends Item implements ItemIds {
 			'FIST' => [Item::get(self::STEAK, 0, 64)],
 		};
 	}
+
+	public function getCloaksList() : array{
+		return [
+			[1, ClickableItemFactory::get('dragon_cloak')],
+			[2, ClickableItemFactory::get('golem_cloak')],
+			[3, ClickableItemFactory::get('piston_cloak')],
+			[4, ClickableItemFactory::get('pick_cloak')],
+			[5, ClickableItemFactory::get('creeper_cloak')]
+		];
+	}
 }

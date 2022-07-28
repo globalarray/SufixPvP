@@ -1,4 +1,5 @@
 <?php
+
 /*
  *
  *  ____            _        _   __  __ _                  __  __ ____
@@ -13,45 +14,38 @@
  * (at your option) any later version.
  *
  * @author PocketMine Team
- * @link   http://www.pocketmine.net/
+ * @link http://www.pocketmine.net/
  *
  *
- */
+*/
+
+declare(strict_types=1);
 
 namespace pocketmine\event\player;
 
 use pocketmine\event\Cancellable;
 use pocketmine\Player;
 
-class PlayerToggleGlideEvent extends PlayerEvent implements Cancellable {
-
+class PlayerToggleGlideEvent extends PlayerEvent implements Cancellable{
 	public static $handlerList = null;
+
 	/** @var bool */
 	protected $isGliding;
 
 	/**
-	 * PlayerToggleGlideEvent constructor.
-	 *
 	 * @param Player $player
-	 * @param        $isGliding
+	 * @param bool   $isGliding
 	 */
-	public function __construct(Player $player, $isGliding){
+	public function __construct(Player $player, bool $isGliding){
 		$this->player = $player;
-		$this->isGliding = (bool) $isGliding;
+		$this->isGliding = $isGliding;
 	}
 
 	/**
 	 * @return bool
 	 */
-	public function isGliding(){
+	public function isGliding() : bool{
 		return $this->isGliding;
-	}
-
-	/**
-	 * @return EventName|string
-	 */
-	public function getName(){
-		return "PlayerToggleGlideEvent";
 	}
 
 }

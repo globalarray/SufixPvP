@@ -30,7 +30,7 @@ use ddosnik\task\{Hotbar, LeaveTask, Broadcaster, ParticlesManager};
 use pocketmine\math\Vector3;
 use pocketmine\entity\{Entity, Attribute, Zombie};
 use pocketmine\event\Listener;
-use pocketmine\utils\{TextFormat, SingletonTrait};
+use pocketmine\utils\TextFormat;
 use pocketmine\plugin\PluginBase;
 use pocketmine\level\particle\{DustParticle, RedstoneParticle, Particle};
 use ddosnik\wings\task\WingsTask;
@@ -76,7 +76,6 @@ use ddosnik\menu\{
 use SQLite3;
 
 class Loader extends PluginBase implements Listener {
-    use SingletonTrait;
 
     const Prefix = '§l§d» §r';
     /** @array Broadcast */
@@ -97,6 +96,11 @@ class Loader extends PluginBase implements Listener {
         ]
     ];
 
+    /** @var SQLite3|null */
+    public ?SQLite3 $data = null;
+    /** @var Loader */
+    private static Loader $instance;
+
     public int $interval = 10;
     /** FlyTexts */
     public array $particles = array();
@@ -111,8 +115,7 @@ class Loader extends PluginBase implements Listener {
     /** @var array */
     private array $lastDamage = [];
 
-    public function onEnable()
-    {
+    public function onEnable() : void{
         $floating_texts = [
             [1, new Vector3(11.5, 41.32, 242.5), '§l§d» §r§fDuels§7: §cSumo §7[§aNEW§7]'],
             [2, new Vector3(9.5, 41.32, 247.5), '§l§d» §r§fDuels§7: §cMLGRush'],
@@ -129,11 +132,11 @@ class Loader extends PluginBase implements Listener {
             $this->registerParticle($floating_texts[$i][0], $floating_texts[$i][1], $floating_texts[$i][2], '');
         }
         /** Tasks */
-        $this->getScheduler()->scheduleRepeatingTask(new ParticleUpdate($this), 20 * 20);
-        $this->getScheduler()->scheduleRepeatingTask(new Broadcaster($this), 20 * 60 * 4);
-        $this->getScheduler()->scheduleRepeatingTask(new Hotbar($this), 20);
-        $this->getScheduler()->scheduleRepeatingTask(new ParticlesManager($this), 20);
-        $this->getScheduler()->scheduleRepeatingTask(new LeaveTask($this, $this->interval), 20);
+        $this->getServer()->getScheduler()->scheduleRepeatingTask(new ParticleUpdate($this), 20 * 20);
+        $this->getServer()->getScheduler()->scheduleRepeatingTask(new Broadcaster($this), 20 * 60 * 4);
+        $this->getServer()->getScheduler()->scheduleRepeatingTask(new Hotbar($this), 20);
+        $this->getServer()->getScheduler()->scheduleRepeatingTask(new ParticlesManager($this), 20);
+        $this->getServer()->getScheduler()->scheduleRepeatingTask(new LeaveTask($this, $this->interval), 20);
         /** Register events */
         $this->getServer()->getPluginManager()->registerEvents(new EventHandler($this), $this);
         $this->getServer()->getPluginManager()->registerEvents($this, $this);
@@ -150,6 +153,7 @@ class Loader extends PluginBase implements Listener {
         }
         $this->data = new SQLite3($this->getDataFolder() . 'database/database.db');
         $this->data->query('CREATE TABLE IF NOT EXISTS `database`(`nickname` TEXT NOT NULL, `balance` TEXT NOT NULL, `particle` TEXT NOT NULL, `wins` TEXT NOT NULL, `lvl` TEXT NOT NULL, `color` TEXT NOT NULL, `blue_tag` TEXT NOT NULL, `red_tag` TEXT NOT NULL, `green_tag` TEXT NOT NULL, `yellow_tag` TEXT NOT NULL, `group` TEXT NOT NULL, `kills` TEXT NOT NULL, `exp` TEXT NOT NULL, `factor` TEXT NOT NULL, `heart` TEXT NOT NULL, `custom` TEXT NOT NULL);');
+        self::$instance = $this;
     }
 
     public function onRegisterSufixPlayer(PlayerCreationEvent $event) : void{
@@ -309,7 +313,7 @@ class Loader extends PluginBase implements Listener {
      * @param string $property
      * @return array|false
      */
-    public function getPlayerData(Player $player, string $property)
+    public function getPlayerData(SufixPlayer $player, string $property)
     {
         $nickname = $player->getLowerCaseName();
         return match ($property) {
@@ -639,7 +643,7 @@ class Loader extends PluginBase implements Listener {
         $player->setHealth(20);
         $player->setFood(20);
         $player->getInventory()->setItem(4, ClickableItemFactory::get('join_arena'));
-        $player->getInventory()->setItem(2, Item::get(388)->setCustomName("§r§aПлащи\n§7Нажмите, чтобы выбрать себе плащ."));
+        $player->getInventory()->setItem(2, ClickableItemFactory::get('item_cloaks'));
         //$player->getInventory()->setItem(4, Item::get(345)->setCustomName("§r§eВойти на арену\n§7Нажмите, чтобы открыть."));
         $player->getInventory()->setItem(6, Item::get(351, 9)->setCustomName("§r§dКастомизация\n§7Нажмите, чтобы изменить свою кастомизацию."));
     }
@@ -1343,7 +1347,7 @@ class Loader extends PluginBase implements Listener {
         $nickname = $player->getLowerCaseName();
         $wingstask = new WingsTask($player, $shape);
         if (!isset($this->equip_players[$nickname])) {
-            $this->getScheduler()->scheduleRepeatingTask($wingstask, 10);
+            $this->getServer()->getScheduler()->scheduleRepeatingTask($wingstask, 10);
             $this->equip_players[$nickname]['id'] = $wingstask->getTaskId();
             $this->equip_players[$nickname]['name'] = $wings;
             return false;
@@ -1353,7 +1357,7 @@ class Loader extends PluginBase implements Listener {
             return false;
         } else {
             $this->unEquipWings($player);
-            $this->getServer()->getScheduler()->scheduleRepeatingTask($wingstask, 10);
+            $this->getServer()->getServer()->getScheduler()->scheduleRepeatingTask($wingstask, 10);
             $this->equip_players[$nickname]['id'] = $wingstask->getTaskId();
             $this->equip_players[$nickname]['name'] = $wings;
         }
@@ -1364,7 +1368,7 @@ class Loader extends PluginBase implements Listener {
     {
         $nickname = $player->getLowerCaseName();
         if (isset($this->equip_players[$nickname])) {
-            $this->getScheduler()->cancelTask($this->equip_players[$nickname]['id']);
+            $this->getServer()->getScheduler()->cancelTask($this->equip_players[$nickname]['id']);
             unset($this->equip_players[$nickname]);
         }
     }
@@ -1385,5 +1389,12 @@ class Loader extends PluginBase implements Listener {
     public function eatGappleJoin(PlayerItemConsumeEvent $event): void
     {
         if ($event->getItem()->getCustomName() === "§r§eFFA GAPPLE\n§7Нажмите, чтобы войти на арену." || $event->getItem()->getCustomName() === "§r§3FFA RESISTANCE\n§7Нажмите, чтобы войти на арену.") $event->setCancelled();
+    }
+
+    /**
+     * @return Loader
+     */
+    public static function getInstance(): Loader{
+        return self::$instance;
     }
 }

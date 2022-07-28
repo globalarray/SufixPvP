@@ -19,20 +19,16 @@
  *
 */
 
+declare(strict_types=1);
+
 namespace pocketmine\command\defaults;
 
 use pocketmine\command\CommandSender;
 use pocketmine\event\TranslationContainer;
-use pocketmine\plugin\Plugin;
 use pocketmine\utils\TextFormat;
 
-class PluginsCommand extends VanillaCommand {
+class PluginsCommand extends VanillaCommand{
 
-	/**
-	 * PluginsCommand constructor.
-	 *
-	 * @param $name
-	 */
 	public function __construct($name){
 		parent::__construct(
 			$name,
@@ -43,22 +39,24 @@ class PluginsCommand extends VanillaCommand {
 		$this->setPermission("pocketmine.command.plugins");
 	}
 
-	/**
-	 * @param CommandSender $sender
-	 * @param string        $currentAlias
-	 * @param array         $args
-	 *
-	 * @return bool
-	 */
-	public function execute(CommandSender $sender, $currentAlias, array $args){
+	public function execute(CommandSender $sender, string $commandLabel, array $args){
 		if(!$this->testPermission($sender)){
 			return true;
 		}
-
-		$list = array_map(function(Plugin $plugin) : string{
-			return ($plugin->isEnabled() ? TextFormat::GREEN : TextFormat::RED) . $plugin->getDescription()->getFullName();
-		}, $sender->getServer()->getPluginManager()->getPlugins());
-		$sender->sendMessage(new TranslationContainer("pocketmine.command.plugins.success", [count($list), implode(TextFormat::WHITE . ", ", $list)]));
+		$this->sendPluginList($sender);
 		return true;
+	}
+
+	private function sendPluginList(CommandSender $sender){
+		$list = "";
+		foreach(($plugins = $sender->getServer()->getPluginManager()->getPlugins()) as $plugin){
+			if(strlen($list) > 0){
+				$list .= TextFormat::WHITE . ", ";
+			}
+			$list .= $plugin->isEnabled() ? TextFormat::GREEN : TextFormat::RED;
+			$list .= $plugin->getDescription()->getFullName();
+		}
+
+		$sender->sendMessage(new TranslationContainer("pocketmine.command.plugins.success", [count($plugins), $list]));
 	}
 }

@@ -19,58 +19,66 @@
  *
 */
 
+declare(strict_types=1);
+
 namespace pocketmine\level\format\io;
 
 use pocketmine\level\format\Chunk;
 use pocketmine\level\Level;
+use pocketmine\nbt\NBT;
 use pocketmine\network\mcpe\protocol\BatchPacket;
 use pocketmine\network\mcpe\protocol\FullChunkDataPacket;
 use pocketmine\scheduler\AsyncTask;
 use pocketmine\Server;
-use function assert;
-use function strlen;
+use pocketmine\tile\Spawnable;
 
 class ChunkRequestTask extends AsyncTask{
 
-	/** @var int */
 	protected $levelId;
 
-	/** @var string */
 	protected $chunk;
-	/** @var int */
 	protected $chunkX;
-	/** @var int */
 	protected $chunkZ;
 
-	/** @var string */
-	private $tiles;
+	protected $tiles;
 
-	/** @var int */
 	protected $compressionLevel;
 
-	public function __construct(Level $level, int $chunkX, int $chunkZ, Chunk $chunk){
+	public function __construct(Level $level, Chunk $chunk){
 		$this->levelId = $level->getId();
 		$this->compressionLevel = $level->getServer()->networkCompressionLevel;
 
-		$this->tiles = $chunk->networkSerializeTiles();
+		$this->chunk = $chunk->fastSerialize();
+		$this->chunkX = $chunk->getX();
+		$this->chunkZ = $chunk->getZ();
 
-		$this->chunk = $chunk->networkSerialize($this->tiles);
-		$this->chunkX = $chunkX;
-		$this->chunkZ = $chunkZ;
+		//TODO: serialize tiles with chunks
+		$tiles = "";
+		$nbt = new NBT(NBT::LITTLE_ENDIAN);
+		foreach($chunk->getTiles() as $tile){
+			if($tile instanceof Spawnable){
+				$nbt->setData($tile->getSpawnCompound());
+				$tiles .= $nbt->write(true);
+			}
+		}
+
+		$this->tiles = $tiles;
 	}
 
 	public function onRun(){
+		$chunk = Chunk::fastDeserialize($this->chunk);
+
 		$pk = new FullChunkDataPacket();
 		$pk->chunkX = $this->chunkX;
 		$pk->chunkZ = $this->chunkZ;
-		$pk->data = $this->chunk;
+		$pk->data = $chunk->networkSerialize() . $this->tiles;
 
 		$batch = new BatchPacket();
 		$batch->addPacket($pk);
 		$batch->setCompressionLevel($this->compressionLevel);
 		$batch->encode();
 
-		$this->setResult($batch->buffer);
+		$this->setResult($batch->buffer, false);
 	}
 
 	public function onCompletion(Server $server){

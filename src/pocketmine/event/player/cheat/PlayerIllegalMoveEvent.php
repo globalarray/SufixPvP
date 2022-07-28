@@ -26,8 +26,8 @@
 namespace pocketmine\event\player\cheat;
 
 use pocketmine\event\Cancellable;
-use pocketmine\math\Vector3;
 use pocketmine\Player;
+use pocketmine\math\Vector3;
 
 class PlayerIllegalMoveEvent extends PlayerCheatEvent implements Cancellable {
 	public static $handlerList = null;

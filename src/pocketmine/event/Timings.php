@@ -46,6 +46,8 @@ abstract class Timings{
 	/** @var TimingsHandler */
 	public static $serverRawPacketTimer;
 	/** @var TimingsHandler */
+	public static $playerListTimer;
+	/** @var TimingsHandler */
 	public static $playerNetworkTimer;
 	/** @var TimingsHandler */
 	public static $playerNetworkReceiveTimer;
@@ -56,13 +58,21 @@ abstract class Timings{
 	/** @var TimingsHandler */
 	public static $connectionTimer;
 	/** @var TimingsHandler */
+	public static $tickablesTimer;
+	/** @var TimingsHandler */
 	public static $schedulerTimer;
+	/** @var TimingsHandler */
+	public static $chunkIOTickTimer;
+	/** @var TimingsHandler */
+	public static $timeUpdateTimer;
 	/** @var TimingsHandler */
 	public static $serverCommandTimer;
 	/** @var TimingsHandler */
 	public static $worldLoadTimer;
 	/** @var TimingsHandler */
 	public static $worldSaveTimer;
+	/** @var TimingsHandler */
+	public static $generationTimer;
 	/** @var TimingsHandler */
 	public static $populationTimer;
 	/** @var TimingsHandler */
@@ -79,12 +89,22 @@ abstract class Timings{
 	/** @var TimingsHandler */
 	public static $tickEntityTimer;
 	/** @var TimingsHandler */
+	public static $activatedEntityTimer;
+	/** @var TimingsHandler */
 	public static $tickTileEntityTimer;
 
 	/** @var TimingsHandler */
 	public static $timerEntityBaseTick;
 	/** @var TimingsHandler */
 	public static $timerLivingEntityBaseTick;
+	/** @var TimingsHandler */
+	public static $timerEntityAI;
+	/** @var TimingsHandler */
+	public static $timerEntityAICollision;
+	/** @var TimingsHandler */
+	public static $timerEntityAIMove;
+	/** @var TimingsHandler */
+	public static $timerEntityTickRest;
 
 	/** @var TimingsHandler */
 	public static $schedulerSyncTimer;
@@ -120,15 +140,20 @@ abstract class Timings{
 		self::$garbageCollectorTimer = new TimingsHandler("Garbage Collector", self::$memoryManagerTimer);
 		self::$titleTickTimer = new TimingsHandler("Console Title Tick");
 		self::$serverRawPacketTimer = new TimingsHandler("Raw packets (Query)");
+		self::$playerListTimer = new TimingsHandler("Player List");
 		self::$playerNetworkTimer = new TimingsHandler("Player Network Send");
 		self::$playerNetworkReceiveTimer = new TimingsHandler("Player Network Receive");
 		self::$playerChunkOrderTimer = new TimingsHandler("Player Order Chunks");
 		self::$playerChunkSendTimer = new TimingsHandler("Player Send Chunks");
 		self::$connectionTimer = new TimingsHandler("Connection Handler");
+		self::$tickablesTimer = new TimingsHandler("Tickables");
 		self::$schedulerTimer = new TimingsHandler("Scheduler");
+		self::$chunkIOTickTimer = new TimingsHandler("ChunkIOTick");
+		self::$timeUpdateTimer = new TimingsHandler("Time Update");
 		self::$serverCommandTimer = new TimingsHandler("Server Command");
 		self::$worldLoadTimer = new TimingsHandler("World Load");
 		self::$worldSaveTimer = new TimingsHandler("World Save");
+		self::$generationTimer = new TimingsHandler("World Generation");
 		self::$populationTimer = new TimingsHandler("World Population");
 		self::$generationCallbackTimer = new TimingsHandler("World Generation Callback");
 		self::$permissibleCalculationTimer = new TimingsHandler("Permissible Calculation");
@@ -137,10 +162,15 @@ abstract class Timings{
 		self::$entityMoveTimer = new TimingsHandler("** entityMove");
 		self::$playerCheckNearEntitiesTimer = new TimingsHandler("** checkNearEntities");
 		self::$tickEntityTimer = new TimingsHandler("** tickEntity");
+		self::$activatedEntityTimer = new TimingsHandler("** activatedTickEntity");
 		self::$tickTileEntityTimer = new TimingsHandler("** tickTileEntity");
 
 		self::$timerEntityBaseTick = new TimingsHandler("** entityBaseTick");
 		self::$timerLivingEntityBaseTick = new TimingsHandler("** livingEntityBaseTick");
+		self::$timerEntityAI = new TimingsHandler("** livingEntityAI");
+		self::$timerEntityAICollision = new TimingsHandler("** livingEntityAICollision");
+		self::$timerEntityAIMove = new TimingsHandler("** livingEntityAIMove");
+		self::$timerEntityTickRest = new TimingsHandler("** livingEntityTickRest");
 
 		self::$schedulerSyncTimer = new TimingsHandler("** Scheduler - Sync Tasks");
 		self::$schedulerAsyncTimer = new TimingsHandler("** Scheduler - Async Tasks");
@@ -156,8 +186,19 @@ abstract class Timings{
 	 *
 	 * @return TimingsHandler
 	 */
-	public static function getScheduledTaskTimings(TaskHandler $task, int $period) : TimingsHandler{
-		$name = "Task: " . ($task->getOwnerName() ?? "Unknown") . " Runnable: " . $task->getTaskName();
+	public static function getPluginTaskTimings(TaskHandler $task, $period){
+		$ftask = $task->getTask();
+		if($ftask instanceof PluginTask and $ftask->getOwner() !== null){
+			$plugin = $ftask->getOwner()->getDescription()->getFullName();
+		}elseif($task->timingName !== null){
+			$plugin = "Scheduler";
+		}else{
+			$plugin = "Unknown";
+		}
+
+		$taskname = $task->getTaskName();
+
+		$name = "Task: " . $plugin . " Runnable: " . $taskname;
 
 		if($period > 0){
 			$name .= "(interval:" . $period . ")";

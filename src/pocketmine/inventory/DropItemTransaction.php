@@ -1,21 +1,21 @@
 <?php
 
-/*
+/**
  *
- *  _____   _____   __   _   _   _____  __    __  _____
- * /  ___| | ____| |  \ | | | | /  ___/ \ \  / / /  ___/
- * | |     | |__   |   \| | | | | |___   \ \/ /  | |___
- * | |  _  |  __|  | |\   | | | \___  \   \  /   \___  \
- * | |_| | | |___  | | \  | | |  ___| |   / /     ___| |
- * \_____/ |_____| |_|  \_| |_| /_____/  /_/     /_____/
+ *  ____       _                          _
+ * |  _ \ _ __(_)___ _ __ ___   __ _ _ __(_)_ __   ___
+ * | |_) | '__| / __| '_ ` _ \ / _` | '__| | '_ \ / _ \
+ * |  __/| |  | \__ \ | | | | | (_| | |  | | | | |  __/
+ * |_|   |_|  |_|___/_| |_| |_|\__,_|_|  |_|_| |_|\___|
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
+ * Prismarine is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * @author iTX Technologies
- * @link https://itxtech.org
+ * @author Prismarine Team
+ * @link   https://github.com/PrismarineMC/Prismarine
+ *
  *
  */
 
@@ -24,7 +24,7 @@ namespace pocketmine\inventory;
 use pocketmine\item\Item;
 use pocketmine\Player;
 
-class DropItemTransaction extends BaseTransaction {
+class DropItemTransaction extends BaseTransaction{
 
 	const TRANSACTION_TYPE = Transaction::TYPE_DROP_ITEM;
 
@@ -41,48 +41,30 @@ class DropItemTransaction extends BaseTransaction {
 		$this->targetItem = $droppedItem;
 	}
 
-	/**
-	 * @param Item $item
-	 */
 	public function setSourceItem(Item $item){
 		//Nothing to update
 	}
 
-	/**
-	 * @return null
-	 */
 	public function getInventory(){
 		return null;
 	}
 
-	/**
-	 * @return null
-	 */
-	public function getSlot(){
-		return null;
+	public function getSlot(): int{
+		return -1;
 	}
 
-	/**
-	 * @param Player $source
-	 */
 	public function sendSlotUpdate(Player $source){
-		//Nothing to update
+		foreach($source->getWindows() as $inv){
+			$inv->sendContents($source);
+		}
 	}
 
-	/**
-	 * @return array
-	 */
 	public function getChange(){
 		return ["in" => $this->getTargetItem(),
-			"out" => null];
+				"out" => null];
 	}
 
-	/**
-	 * @param Player $source
-	 *
-	 * @return bool
-	 */
-	public function execute(Player $source) : bool{
+	public function execute(Player $source): bool{
 		$droppedItem = $this->getTargetItem();
 		if(!$source->getServer()->allowInventoryCheats and !$source->isCreative()){
 			if(!$source->getFloatingInventory()->contains($droppedItem)){

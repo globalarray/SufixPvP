@@ -21,8 +21,7 @@ done
 
 DO_LOOP="yes"
 PHP_BINARY="./bin/php7/bin/php"
-#POCKETMINE_FILE="./src1/pocketmine/PocketMine.php"
-POCKETMINE_FILE="./src/pocketmine/PocketMine.php"
+POCKETMINE_FILE="./src/pocketmine/SufixBase.php"
 LOOPS=0
 
 set +e

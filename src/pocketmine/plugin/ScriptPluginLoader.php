@@ -19,21 +19,19 @@
  *
 */
 
+declare(strict_types=1);
+
 namespace pocketmine\plugin;
 
 use pocketmine\event\plugin\PluginDisableEvent;
 use pocketmine\event\plugin\PluginEnableEvent;
 use pocketmine\Server;
-use pocketmine\utils\Utils;
-use function count;
-use function file;
-use function implode;
 
 /**
  * Simple script loader, not for plugin development
  * For an example see https://gist.github.com/shoghicp/516105d470cf7d140757
  */
-class ScriptPluginLoader implements PluginLoader {
+class ScriptPluginLoader implements PluginLoader{
 
 	/** @var Server */
 	private $server;
@@ -50,11 +48,9 @@ class ScriptPluginLoader implements PluginLoader {
 	 *
 	 * @param string $file
 	 *
-	 * @return Plugin
-	 *
-	 * @throws \Throwable
+	 * @return Plugin|null
 	 */
-	public function loadPlugin($file){
+	public function loadPlugin(string $file){
 		if(($description = $this->getPluginDescription($file)) instanceof PluginDescription){
 			$this->server->getLogger()->info($this->server->getLanguage()->translateString("pocketmine.plugin.load", [$description->getFullName()]));
 			$dataFolder = dirname($file) . DIRECTORY_SEPARATOR . $description->getName();
@@ -84,32 +80,35 @@ class ScriptPluginLoader implements PluginLoader {
 	 *
 	 * @param string $file
 	 *
-	 * @return PluginDescription
+	 * @return null|PluginDescription
 	 */
-	public function getPluginDescription($file){
+	public function getPluginDescription(string $file){
 		$content = file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
 
-		$insideHeader = false;
+		$data = [];
 
-		$docCommentLines = [];
+		$insideHeader = false;
 		foreach($content as $line){
-			if(!$insideHeader){
-				if(strpos($line, "/**") !== false){
-					$insideHeader = true;
-				}else{
-					continue;
-				}
+			if(!$insideHeader and strpos($line, "/**") !== false){
+				$insideHeader = true;
 			}
 
-			$docCommentLines[] = $line;
+			if(preg_match("/^[ \t]+\\*[ \t]+@([a-zA-Z]+)([ \t]+(.*))?$/", $line, $matches) > 0){
+				$key = $matches[1];
+				$content = trim($matches[3] ?? "");
 
-			if(strpos($line, "*/") !== false){ // **/
+				if($key === "notscript"){
+					return null;
+				}
+
+				$data[$key] = $content;
+			}
+
+			if($insideHeader and strpos($line, "*/") !== false){
 				break;
 			}
 		}
-		
-		$data = Utils::parseDocComment(implode("\n", $docCommentLines));
-		if(count($data) !== 0){
+		if($insideHeader){
 			return new PluginDescription($data);
 		}
 
@@ -121,13 +120,8 @@ class ScriptPluginLoader implements PluginLoader {
 	 *
 	 * @return string
 	 */
-	public function getPluginFilters(){
+	public function getPluginFilters() : string{
 		return "/\\.php$/i";
-	}
-
-	public function canLoadPlugin(string $path) : bool{
-		$ext = ".php";
-		return is_file($path) and substr($path, -strlen($ext)) === $ext;
 	}
 
 	/**
@@ -136,7 +130,7 @@ class ScriptPluginLoader implements PluginLoader {
 	 * @param string            $dataFolder
 	 * @param string            $file
 	 */
-	private function initPlugin(PluginBase $plugin, PluginDescription $description, $dataFolder, $file){
+	private function initPlugin(PluginBase $plugin, PluginDescription $description, string $dataFolder, string $file){
 		$plugin->init($this, $this->server, $description, $dataFolder, $file);
 		$plugin->onLoad();
 	}

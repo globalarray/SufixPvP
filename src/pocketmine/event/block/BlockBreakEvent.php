@@ -37,6 +37,7 @@ class BlockBreakEvent extends BlockEvent implements Cancellable {
 
 	/** @var bool */
 	protected $instaBreak = false;
+	protected $cancel = false;
 	protected $blockDrops = [];
 
 	/**
@@ -73,6 +74,14 @@ class BlockBreakEvent extends BlockEvent implements Cancellable {
 	 */
 	public function getItem(){
 		return $this->item;
+	}
+
+	public function setCancel(bool $value = true) : void{
+		$this->cancel = $value;
+	}
+
+	public function isCancel() : bool{
+		return $this->cancel;
 	}
 
 	/**

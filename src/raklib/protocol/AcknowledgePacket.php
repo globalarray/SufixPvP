@@ -13,29 +13,21 @@
  *
  */
 
-declare(strict_types=1);
-
 namespace raklib\protocol;
 
-
-use function chr;
-use function count;
-use function sort;
-use const SORT_NUMERIC;
 #ifndef COMPILE
 use pocketmine\utils\Binary;
+
 #endif
 
 #include <rules/RakLibPacket.h>
 
 abstract class AcknowledgePacket extends Packet{
-	private const RECORD_TYPE_RANGE = 0;
-	private const RECORD_TYPE_SINGLE = 1;
-
 	/** @var int[] */
 	public $packets = [];
 
-	protected function encodePayload() : void{
+	public function encode(){
+		parent::encode();
 		$payload = "";
 		sort($this->packets, SORT_NUMERIC);
 		$count = count($this->packets);
@@ -53,11 +45,11 @@ abstract class AcknowledgePacket extends Packet{
 					$last = $current;
 				}elseif($diff > 1){ //Forget about duplicated packets (bad queues?)
 					if($start === $last){
-						$payload .= chr(self::RECORD_TYPE_SINGLE);
+						$payload .= "\x01";
 						$payload .= Binary::writeLTriad($start);
 						$start = $last = $current;
 					}else{
-						$payload .= chr(self::RECORD_TYPE_RANGE);
+						$payload .= "\x00";
 						$payload .= Binary::writeLTriad($start);
 						$payload .= Binary::writeLTriad($last);
 						$start = $last = $current;
@@ -67,10 +59,10 @@ abstract class AcknowledgePacket extends Packet{
 			}
 
 			if($start === $last){
-				$payload .= chr(self::RECORD_TYPE_SINGLE);
+				$payload .= "\x01";
 				$payload .= Binary::writeLTriad($start);
 			}else{
-				$payload .= chr(self::RECORD_TYPE_RANGE);
+				$payload .= "\x00";
 				$payload .= Binary::writeLTriad($start);
 				$payload .= Binary::writeLTriad($last);
 			}
@@ -81,12 +73,13 @@ abstract class AcknowledgePacket extends Packet{
 		$this->buffer .= $payload;
 	}
 
-	protected function decodePayload() : void{
+	public function decode(){
+		parent::decode();
 		$count = $this->getShort();
 		$this->packets = [];
 		$cnt = 0;
 		for($i = 0; $i < $count and !$this->feof() and $cnt < 4096; ++$i){
-			if($this->getByte() === self::RECORD_TYPE_RANGE){
+			if($this->getByte() === 0){
 				$start = $this->getLTriad();
 				$end = $this->getLTriad();
 				if(($end - $start) > 512){
@@ -103,7 +96,6 @@ abstract class AcknowledgePacket extends Packet{
 
 	public function clean(){
 		$this->packets = [];
-
 		return parent::clean();
 	}
 }

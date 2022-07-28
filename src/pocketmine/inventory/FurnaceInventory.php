@@ -19,23 +19,21 @@
  *
 */
 
-namespace pocketmine\inventory;
+declare(strict_types=1);
 
+namespace pocketmine\inventory;
 
 use pocketmine\item\Item;
 use pocketmine\tile\Furnace;
 
-class FurnaceInventory extends ContainerInventory {
+class FurnaceInventory extends ContainerInventory{
+
 
 	const SMELTING = 0;
 	const FUEL = 1;
 	const RESULT = 2;
 
-	/**
-	 * FurnaceInventory constructor.
-	 *
-	 * @param Furnace $tile
-	 */
+
 	public function __construct(Furnace $tile){
 		parent::__construct($tile, InventoryType::get(InventoryType::FURNACE));
 	}
@@ -50,21 +48,21 @@ class FurnaceInventory extends ContainerInventory {
 	/**
 	 * @return Item
 	 */
-	public function getResult(){
+	public function getResult() : Item{
 		return $this->getItem(self::RESULT);
 	}
 
 	/**
 	 * @return Item
 	 */
-	public function getFuel(){
+	public function getFuel() : Item{
 		return $this->getItem(self::FUEL);
 	}
 
 	/**
 	 * @return Item
 	 */
-	public function getSmelting(){
+	public function getSmelting() : Item{
 		return $this->getItem(self::SMELTING);
 	}
 
@@ -73,7 +71,7 @@ class FurnaceInventory extends ContainerInventory {
 	 *
 	 * @return bool
 	 */
-	public function setResult(Item $item){
+	public function setResult(Item $item) : bool{
 		return $this->setItem(self::RESULT, $item);
 	}
 
@@ -82,7 +80,7 @@ class FurnaceInventory extends ContainerInventory {
 	 *
 	 * @return bool
 	 */
-	public function setFuel(Item $item){
+	public function setFuel(Item $item) : bool{
 		return $this->setItem(self::FUEL, $item);
 	}
 
@@ -91,15 +89,10 @@ class FurnaceInventory extends ContainerInventory {
 	 *
 	 * @return bool
 	 */
-	public function setSmelting(Item $item){
+	public function setSmelting(Item $item) : bool{
 		return $this->setItem(self::SMELTING, $item);
 	}
 
-	/**
-	 * @param int  $index
-	 * @param Item $before
-	 * @param bool $send
-	 */
 	public function onSlotChange($index, $before, $send){
 		parent::onSlotChange($index, $before, $send);
 

@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  *
  *  ____            _        _   __  __ _                  __  __ ____
  * |  _ \ ___   ___| | _____| |_|  \/  (_)_ __   ___      |  \/  |  _ \
@@ -14,10 +14,12 @@
  * (at your option) any later version.
  *
  * @author PocketMine Team
- * @link   http://www.pocketmine.net/
+ * @link http://www.pocketmine.net/
  *
  *
- */
+*/
+
+declare(strict_types=1);
 
 namespace pocketmine\event\entity;
 
@@ -27,35 +29,20 @@ use pocketmine\event\Cancellable;
 /**
  * Called when a entity decides to explode
  */
-class ExplosionPrimeEvent extends EntityEvent implements Cancellable {
+class ExplosionPrimeEvent extends EntityEvent implements Cancellable{
 	public static $handlerList = null;
 
-	/** @var float */
 	protected $force;
-	/** @var bool */
 	private $blockBreaking;
-	/** @var bool */
-	private $dropItem;
 
-	public function __construct(Entity $entity, float $force, bool $dropItem){
+	/**
+	 * @param Entity $entity
+	 * @param float  $force
+	 */
+	public function __construct(Entity $entity, $force){
 		$this->entity = $entity;
 		$this->force = $force;
 		$this->blockBreaking = true;
-		$this->dropItem = $dropItem;
-	}
-
-	/**
-	 * @param bool $dropItem
-	 */
-	public function setDropItem(bool $dropItem){
-		$this->dropItem = $dropItem;
-	}
-
-	/**
-	 * @return bool
-	 */
-	public function dropItem() : bool{
-		return $this->dropItem;
 	}
 
 	/**
@@ -65,9 +52,6 @@ class ExplosionPrimeEvent extends EntityEvent implements Cancellable {
 		return $this->force;
 	}
 
-	/**
-	 * @param $force
-	 */
 	public function setForce($force){
 		$this->force = (float) $force;
 	}
@@ -85,4 +69,5 @@ class ExplosionPrimeEvent extends EntityEvent implements Cancellable {
 	public function setBlockBreaking($affectsBlocks){
 		$this->blockBreaking = (bool) $affectsBlocks;
 	}
+
 }

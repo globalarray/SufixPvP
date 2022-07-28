@@ -19,12 +19,14 @@
  *
 */
 
+declare(strict_types=1);
+
 namespace pocketmine\level\particle;
 
 use pocketmine\math\Vector3;
 use pocketmine\network\mcpe\protocol\DataPacket;
 
-abstract class Particle extends Vector3 {
+abstract class Particle extends Vector3{
 
 	const TYPE_BUBBLE = 1;
 	const TYPE_CRITICAL = 2;
@@ -67,9 +69,6 @@ abstract class Particle extends Vector3 {
 	//39 unknown
 	const TYPE_END_ROD = 40;
 	const TYPE_DRAGONS_BREATH = 41;
-	const TYPE_SPIT = 42;
-	const TYPE_TOTEM = 43;
-	const TYPE_FOOD = 44;
 
 	/**
 	 * @return DataPacket|DataPacket[]

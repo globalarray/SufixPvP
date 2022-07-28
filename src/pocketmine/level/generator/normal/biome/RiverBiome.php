@@ -19,32 +19,20 @@
  *
 */
 
+declare(strict_types=1);
+
 namespace pocketmine\level\generator\normal\biome;
 
-use pocketmine\block\Block;
-use pocketmine\level\generator\populator\Sugarcane;
 use pocketmine\level\generator\populator\TallGrass;
 
-class RiverBiome extends NormalBiome{
+class RiverBiome extends GrassyBiome{
 
-	/**
-	 * RiverBiome constructor.
-	 */
 	public function __construct(){
-		$this->setGroundCover([
-			Block::get(Block::DIRT),
-			Block::get(Block::DIRT),
-			Block::get(Block::DIRT),
-			Block::get(Block::DIRT),
-			Block::get(Block::DIRT)
-		]);
+		parent::__construct();
 
-		$sugarcane = new Sugarcane();
-		$sugarcane->setBaseAmount(6);
 		$tallGrass = new TallGrass();
 		$tallGrass->setBaseAmount(5);
 
-		$this->addPopulator($sugarcane);
 		$this->addPopulator($tallGrass);
 
 		$this->setElevation(58, 62);
@@ -53,9 +41,6 @@ class RiverBiome extends NormalBiome{
 		$this->rainfall = 0.7;
 	}
 
-	/**
-	 * @return string
-	 */
 	public function getName() : string{
 		return "River";
 	}

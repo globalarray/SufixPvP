@@ -19,55 +19,42 @@
  *
 */
 
+declare(strict_types=1);
+
 namespace pocketmine\level;
 
 use pocketmine\math\Vector3;
-use pocketmine\utils\AssumptionFailedError;
 use pocketmine\utils\MainLogger;
-use function assert;
 
 class Position extends Vector3{
 
-	/** @var Level|null */
+	/** @var Level */
 	public $level = null;
 
 	/**
-	 * @param float|int $x
-	 * @param float|int $y
-	 * @param float|int $z
+	 * @param int   $x
+	 * @param int   $y
+	 * @param int   $z
+	 * @param Level $level
 	 */
 	public function __construct($x = 0, $y = 0, $z = 0, Level $level = null){
-		parent::__construct($x, $y, $z);
-		$this->setLevel($level);
+		$this->x = $x;
+		$this->y = $y;
+		$this->z = $z;
+		$this->level = $level;
 	}
 
-	/**
-	 * @return Position
-	 */
 	public static function fromObject(Vector3 $pos, Level $level = null){
 		return new Position($pos->x, $pos->y, $pos->z, $level);
 	}
 
 	/**
 	 * Return a Position instance
-	 */
-	public function asPosition() : Position{
-		return new Position($this->x, $this->y, $this->z, $this->level);
-	}
-
-	/**
-	 * @param int|Vector3 $x
-	 * @param int         $y
-	 * @param int         $z
 	 *
 	 * @return Position
 	 */
-	public function add($x, $y = 0, $z = 0){
-		if($x instanceof Vector3){
-			return new Position($this->x + $x->x, $this->y + $x->y, $this->z + $x->z, $this->level);
-		}else{
-			return new Position($this->x + $x, $this->y + $y, $this->z + $z, $this->level);
-		}
+	public function asPosition() : Position{
+		return new Position($this->x, $this->y, $this->z, $this->level);
 	}
 
 	/**
@@ -86,20 +73,9 @@ class Position extends Vector3{
 	}
 
 	/**
-	 * Returns the position's world if valid. Throws an error if the world is unexpectedly null.
-	 *
-	 * @throws AssumptionFailedError
-	 */
-	public function getLevelNonNull() : Level{
-		$world = $this->getLevel();
-		if($world === null){
-			throw new AssumptionFailedError("Position world is null");
-		}
-		return $world;
-	}
-
-	/**
 	 * Sets the target Level of the position.
+	 *
+	 * @param Level|null $level
 	 *
 	 * @return $this
 	 *
@@ -107,7 +83,7 @@ class Position extends Vector3{
 	 */
 	public function setLevel(Level $level = null){
 		if($level !== null and $level->isClosed()){
-			throw new \InvalidArgumentException("Specified world has been unloaded and cannot be used");
+			throw new \InvalidArgumentException("Specified level has been unloaded and cannot be used");
 		}
 
 		$this->level = $level;
@@ -116,45 +92,44 @@ class Position extends Vector3{
 
 	/**
 	 * Checks if this object has a valid reference to a loaded Level
+	 *
+	 * @return bool
 	 */
 	public function isValid() : bool{
-		if($this->level !== null and $this->level->isClosed()){
-			$this->level = null;
-
-			return false;
-		}
-
-		return $this->level !== null;
+		return $this->getLevel() instanceof Level;
 	}
 
 	/**
 	 * Returns a side Vector
 	 *
+	 * @param int $side
+	 * @param int $step
+	 *
 	 * @return Position
+	 *
+	 * @throws LevelException
 	 */
-	public function getSide(int $side, int $step = 1){
+	public function getSide($side, $step = 1){
 		assert($this->isValid());
 
 		return Position::fromObject(parent::getSide($side, $step), $this->level);
 	}
 
 	public function __toString(){
-		return "Position(level=" . ($this->isValid() ? $this->getLevelNonNull()->getName() : "null") . ",x=" . $this->x . ",y=" . $this->y . ",z=" . $this->z . ")";
+		return "Position(level=" . ($this->isValid() ? $this->getLevel()->getName() : "null") . ",x=" . $this->x . ",y=" . $this->y . ",z=" . $this->z . ")";
 	}
 
 	/**
-	 * @param Vector3 $pos
-	 * @param         $x
-	 * @param         $y
-	 * @param         $z
+	 * @param $x
+	 * @param $y
+	 * @param $z
 	 *
-	 * @return $this
+	 * @return Position
 	 */
-	public function fromObjectAdd(Vector3 $pos, $x, $y, $z){
-		if($pos instanceof Position){
-			$this->level = $pos->level;
-		}
-		parent::fromObjectAdd($pos, $x, $y, $z);
+	public function setComponents($x, $y, $z){
+		$this->x = $x;
+		$this->y = $y;
+		$this->z = $z;
 		return $this;
 	}
 

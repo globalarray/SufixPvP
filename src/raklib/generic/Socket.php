@@ -48,24 +48,17 @@ class Socket{
 	/**
 	 * @throws SocketException
 	 */
+
 	public function __construct(InternetAddress $bindAddress){
-		$this->bindAddress = $bindAddress;
-		$socket = @socket_create($bindAddress->getVersion() === 4 ? AF_INET : AF_INET6, SOCK_DGRAM, SOL_UDP);
-		if($socket === false){
-			throw new \RuntimeException("Failed to create socket: " . trim(socket_strerror(socket_last_error())));
-		}
-		$this->socket = $socket;
-
-		if($bindAddress->getVersion() === 6){
-			socket_set_option($this->socket, IPPROTO_IPV6, IPV6_V6ONLY, 1); //Don't map IPv4 to IPv6, the implementation can create another RakLib instance to handle IPv4
-		}
-
+		$this->socket = socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
+		//socket_set_option($this->socket, SOL_SOCKET, SO_BROADCAST, 1); //Allow sending broadcast messages
 		if(@socket_bind($this->socket, $bindAddress->getIp(), $bindAddress->getPort()) === true){
+			socket_set_option($this->socket, SOL_SOCKET, SO_REUSEADDR, 0);
 			$this->setSendBuffer(1024 * 1024 * 8)->setRecvBuffer(1024 * 1024 * 8);
 		}else{
 			$error = socket_last_error($this->socket);
 			if($error === SOCKET_EADDRINUSE){ //platform error messages aren't consistent
-				throw new SocketException("Failed to bind socket: Something else is already running on $bindAddress", $error);
+				throw new SocketException('Failed to bind socket: Something else is already running on '. $bindAddress, $error);
 			}
 			throw new SocketException("Failed to bind to " . $bindAddress . ": " . trim(socket_strerror($error)), $error);
 		}

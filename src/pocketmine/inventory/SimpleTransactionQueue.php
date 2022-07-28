@@ -15,7 +15,7 @@
  * (at your option) any later version.
  *
  * @author iTX Technologies
- * @link   https://itxtech.org
+ * @link https://itxtech.org
  *
  */
 
@@ -23,6 +23,7 @@ namespace pocketmine\inventory;
 
 use pocketmine\event\inventory\InventoryClickEvent;
 use pocketmine\event\inventory\InventoryTransactionEvent;
+use pocketmine\item\Item;
 use pocketmine\Player;
 
 class SimpleTransactionQueue implements TransactionQueue{
@@ -34,9 +35,6 @@ class SimpleTransactionQueue implements TransactionQueue{
 	protected $transactionQueue;
 	/** @var \SplQueue */
 	protected $transactionsToRetry;
-
-	/** @var Inventory[] */
-	protected $inventories;
 
 	/** @var float */
 	protected $lastUpdate = -1;
@@ -60,11 +58,8 @@ class SimpleTransactionQueue implements TransactionQueue{
 		return $this->player;
 	}
 
-	/**
-	 * @return Inventory[]
-	 */
-	public function getInventories(){
-		return $this->inventories;
+	public function getTransactionCount(){
+		return $this->transactionCount;
 	}
 
 	/**
@@ -75,25 +70,19 @@ class SimpleTransactionQueue implements TransactionQueue{
 	}
 
 	/**
-	 * @return int
-	 */
-	public function getTransactionCount(){
-		return $this->transactionCount;
-	}
-
-	/**
 	 * @param Transaction $transaction
+	 *
+	 * Adds a transaction to the queue
 	 */
 	public function addTransaction(Transaction $transaction){
 		$this->transactionQueue->enqueue($transaction);
-		if($transaction->getInventory() instanceof Inventory){
-			/** For dropping items, the target inventory is open air, a.k.a. null. */
-			$this->inventories[spl_object_hash($transaction)] = $transaction->getInventory();
-		}
 		$this->lastUpdate = microtime(true);
 		$this->transactionCount += 1;
 	}
 
+	/**
+	 * Handles transaction queue execution
+	 */
 	public function execute(){
 		/** @var Transaction[] */
 		$failed = [];
@@ -104,12 +93,13 @@ class SimpleTransactionQueue implements TransactionQueue{
 		}
 
 		if(!$this->transactionQueue->isEmpty()){
-			$this->player->getServer()->getPluginManager()->callEvent($ev = new InventoryTransactionEvent($this));
-		}else{
-			return;
-		}
+ 			$this->player->getServer()->getPluginManager()->callEvent($ev = new InventoryTransactionEvent($this));
+ 		}else{
+ 			return;
+ 		}
 
 		while(!$this->transactionQueue->isEmpty()){
+
 			$transaction = $this->transactionQueue->dequeue();
 
 			if($transaction->getInventory() instanceof ContainerInventory || $transaction->getInventory() instanceof PlayerInventory){
@@ -121,9 +111,7 @@ class SimpleTransactionQueue implements TransactionQueue{
 			}
 
 			if($ev->isCancelled()){
-				$this->transactionCount -= 1;
 				$transaction->sendSlotUpdate($this->player); //Send update back to client for cancelled transaction
-				unset($this->inventories[spl_object_hash($transaction)]);
 				continue;
 			}elseif(!$transaction->execute($this->player)){
 				$transaction->addFailure();
@@ -141,12 +129,10 @@ class SimpleTransactionQueue implements TransactionQueue{
 			$this->transactionCount -= 1;
 			$transaction->setSuccess();
 			$transaction->sendSlotUpdate($this->player);
-			unset($this->inventories[spl_object_hash($transaction)]);
 		}
 
 		foreach($failed as $f){
 			$f->sendSlotUpdate($this->player);
-			unset($this->inventories[spl_object_hash($f)]);
 		}
 
 		return true;

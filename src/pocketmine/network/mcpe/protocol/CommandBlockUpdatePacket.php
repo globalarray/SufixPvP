@@ -19,12 +19,17 @@
  *
 */
 
+declare(strict_types=1);
+
 
 namespace pocketmine\network\mcpe\protocol;
 
 #include <rules/DataPacket.h>
 
-class CommandBlockUpdatePacket extends DataPacket {
+
+use pocketmine\network\mcpe\NetworkSession;
+
+class CommandBlockUpdatePacket extends DataPacket{
 	const NETWORK_ID = ProtocolInfo::COMMAND_BLOCK_UPDATE_PACKET;
 
 	public $isBlock;
@@ -44,20 +49,17 @@ class CommandBlockUpdatePacket extends DataPacket {
 
 	public $shouldTrackOutput;
 
-	/**
-	 *
-	 */
-	public function decode(){
+	public function decodePayload(){
 		$this->isBlock = $this->getBool();
 
 		if($this->isBlock){
-			$this->getBlockCoords($this->x, $this->y, $this->z);
+			$this->getBlockPosition($this->x, $this->y, $this->z);
 			$this->commandBlockMode = $this->getUnsignedVarInt();
 			$this->isRedstoneMode = $this->getBool();
 			$this->isConditional = $this->getBool();
 		}else{
 			//Minecart with command block
-			$this->minecartEid = $this->getEntityId();
+			$this->minecartEid = $this->getEntityRuntimeId();
 		}
 
 		$this->command = $this->getString();
@@ -67,20 +69,16 @@ class CommandBlockUpdatePacket extends DataPacket {
 		$this->shouldTrackOutput = $this->getBool();
 	}
 
-	/**
-	 *
-	 */
-	public function encode(){
-		$this->reset();
+	public function encodePayload(){
 		$this->putBool($this->isBlock);
 
 		if($this->isBlock){
-			$this->putBlockCoords($this->x, $this->y, $this->z);
+			$this->putBlockPosition($this->x, $this->y, $this->z);
 			$this->putUnsignedVarInt($this->commandBlockMode);
 			$this->putBool($this->isRedstoneMode);
 			$this->putBool($this->isConditional);
 		}else{
-			$this->putEntityId($this->minecartEid);
+			$this->putEntityRuntimeId($this->minecartEid);
 		}
 
 		$this->putString($this->command);
@@ -90,4 +88,11 @@ class CommandBlockUpdatePacket extends DataPacket {
 		$this->putBool($this->shouldTrackOutput);
 	}
 
+	public function mustBeDecoded() : bool{
+		return false;
+	}
+
+	public function handle(NetworkSession $session) : bool{
+		return $session->handleCommandBlockUpdate($this);
+	}
 }

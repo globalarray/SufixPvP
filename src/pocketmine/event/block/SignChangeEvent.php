@@ -14,10 +14,12 @@
  * (at your option) any later version.
  *
  * @author PocketMine Team
- * @link   http://www.pocketmine.net/
+ * @link http://www.pocketmine.net/
  *
  *
- */
+*/
+
+declare(strict_types=1);
 
 namespace pocketmine\event\block;
 
@@ -28,10 +30,10 @@ use pocketmine\Player;
 /**
  * Called when a sign is changed by a player.
  */
-class SignChangeEvent extends BlockEvent implements Cancellable {
+class SignChangeEvent extends BlockEvent implements Cancellable{
 	public static $handlerList = null;
 
-	/** @var \pocketmine\Player */
+	/** @var Player */
 	private $player;
 	/** @var string[] */
 	private $lines = [];

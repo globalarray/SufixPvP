@@ -13,62 +13,39 @@
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * @author Pocketmine Team
+ * @author PocketMine Team
  * @link http://www.pocketmine.net/
  *
  *
 */
 
+declare(strict_types=1);
+
 namespace pocketmine\block;
 
-use pocketmine\item\enchantment\Enchantment;
 use pocketmine\item\Item;
 
 class SeaLantern extends Transparent{
 
 	protected $id = self::SEA_LANTERN;
 
-	/**
-	 * SeaLantern constructor.
-	 *
-	 * @param int $meta
-	 */
 	public function __construct($meta = 0){
 		$this->meta = $meta;
 	}
 
-	/**
-	 * @return string
-	 */
-	public function getName() : string{
+	public function getName(){
 		return "Sea Lantern";
 	}
 
-	/**
-	 * @return float
-	 */
 	public function getHardness(){
 		return 0.3;
 	}
 
-	/**
-	 * @return int
-	 */
 	public function getLightLevel(){
 		return 15;
 	}
 
-	/**
-	 * @param Item $item
-	 *
-	 * @return array
-	 */
-	public function getDrops(Item $item) : array{
-		if($item->hasEnchantment(Enchantment::TYPE_MINING_SILK_TOUCH)){
-			return [
-				[$this->id, 0, 1],
-			];
-		}
+	public function getDrops(Item $item){
 		return [
 			[Item::PRISMARINE_CRYSTALS, 0, 3],
 		];

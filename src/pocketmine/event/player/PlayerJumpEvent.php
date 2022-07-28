@@ -14,10 +14,12 @@
  * (at your option) any later version.
  *
  * @author PocketMine Team
- * @link   http://www.pocketmine.net/
+ * @link http://www.pocketmine.net/
  *
  *
- */
+*/
+
+declare(strict_types=1);
 
 namespace pocketmine\event\player;
 
@@ -31,8 +33,11 @@ class PlayerJumpEvent extends PlayerEvent{
 
 	/**
 	 * PlayerJumpEvent constructor.
+	 *
+	 * @param Player $player
 	 */
 	public function __construct(Player $player){
 		$this->player = $player;
 	}
+
 }

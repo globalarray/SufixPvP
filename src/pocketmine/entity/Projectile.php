@@ -2,11 +2,11 @@
 
 /*
  *
- *  ____            _        _   __  __ _                  __  __ ____  
- * |  _ \ ___   ___| | _____| |_|  \/  (_)_ __   ___      |  \/  |  _ \ 
+ *  ____            _        _   __  __ _                  __  __ ____
+ * |  _ \ ___   ___| | _____| |_|  \/  (_)_ __   ___      |  \/  |  _ \
  * | |_) / _ \ / __| |/ / _ \ __| |\/| | | '_ \ / _ \_____| |\/| | |_) |
- * |  __/ (_) | (__|   <  __/ |_| |  | | | | | |  __/_____| |  | |  __/ 
- * |_|   \___/ \___|_|\_\___|\__|_|  |_|_|_| |_|\___|     |_|  |_|_| 
+ * |  __/ (_) | (__|   <  __/ |_| |  | | | | | |  __/_____| |  | |  __/
+ * |_|   \___/ \___|_|\_\___|\__|_|  |_|_|_| |_|\___|     |_|  |_|_|
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -15,70 +15,53 @@
  *
  * @author PocketMine Team
  * @link http://www.pocketmine.net/
- * 
+ *
  *
 */
 
+declare(strict_types=1);
+
 namespace pocketmine\entity;
 
-
-use pocketmine\block\Block;
 use pocketmine\event\entity\EntityCombustByEntityEvent;
 use pocketmine\event\entity\EntityDamageByChildEntityEvent;
 use pocketmine\event\entity\EntityDamageByEntityEvent;
 use pocketmine\event\entity\EntityDamageEvent;
-use pocketmine\event\entity\ProjectileHitBlockEvent;
-use pocketmine\event\entity\ProjectileHitEntityEvent;
 use pocketmine\event\entity\ProjectileHitEvent;
-use pocketmine\event\Timings;
-use pocketmine\item\Potion;
 use pocketmine\level\Level;
-use pocketmine\math\RayTraceResult;
+use pocketmine\level\MovingObjectPosition;
 use pocketmine\math\Vector3;
-use pocketmine\math\VoxelRayTrace;
-use pocketmine\nbt\tag\ByteTag;
 use pocketmine\nbt\tag\CompoundTag;
-use pocketmine\nbt\tag\DoubleTag;
-use pocketmine\nbt\tag\IntTag;
 use pocketmine\nbt\tag\ShortTag;
+use pocketmine\Player;
 
 abstract class Projectile extends Entity{
 
 	const DATA_SHOOTER_ID = 17;
 
-	/** @var float */
-	protected $damage = 0.0;
+	protected $damage = 0;
+
+	protected $shootingEntity;
 
 	public $hadCollision = false;
 
-	/** @var Vector3|null */
-	protected $blockHit;
-	/** @var int|null */
-	protected $blockHitId;
-	/** @var int|null */
-	protected $blockHitData;
-
-
-	/**
-	 * Projectile constructor.
-	 *
-	 * @param Level       $level
-	 * @param CompoundTag $nbt
-	 * @param Entity|null $shootingEntity
-	 */
 	public function __construct(Level $level, CompoundTag $nbt, Entity $shootingEntity = null){
-		parent::__construct($level, $nbt);
 		if($shootingEntity !== null){
 			$this->setOwningEntity($shootingEntity);
+			$this->shootingEntity = $shootingEntity;
 		}
+		parent::__construct($level, $nbt);
 	}
 
-	/**
-	 * @param float             $damage
-	 * @param EntityDamageEvent $source
-	 *
-	 * @return bool|void
-	 */
+	public function getShootingEntity(){
+		return $this->shootingEntity;
+	}
+
+	public function setShootingEntity(Entity $entity){
+		$this->setOwningEntity($entity);
+		$this->shootingEntity = $entity;
+	}
+
 	public function attack($damage, EntityDamageEvent $source){
 		if($source->getCause() === EntityDamageEvent::CAUSE_VOID){
 			parent::attack($damage, $source);
@@ -93,51 +76,10 @@ abstract class Projectile extends Entity{
 		if(isset($this->namedtag->Age)){
 			$this->age = $this->namedtag["Age"];
 		}
-
-		if(isset($this->namedtag->damage)){
-			$this->damage = $this->namedtag["damage"];
-		}
-
-		do{
-			$blockHit = null;
-			$blockId = null;
-			$blockData = null;
-
-			if(isset($this->namedtag->tileX) and isset($this->namedtag->tileY) and isset($this->namedtag->tileZ)){
-				$blockHit = new Vector3($this->namedtag->tileX, $this->namedtag->tileY, $this->namedtag->tileZ);
-			}else{
-				break;
-			}
-
-			if(isset($this->namedtag->blockId)){
-				$blockId = $this->namedtag->blockId;
-			}else{
-				break;
-			}
-
-			if(isset($this->namedtag->blockData)){
-				$blockData = $this->namedtag->blockData;
-			}else{
-				break;
-			}
-
-			$this->blockHit = $blockHit;
-			$this->blockHitId = $blockId;
-			$this->blockHitData = $blockData;
-		}while(false);
 	}
 
-	/**
-	 * @param Entity $entity
-	 *
-	 * @return bool
-	 */
 	public function canCollideWith(Entity $entity){
-		return $entity instanceof Living and !$this->onGround;
-	}
-
-	public function canBeCollidedWith() : bool{
-		return false;
+		return $entity instanceof Living and !$this->onGround and !($entity instanceof Player and $entity->isSpectator());
 	}
 
 	/**
@@ -148,229 +90,131 @@ abstract class Projectile extends Entity{
 		return (int) ceil(sqrt($this->motionX ** 2 + $this->motionY ** 2 + $this->motionZ ** 2) * $this->damage);
 	}
 
-	/**
-	 * Returns the base damage applied on collision. This is multiplied by the projectile's speed to give a result
-	 * damage.
-	 *
-	 * @return float
-	 */
-	public function getBaseDamage() : float{
-		return $this->damage;
-	}
+	public function onCollideWithEntity(Entity $entity){
+		if($entity instanceof Player and $entity->isSpectator()){
+			return;
+		}
 
-	/**
-	 * Sets the base amount of damage applied by the projectile.
-	 *
-	 * @param float $damage
-	 */
-	public function setBaseDamage(float $damage) : void{
-		$this->damage = $damage;
-	}
+		$this->server->getPluginManager()->callEvent(new ProjectileHitEvent($this));
 
-	/**
-	 * Called when the projectile hits something. Override this to perform non-target-specific effects when the
-	 * projectile hits something.
-	 *
-	 * @param ProjectileHitEvent $event
-	 */
-	protected function onHit(ProjectileHitEvent $event) : void{
-
-	}
-
-	/**
-	 * Called when the projectile collides with an Entity.
-	 *
-	 * @param Entity         $entityHit
-	 * @param RayTraceResult $hitResult
-	 */
-	protected function onHitEntity(Entity $entityHit, RayTraceResult $hitResult) : void{
 		$damage = $this->getResultDamage();
 
-		if($damage >= 0){
-			if($this->getOwningEntity() === null){
-				$ev = new EntityDamageByEntityEvent($this, $entityHit, EntityDamageEvent::CAUSE_PROJECTILE, $damage);
-			}else{
-				$ev = new EntityDamageByChildEntityEvent($this->getOwningEntity(), $this, $entityHit, EntityDamageEvent::CAUSE_PROJECTILE, $damage);
-			}
+		if($this->getOwningEntity() === null){
+			$ev = new EntityDamageByEntityEvent($this, $entity, EntityDamageEvent::CAUSE_PROJECTILE, $damage);
+		}else{
+			$ev = new EntityDamageByChildEntityEvent($this->getOwningEntity(), $this, $entity, EntityDamageEvent::CAUSE_PROJECTILE, $damage);
+		}
 
-			if($entityHit->attack($ev->getFinalDamage(), $ev) === true) {
-				if($this instanceof Arrow and $this->getPotionId() != 0){
-					foreach(Potion::getEffectsById($this->getPotionId() - 1) as $effect){
-						$entityHit->addEffect($effect->setDuration($effect->getDuration() / 8));
-					}
-				}
-				$ev->useArmors();
-			}
+		$entity->attack($ev->getFinalDamage(), $ev);
 
-			if($this->fireTicks > 0){
-				$ev = new EntityCombustByEntityEvent($this, $entityHit, 5);
-				$this->server->getPluginManager()->callEvent($ev);
-				if(!$ev->isCancelled()){
-					$entityHit->setOnFire($ev->getDuration());
-				}
+		$this->hadCollision = true;
+
+		if($this->fireTicks > 0){
+			$ev = new EntityCombustByEntityEvent($this, $entity, 5);
+			$this->server->getPluginManager()->callEvent($ev);
+			if(!$ev->isCancelled()){
+				$entity->setOnFire($ev->getDuration());
 			}
 		}
 
-		$this->flagForDespawn();
-	}
-
-	/**
-	 * Called when the projectile collides with a Block.
-	 *
-	 * @param Block          $blockHit
-	 * @param RayTraceResult $hitResult
-	 */
-	protected function onHitBlock(Block $blockHit, RayTraceResult $hitResult) : void{
-		$this->blockHit = $blockHit->asVector3();
-		$this->blockHitId = $blockHit->getId();
-		$this->blockHitData = $blockHit->getDamage();
+		$this->close();
 	}
 
 	public function saveNBT(){
 		parent::saveNBT();
-
 		$this->namedtag->Age = new ShortTag("Age", $this->age);
-		$this->namedtag->damage = new DoubleTag("damage", $this->damage); // ?
-
-		if($this->blockHit !== null){
-			$this->namedtag->tileX = new IntTag("tileX", $this->blockHit->x);
-			$this->namedtag->tileY = new IntTag("tileY", $this->blockHit->y);
-			$this->namedtag->tileZ = new IntTag("tileZ", $this->blockHit->z);
-
-			//we intentionally use different ones to PC because we don't have stringy IDs
-			$this->namedtag->blockId = new IntTag("blockId", $this->blockHitId);
-			$this->namedtag->blockData = new ByteTag("blockData", $this->blockHitData);
-		}
 	}
 
-	protected function applyDragBeforeGravity() : bool{
-		return true;
-	}
-
-	public function onNearbyBlockChange() : void{
-		if($this->blockHit !== null){
-			$blockIn = $this->level->getBlockAt($this->blockHit->x, $this->blockHit->y, $this->blockHit->z);
-			if($blockIn->getId() !== $this->blockHitId or $blockIn->getDamage() !== $this->blockHitData){
-				$this->blockHit = $this->blockHitId = $this->blockHitData = null;
-			}
+	public function onUpdate($currentTick){
+		if($this->closed){
+			return false;
 		}
 
-		parent::onNearbyBlockChange();
-	}
 
-	public function hasMovementUpdate() : bool{
-		return $this->blockHit === null and parent::hasMovementUpdate();
-	}
-
-	public function move($dx, $dy, $dz) : void{
-		$this->blocksAround = null;
-
-		Timings::$entityMoveTimer->startTiming();
-
-		$start = $this->asVector3();
-		$end = $start->add($dx, $dy, $dz);
-
-		$blockHit = null;
-		$entityHit = null;
-		$hitResult = null;
-
-		foreach(VoxelRayTrace::betweenPoints($start, $end) as $vector3){
-			$block = $this->level->getBlockAt($vector3->x, $vector3->y, $vector3->z);
-
-			$blockHitResult = $this->calculateInterceptWithBlock($block, $start, $end);
-			if($blockHitResult !== null){
-				$end = $blockHitResult->hitVector;
-				$blockHit = $block;
-				$hitResult = $blockHitResult;
-				break;
-			}
+		$tickDiff = $currentTick - $this->lastUpdate;
+		if($tickDiff <= 0 and !$this->justCreated){
+			return true;
 		}
+		$this->lastUpdate = $currentTick;
 
-		$entityDistance = PHP_INT_MAX;
+		$hasUpdate = $this->entityBaseTick($tickDiff);
 
-		$newDiff = $end->subtract($start);
-		foreach($this->level->getCollidingEntities($this->boundingBox->addCoord($newDiff->x, $newDiff->y, $newDiff->z)->expand(1, 1, 1), $this) as $entity){
-			if($entity->getId() === $this->getOwningEntityId() and $this->ticksLived < 5){
-				continue;
+		if($this->isAlive()){
+
+			$movingObjectPosition = null;
+
+			if(!$this->isCollided){
+				$this->motionY -= $this->gravity;
 			}
 
-			$entityBB = $entity->boundingBox->expandedCopy(0.3, 0.3, 0.3);
+			$moveVector = new Vector3($this->x + $this->motionX, $this->y + $this->motionY, $this->z + $this->motionZ);
 
-			$entityHitResult = $entityBB->calculateIntercept($start, $end);
+			$list = $this->getLevel()->getCollidingEntities($this->boundingBox->addCoord($this->motionX, $this->motionY, $this->motionZ)->expand(1, 1, 1), $this);
 
-			if($entityHitResult === null){
-				continue;
-			}
+			$nearDistance = PHP_INT_MAX;
+			$nearEntity = null;
 
-			$distance = $this->distanceSquared($entityHitResult->hitVector);
+			foreach($list as $entity){
+				if(/*!$entity->canCollideWith($this) or */
+				($entity->getId() === $this->getOwningEntityId() and $this->ticksLived < 5)
+				){
+					continue;
+				}
 
-			if($distance < $entityDistance){
-				$entityDistance = $distance;
-				$entityHit = $entity;
-				$hitResult = $entityHitResult;
-				$end = $entityHitResult->hitVector;
-			}
-		}
+				$axisalignedbb = $entity->boundingBox->grow(0.3, 0.3, 0.3);
+				$ob = $axisalignedbb->calculateIntercept($this, $moveVector);
 
-		$this->x = $end->x;
-		$this->y = $end->y;
-		$this->z = $end->z;
-		$this->recalculateBoundingBox();
+				if($ob === null){
+					continue;
+				}
 
-		if($hitResult !== null){
-			/** @var ProjectileHitEvent|null $ev */
-			$ev = null;
-			if($entityHit !== null){
-				$ev = new ProjectileHitEntityEvent($this, $hitResult, $entityHit);
-			}elseif($blockHit !== null){
-				$ev = new ProjectileHitBlockEvent($this, $hitResult, $blockHit);
-			}else{
-				\assert(false, "unknown hit type");
-			}
+				$distance = $this->distanceSquared($ob->hitVector);
 
-			if($ev !== null){
-				$this->server->getPluginManager()->callEvent($ev);
-				$this->onHit($ev);
-
-				if($ev instanceof ProjectileHitEntityEvent){
-					$this->onHitEntity($ev->getEntityHit(), $ev->getRayTraceResult());
-				}elseif($ev instanceof ProjectileHitBlockEvent){
-					$this->onHitBlock($ev->getBlockHit(), $ev->getRayTraceResult());
+				if($distance < $nearDistance){
+					$nearDistance = $distance;
+					$nearEntity = $entity;
 				}
 			}
 
-			$this->isCollided = $this->onGround = true;
-			$this->motionX = $this->motionY = $this->motionZ = 0;
-		}else{
-			$this->isCollided = $this->onGround = false;
-			$this->blockHit = $this->blockHitId = $this->blockHitData = null;
+			if($nearEntity !== null){
+				$movingObjectPosition = MovingObjectPosition::fromEntity($nearEntity);
+			}
 
-			//recompute angles...
-			$f = sqrt(($this->motionX ** 2) + ($this->motionZ ** 2));
-			$this->yaw = (atan2($this->motionX, $this->motionZ) * 180 / M_PI);
-			$this->pitch = (atan2($this->motionY, $f) * 180 / M_PI);
+			if($movingObjectPosition !== null){
+				if($movingObjectPosition->entityHit !== null){
+					$this->onCollideWithEntity($movingObjectPosition->entityHit);
+					return false;
+				}
+			}
+
+			$this->move($this->motionX, $this->motionY, $this->motionZ);
+
+			if($this->isCollided and !$this->hadCollision){ //Collided with a block
+				$this->hadCollision = true;
+
+				$this->motionX = 0;
+				$this->motionY = 0;
+				$this->motionZ = 0;
+
+				$this->server->getPluginManager()->callEvent(new ProjectileHitEvent($this));
+				return false;
+			}elseif(!$this->isCollided and $this->hadCollision){ //Collided with block, but block later removed
+				//This currently doesn't work because the arrow's motion is all zeros when it's hit a block, so move() doesn't do any collision checks.
+				//TODO: fix this
+				$this->hadCollision = false;
+			}
+
+			if(!$this->hadCollision or abs($this->motionX) > 0.00001 or abs($this->motionY) > 0.00001 or abs($this->motionZ) > 0.00001){
+				$f = sqrt(($this->motionX ** 2) + ($this->motionZ ** 2));
+				$this->yaw = (atan2($this->motionX, $this->motionZ) * 180 / M_PI);
+				$this->pitch = (atan2($this->motionY, $f) * 180 / M_PI);
+				$hasUpdate = true;
+			}
+
+			$this->updateMovement();
 		}
 
-		$this->checkChunks();
-		$this->checkBlockCollision();
-
-
-		Timings::$entityMoveTimer->stopTiming();
-	}
-
-	/**
-	 * Called by move() when raytracing blocks to discover whether the block should be considered as a point of impact.
-	 * This can be overridden by other projectiles to allow altering the blocks which are collided with (for example
-	 * some projectiles collide with any non-air block).
-	 *
-	 * @param Block   $block
-	 * @param Vector3 $start
-	 * @param Vector3 $end
-	 *
-	 * @return RayTraceResult|null the result of the ray trace if successful, or null if no interception is found.
-	 */
-	protected function calculateInterceptWithBlock(Block $block, Vector3 $start, Vector3 $end) : ?RayTraceResult{
-		return $block->calculateIntercept($start, $end);
+		return $hasUpdate;
 	}
 
 }

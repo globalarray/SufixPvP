@@ -19,11 +19,13 @@
  *
 */
 
+declare(strict_types=1);
+
 namespace pocketmine\metadata;
 
 use pocketmine\plugin\Plugin;
 
-interface Metadatable {
+interface Metadatable{
 
 	/**
 	 * Sets a metadata value in the implementing object's metadata store.

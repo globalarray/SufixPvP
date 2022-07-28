@@ -19,109 +19,83 @@
  *
 */
 
+declare(strict_types=1);
+
 namespace pocketmine\permission;
 
-class BanEntry {
+use pocketmine\utils\MainLogger;
+
+class BanEntry{
+	/**
+	 * @var string
+	 */
 	public static $format = "Y-m-d H:i:s O";
 
+	/** @var string */
 	private $name;
 	/** @var \DateTime */
-	private $creationDate;
+	private $creationDate = null;
+	/** @var string */
 	private $source = "(Unknown)";
-	/** @var \DateTime */
+	/** @var \DateTime|null */
 	private $expirationDate = null;
+	/** @var string */
 	private $reason = "Banned by an operator.";
 
-	/**
-	 * BanEntry constructor.
-	 *
-	 * @param $name
-	 */
-	public function __construct($name){
+	public function __construct(string $name){
 		$this->name = strtolower($name);
 		$this->creationDate = new \DateTime();
 	}
 
-	/**
-	 * @return string
-	 */
 	public function getName() : string{
 		return $this->name;
 	}
 
-	/**
-	 * @return \DateTime
-	 */
-	public function getCreated(){
+	public function getCreated() : \DateTime{
 		return $this->creationDate;
 	}
 
-	/**
-	 * @param \DateTime $date
-	 */
 	public function setCreated(\DateTime $date){
-		self::validateDate($date);
 		$this->creationDate = $date;
 	}
 
-	/**
-	 * @return string
-	 */
-	public function getSource(){
+	public function getSource() : string{
 		return $this->source;
 	}
 
-	/**
-	 * @param $source
-	 */
-	public function setSource($source){
+	public function setSource(string $source){
 		$this->source = $source;
 	}
 
 	/**
-	 * @return \DateTime
+	 * @return \DateTime|null
 	 */
 	public function getExpires(){
 		return $this->expirationDate;
 	}
 
 	/**
-	 * @param \DateTime $date
+	 * @param \DateTime|null $date
 	 */
 	public function setExpires(\DateTime $date = null){
-		if($date !== null){
-			self::validateDate($date);
-		}
 		$this->expirationDate = $date;
 	}
 
-	/**
-	 * @return bool
-	 */
-	public function hasExpired(){
+	public function hasExpired() : bool{
 		$now = new \DateTime();
 
 		return $this->expirationDate === null ? false : $this->expirationDate < $now;
 	}
 
-	/**
-	 * @return string
-	 */
-	public function getReason(){
+	public function getReason() : string{
 		return $this->reason;
 	}
 
-	/**
-	 * @param $reason
-	 */
-	public function setReason($reason){
+	public function setReason(string $reason){
 		$this->reason = $reason;
 	}
 
-	/**
-	 * @return string
-	 */
-	public function getString(){
+	public function getString() : string{
 		$str = "";
 		$str .= $this->getName();
 		$str .= "|";
@@ -137,68 +111,37 @@ class BanEntry {
 	}
 
 	/**
-	 * Hacky function to validate \DateTime objects due to a bug in PHP. format() with "Y" can emit years with more than
-	 * 4 digits, but createFromFormat() with "Y" doesn't accept them if they have more than 4 digits on the year.
-	 *
-	 * @link https://bugs.php.net/bug.php?id=75992
-	 *
-	 * @param \DateTime $dateTime
-	 * @throws \RuntimeException if the argument can't be parsed from a formatted date string
-	 */
-	private static function validateDate(\DateTime $dateTime) : void{
-		self::parseDate($dateTime->format(self::$format));
-	}
-
-	/**
-	 * @param string $date
-	 *
-	 * @return \DateTime
-	 * @throws \RuntimeException
-	 */
-	private static function parseDate(string $date) : \DateTime{
-		$datetime = \DateTime::createFromFormat(self::$format, $date);
-		if(!($datetime instanceof \DateTime)){
-			throw new \RuntimeException("Error parsing date for BanEntry: " . implode(", ", \DateTime::getLastErrors()["errors"]));
-		}
-
-		return $datetime;
-	}
-
-	/**
 	 * @param string $str
 	 *
-	 * @return BanEntry
-	 * @throws \RuntimeException
+	 * @return BanEntry|null
 	 */
-	public static function fromString(string $str) : ?BanEntry{
+	public static function fromString(string $str){
 		if(strlen($str) < 2){
 			return null;
 		}else{
 			$str = explode("|", trim($str));
 			$entry = new BanEntry(trim(array_shift($str)));
-
-			if(count($str) === 0){
-				return $entry;
+			if(count($str) > 0){
+				$datetime = \DateTime::createFromFormat(self::$format, array_shift($str));
+				if(!($datetime instanceof \DateTime)){
+					MainLogger::getLogger()->alert("Error parsing date for BanEntry for player \"" . $entry->getName() . "\", the format may be invalid!");
+					return $entry;
+				}
+				$entry->setCreated($datetime);
+				if(count($str) > 0){
+					$entry->setSource(trim(array_shift($str)));
+					if(count($str) > 0){
+						$expire = trim(array_shift($str));
+						if(strtolower($expire) !== "forever" and strlen($expire) > 0){
+							$entry->setExpires(\DateTime::createFromFormat(self::$format, $expire));
+						}
+						if(count($str) > 0){
+							$entry->setReason(trim(array_shift($str)));
+						}
+					}
+				}
 			}
 
-			$entry->setCreated(self::parseDate(array_shift($str)));
-			if(count($str) === 0){
-				return $entry;
-			}
-
-			$entry->setSource(trim(array_shift($str)));
-			if(count($str) === 0){
-				return $entry;
-			}
-
-			$expire = trim(array_shift($str));
-			if($expire !== "" and strtolower($expire) !== "forever"){
-				$entry->setExpires(self::parseDate($expire));
-			}
-			if(count($str) === 0){
-				return $entry;
-			}
-			$entry->setReason(trim(array_shift($str)));
 			return $entry;
 		}
 	}

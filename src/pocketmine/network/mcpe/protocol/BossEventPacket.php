@@ -2,31 +2,33 @@
 
 /*
  *
- *    _______                                _
- *   |__   __|                              | |
- *      | | ___  ___ ___  ___ _ __ __ _  ___| |_
- *      | |/ _ \/ __/ __|/ _ \  __/ _` |/ __| __|
- *      | |  __/\__ \__ \  __/ | | (_| | (__| |_
- *      |_|\___||___/___/\___|_|  \__,_|\___|\__|
- *
+ *  ____            _        _   __  __ _                  __  __ ____
+ * |  _ \ ___   ___| | _____| |_|  \/  (_)_ __   ___      |  \/  |  _ \
+ * | |_) / _ \ / __| |/ / _ \ __| |\/| | | '_ \ / _ \_____| |\/| | |_) |
+ * |  __/ (_) | (__|   <  __/ |_| |  | | | | | |  __/_____| |  | |  __/
+ * |_|   \___/ \___|_|\_\___|\__|_|  |_|_|_| |_|\___|     |_|  |_|_|
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * @author Tessetact Team
- * @link http://www.github.com/TesseractTeam/Tesseract
- * 
+ * @author PocketMine Team
+ * @link http://www.pocketmine.net/
  *
- */
+ *
+*/
+
+declare(strict_types=1);
 
 namespace pocketmine\network\mcpe\protocol;
 
 #include <rules/DataPacket.h>
 
-class BossEventPacket extends DataPacket {
 
+use pocketmine\network\mcpe\NetworkSession;
+
+class BossEventPacket extends DataPacket{
 	const NETWORK_ID = ProtocolInfo::BOSS_EVENT_PACKET;
 
 	/* S2C: Shows the boss-bar to the player. */
@@ -46,8 +48,8 @@ class BossEventPacket extends DataPacket {
 	/* S2C: Not implemented :( Intended to alter bar appearance, but these currently produce no effect on client-side whatsoever. */
 	const TYPE_TEXTURE = 7;
 
-	public $eid;
-	public $type;
+	public $bossEid;
+	public $eventType;
 
 	/** @var int (long) */
 	public $playerEid;
@@ -62,20 +64,19 @@ class BossEventPacket extends DataPacket {
 	/** @var int */
 	public $overlay;
 
-	/**
-	 *
-	 */
-	public function decode(){
-		$this->eid = $this->getEntityId();
-		$this->type = $this->getUnsignedVarInt();
-		switch($this->type){
+	public function decodePayload(){
+		$this->bossEid = $this->getEntityUniqueId();
+		$this->eventType = $this->getUnsignedVarInt();
+		switch($this->eventType){
 			case self::TYPE_REGISTER_PLAYER:
 			case self::TYPE_UNREGISTER_PLAYER:
-				$this->playerEid = $this->getEntityId();
+				$this->playerEid = $this->getEntityUniqueId();
 				break;
+			/** @noinspection PhpMissingBreakStatementInspection */
 			case self::TYPE_SHOW:
 				$this->title = $this->getString();
 				$this->healthPercent = $this->getLFloat();
+			/** @noinspection PhpMissingBreakStatementInspection */
 			case self::TYPE_UNKNOWN_6:
 				$this->unknownShort = $this->getLShort();
 			case self::TYPE_TEXTURE:
@@ -93,21 +94,19 @@ class BossEventPacket extends DataPacket {
 		}
 	}
 
-	/**
-	 *
-	 */
-	public function encode(){
-		$this->reset();
-		$this->putEntityId($this->eid);
-		$this->putUnsignedVarInt($this->type);
-		switch($this->type){
+	public function encodePayload(){
+		$this->putEntityUniqueId($this->bossEid);
+		$this->putUnsignedVarInt($this->eventType);
+		switch($this->eventType){
 			case self::TYPE_REGISTER_PLAYER:
 			case self::TYPE_UNREGISTER_PLAYER:
-				$this->putEntityId($this->playerEid);
+				$this->putEntityUniqueId($this->playerEid);
 				break;
+			/** @noinspection PhpMissingBreakStatementInspection */
 			case self::TYPE_SHOW:
 				$this->putString($this->title);
 				$this->putLFloat($this->healthPercent);
+			/** @noinspection PhpMissingBreakStatementInspection */
 			case self::TYPE_UNKNOWN_6:
 				$this->putLShort($this->unknownShort);
 			case self::TYPE_TEXTURE:
@@ -125,11 +124,12 @@ class BossEventPacket extends DataPacket {
 		}
 	}
 
-	/**
-	 * @return string Current packet name
-	 */
-	public function getName(){
-		return "BossEventPacket";
+	public function mustBeDecoded() : bool{
+		return false;
+	}
+
+	public function handle(NetworkSession $session) : bool{
+		return $session->handleBossEvent($this);
 	}
 
 }

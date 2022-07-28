@@ -19,134 +19,77 @@
  *
 */
 
+declare(strict_types=1);
+
 namespace pocketmine\inventory;
 
-use pocketmine\event\inventory\AnvilProcessEvent;
-use pocketmine\item\EnchantedBook;
-use pocketmine\item\Item;
 use pocketmine\level\Position;
+use pocketmine\level\sound\AnvilUseSound;
 use pocketmine\Player;
-use pocketmine\Server;
 
-class AnvilInventory extends TemporaryInventory {
-
-	const TARGET = 0;
-	const SACRIFICE = 1;
-	const RESULT = 2;
-
-
-	/**
-	 * AnvilInventory constructor.
-	 *
-	 * @param Position $pos
-	 */
+class AnvilInventory extends TemporaryInventory{
+ 
+ 	const TARGET = 0;
+ 	const SACRIFICE = 1;
+ 	const RESULT = 2;
+ 
+ 
 	public function __construct(Position $pos){
 		parent::__construct(new FakeBlockMenu($this, $pos), InventoryType::get(InventoryType::ANVIL));
 	}
 
 	/**
-	 * @return FakeBlockMenu|InventoryHolder
+	 * @return FakeBlockMenu
 	 */
 	public function getHolder(){
 		return $this->holder;
 	}
 
-	/**
-	 * @return int
-	 */
 	public function getResultSlotIndex(){
-		return self::RESULT;
-	}
+ 		return self::RESULT;
+ 	}
+ 
+ 	public function onRename(Player $player, Item $resultItem) : bool{
+ 		if(!$resultItem->deepEquals($this->getItem(self::TARGET), true, false, true)){
+ 			//Item does not match target item. Everything must match except the tags.
+ 			return false;
+ 		}
+ 
+ 		if($player->getXpLevel() < $resultItem->getRepairCost()){ //Not enough exp
+ 			return false;
+  		}
+ 		$player->setXpLevel($player->getXpLevel() - $resultItem->getRepairCost());
+ 		
+ 		$this->clearAll();
+ 		if(!$player->getServer()->allowInventoryCheats and !$player->isCreative()){
+ 			if(!$player->getFloatingInventory()->canAddItem($resultItem)){
+ 				return false;
+ 			}
+ 			$player->getFloatingInventory()->addItem($resultItem);
+ 		}
 
-	/**
-	 * @param Player $player
-	 * @param Item   $resultItem
-	 *
-	 * @return bool
-	 */
-	public function onRename(Player $player, Item $resultItem) : bool{
-		if(!$resultItem->equals($this->getItem(self::TARGET), true, false, true)){
-			//Item does not match target item. Everything must match except the tags.
-			return false;
-		}
+ 		$player->getLevel()->addSound(new AnvilUseSound($player), [$player]);
 
-		if($player->getXpLevel() < $resultItem->getRepairCost()){ //Not enough exp
-			return false;
-		}
-		$player->takeXpLevel($resultItem->getRepairCost());
+ 		return true;
+ 	}
+ 
+ 	public function processSlotChange(Transaction $transaction): bool{
+ 		if($transaction->getSlot() === $this->getResultSlotIndex()){
+ 			return false;
+ 		}
+ 		return true;
+ 	}
+ 
+ 	public function onSlotChange($index, $before, $send){
+ 		//Do not send anvil slot updates to anyone. This will cause a client crash.
+  	}
 
-		$this->clearAll();
-		if(!$player->getServer()->allowInventoryCheats and !$player->isCreative()){
-			if(!$player->getFloatingInventory()->canAddItem($resultItem)){
-				return false;
-			}
-			$player->getFloatingInventory()->addItem($resultItem);
-		}
-		return true;
-	}
-
-	/**
-	 * @param Player $player
-	 * @param Item   $target
-	 * @param Item   $sacrifice
-	 *
-	 * @return bool
-	 */
-	public function process(Player $player, Item $target, Item $sacrifice){
-		$resultItem = clone $target;
-		Server::getInstance()->getPluginManager()->callEvent($ev = new AnvilProcessEvent($this));
-		if($ev->isCancelled()){
-			$this->clearAll();
-			return false;
-		}
-		if($sacrifice instanceof EnchantedBook && $sacrifice->hasEnchantments()){ //Enchanted Books!
-			foreach($sacrifice->getEnchantments() as $enchant){
-				$resultItem->addEnchantment($enchant);
-			}
-
-			if($player->getXpLevel() < $resultItem->getRepairCost()){ //Not enough exp
-				return false;
-			}
-			$player->takeXpLevel($resultItem->getRepairCost());
-
-			$this->clearAll();
-			if(!$player->getServer()->allowInventoryCheats and !$player->isCreative()){
-				if(!$player->getFloatingInventory()->canAddItem($resultItem)){
-					return false;
-				}
-				$player->getFloatingInventory()->addItem($resultItem);
-			}
-		}
-	}
-
-	/**
-	 * @param Transaction $transaction
-	 *
-	 * @return bool
-	 */
-	public function processSlotChange(Transaction $transaction) : bool{
-		if($transaction->getSlot() === $this->getResultSlotIndex()){
-			return false;
-		}
-		return true;
-	}
-
-	/**
-	 * @param int  $index
-	 * @param Item $before
-	 * @param bool $send
-	 */
-	public function onSlotChange($index, $before, $send){
-		//Do not send anvil slot updates to anyone. This will cause a client crash.
-	}
-
-	/**
-	 * @param Player $who
-	 */
 	public function onClose(Player $who){
 		parent::onClose($who);
 
-		$this->dropContents($this->holder->getLevel(), $this->holder->add(0.5, 0.5, 0.5));
+		for($i = 0; $i < 2; ++$i){
+			$this->getHolder()->getLevel()->dropItem($this->getHolder()->add(0.5, 0.5, 0.5), $this->getItem($i));
+			$this->clear($i);
+		}
 	}
-
 }

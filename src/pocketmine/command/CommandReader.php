@@ -23,19 +23,7 @@ declare(strict_types=1);
 
 namespace pocketmine\command;
 
-use pocketmine\snooze\SleeperNotifier;
 use pocketmine\Thread;
-use function fclose;
-use function fgets;
-use function fopen;
-use function fstat;
-use function is_resource;
-use function microtime;
-use function preg_replace;
-use function stream_isatty;
-use function stream_select;
-use function trim;
-use function usleep;
 
 class CommandReader extends Thread{
 
@@ -43,29 +31,22 @@ class CommandReader extends Thread{
 	const TYPE_STREAM = 1;
 	const TYPE_PIPED = 2;
 
-	/** @var resource */
-	private static $stdin;
-
 	/** @var \Threaded */
 	protected $buffer;
-	/** @var bool */
 	private $shutdown = false;
-	/** @var int */
 	private $type = self::TYPE_STREAM;
 
-    /** @var SleeperNotifier|null */
-    private $notifier;
-
-	public function __construct(?SleeperNotifier $notifier = null){
+	public function __construct(){
 		$this->buffer = new \Threaded;
-		$this->notifier = $notifier;
+		$opts = getopt("", ["disable-readline"]);
 
-		$this->setClassLoader();
-    }
+		if(extension_loaded("readline") and !isset($opts["disable-readline"]) and !$this->isPipe(STDIN)){
+			$this->type = self::TYPE_READLINE;
+		}
 
-    /**
-	 * @return void
-	 */
+		$this->start();
+	}
+
 	public function shutdown(){
 		$this->shutdown = true;
 	}
@@ -89,13 +70,15 @@ class CommandReader extends Thread{
 		throw new \ThreadException($message);
 	}
 
-	private function initStdin() : void{
-		if(is_resource(self::$stdin)){
-			fclose(self::$stdin);
+	private function initStdin(){
+		global $stdin;
+
+		if(is_resource($stdin)){
+			fclose($stdin);
 		}
 
-		self::$stdin = fopen("php://stdin", "r");
-		if($this->isPipe(self::$stdin)){
+		$stdin = fopen("php://stdin", "r");
+		if($this->isPipe($stdin)){
 			$this->type = self::TYPE_PIPED;
 		}else{
 			$this->type = self::TYPE_STREAM;
@@ -106,11 +89,10 @@ class CommandReader extends Thread{
 	 * Checks if the specified stream is a FIFO pipe.
 	 *
 	 * @param resource $stream
-	 *
 	 * @return bool
 	 */
 	private function isPipe($stream) : bool{
-		return is_resource($stream) and (!stream_isatty($stream) or ((fstat($stream)["mode"] & 0170000) === 0010000));
+		return is_resource($stream) and ((function_exists("posix_isatty") and !posix_isatty($stream)) or ((fstat($stream)["mode"] & 0170000) === 0010000));
 	}
 
 	/**
@@ -119,33 +101,53 @@ class CommandReader extends Thread{
 	 * @return bool if the main execution should continue reading lines
 	 */
 	private function readLine() : bool{
-		if(!is_resource(self::$stdin)){
-			$this->initStdin();
-		}
+		$line = "";
+		if($this->type === self::TYPE_READLINE){
+			$line = trim(readline("> "));
+			if($line !== ""){
+				readline_add_history($line);
+			}else{
+				return true;
+			}
+		}else{
+			global $stdin;
 
-		$r = [self::$stdin];
-		$w = $e = null;
-		if(($count = stream_select($r, $w, $e, 0, 200000)) === 0){ //nothing changed in 200000 microseconds
-			return true;
-		}elseif($count === false){ //stream error
-			$this->initStdin();
-		}
+			if(!is_resource($stdin)){
+				$this->initStdin();
+			}
 
-		if(($raw = fgets(self::$stdin)) === false){ //broken pipe or EOF
-			$this->initStdin();
-			$this->synchronized(function() : void{
-				$this->wait(200000);
-			}); //prevent CPU waste if it's end of pipe
-			return true; //loop back round
-		}
+			switch($this->type){
+				case self::TYPE_STREAM:
+					$r = [$stdin];
+					if(($count = stream_select($r, $w, $e, 0, 200000)) === 0){ //nothing changed in 200000 microseconds
+						return true;
+					}elseif($count === false){ //stream error
+						$this->initStdin();
+					}
 
-		$line = trim($raw);
+					if(($raw = fgets($stdin)) !== false){
+						$line = trim($raw);
+					}else{
+						return false; //user pressed ctrl+c?
+					}
+
+					break;
+				case self::TYPE_PIPED:
+					if(($raw = fgets($stdin)) === false){ //broken pipe or EOF
+						$this->initStdin();
+						$this->synchronized(function(){
+							$this->wait(200000);
+						}); //prevent CPU waste if it's end of pipe
+						return true; //loop back round
+					}else{
+						$line = trim($raw);
+					}
+					break;
+			}
+		}
 
 		if($line !== ""){
 			$this->buffer[] = preg_replace("#\\x1b\\x5b([^\\x1b]*\\x7e|[\\x40-\\x50])#", "", $line);
-			if($this->notifier !== null){
-			    $this->notifier->wakeupSleeper();
-            }
 		}
 
 		return true;
@@ -158,24 +160,27 @@ class CommandReader extends Thread{
 	 */
 	public function getLine(){
 		if($this->buffer->count() !== 0){
-			return $this->buffer->shift();
+			return (string) $this->buffer->shift();
 		}
 
 		return null;
 	}
 
 	public function run(){
-		$this->registerClassLoader();
+		if($this->type !== self::TYPE_READLINE){
+			$this->initStdin();
+		}
 
-		while(!$this->shutdown and $this->readLine()) ;
+		while(!$this->shutdown and $this->readLine());
 
-		fclose(self::$stdin);
+		if($this->type !== self::TYPE_READLINE){
+			global $stdin;
+			fclose($stdin);
+		}
+
 	}
 
-	/**
-	 * @return string
-	 */
-	public function getThreadName(){
+	public function getThreadName() : string{
 		return "Console";
 	}
 }

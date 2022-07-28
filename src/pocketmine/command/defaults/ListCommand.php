@@ -19,37 +19,26 @@
  *
 */
 
+declare(strict_types=1);
+
 namespace pocketmine\command\defaults;
 
 use pocketmine\command\CommandSender;
 use pocketmine\event\TranslationContainer;
 use pocketmine\Player;
 
+class ListCommand extends VanillaCommand{
 
-class ListCommand extends VanillaCommand {
-
-	/**
-	 * ListCommand constructor.
-	 *
-	 * @param $name
-	 */
 	public function __construct($name){
 		parent::__construct(
 			$name,
 			"%pocketmine.command.list.description",
-			"%pocketmine.command.players.usage"
+			"%command.players.usage"
 		);
 		$this->setPermission("pocketmine.command.list");
 	}
 
-	/**
-	 * @param CommandSender $sender
-	 * @param string        $currentAlias
-	 * @param array         $args
-	 *
-	 * @return bool
-	 */
-	public function execute(CommandSender $sender, $currentAlias, array $args){
+	public function execute(CommandSender $sender, string $commandLabel, array $args){
 		if(!$this->testPermission($sender)){
 			return true;
 		}

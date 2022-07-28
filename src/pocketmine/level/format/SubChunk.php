@@ -23,46 +23,27 @@ declare(strict_types=1);
 
 namespace pocketmine\level\format;
 
-use function assert;
-use function chr;
-use function define;
-use function defined;
-use function ord;
-use function str_repeat;
-use function strlen;
-use function substr;
-use function substr_count;
-
-if(!defined(__NAMESPACE__ . '\ZERO_NIBBLE_ARRAY')){
-	define(__NAMESPACE__ . '\ZERO_NIBBLE_ARRAY', str_repeat("\x00", 2048));
-}
-
 class SubChunk implements SubChunkInterface{
-	private const ZERO_NIBBLE_ARRAY = ZERO_NIBBLE_ARRAY;
 
-	/** @var string */
 	protected $ids;
-	/** @var string */
 	protected $data;
-	/** @var string */
 	protected $blockLight;
-	/** @var string */
 	protected $skyLight;
 
-	private static function assignData(string $data, int $length, string $value = "\x00") : string{
+	private static function assignData(&$target, string $data, int $length, string $value = "\x00"){
 		if(strlen($data) !== $length){
 			assert($data === "", "Invalid non-zero length given, expected $length, got " . strlen($data));
-			return str_repeat($value, $length);
+			$target = str_repeat($value, $length);
+		}else{
+			$target = $data;
 		}
-		return $data;
 	}
 
 	public function __construct(string $ids = "", string $data = "", string $skyLight = "", string $blockLight = ""){
-		$this->ids = self::assignData($ids, 4096);
-		$this->data = self::assignData($data, 2048);
-		$this->skyLight = self::assignData($skyLight, 2048, "\xff");
-		$this->blockLight = self::assignData($blockLight, 2048);
-		$this->collectGarbage();
+		self::assignData($this->ids, $ids, 4096);
+		self::assignData($this->data, $data, 2048);
+		self::assignData($this->skyLight, $skyLight, 2048, "\xff");
+		self::assignData($this->blockLight, $blockLight, 2048);
 	}
 
 	public function isEmpty(bool $checkLight = true) : bool{
@@ -70,7 +51,7 @@ class SubChunk implements SubChunkInterface{
 			substr_count($this->ids, "\x00") === 4096 and
 			(!$checkLight or (
 				substr_count($this->skyLight, "\xff") === 2048 and
-				$this->blockLight === self::ZERO_NIBBLE_ARRAY
+				substr_count($this->blockLight, "\x00") === 2048
 			))
 		);
 	}
@@ -85,25 +66,34 @@ class SubChunk implements SubChunkInterface{
 	}
 
 	public function getBlockData(int $x, int $y, int $z) : int{
-		return (ord($this->data[($x << 7) | ($z << 3) | ($y >> 1)]) >> (($y & 1) << 2)) & 0xf;
+		$m = ord($this->data[($x << 7) + ($z << 3) + ($y >> 1)]);
+		if(($y & 1) === 0){
+			return $m & 0x0f;
+		}else{
+			return $m >> 4;
+		}
 	}
 
 	public function setBlockData(int $x, int $y, int $z, int $data) : bool{
 		$i = ($x << 7) | ($z << 3) | ($y >> 1);
-
-		$shift = ($y & 1) << 2;
-		$byte = ord($this->data[$i]);
-		$this->data[$i] = chr(($byte & ~(0xf << $shift)) | (($data & 0xf) << $shift));
-
+		if(($y & 1) === 0){
+			$this->data[$i] = chr((ord($this->data[$i]) & 0xf0) | ($data & 0x0f));
+		}else{
+			$this->data[$i] = chr((($data & 0x0f) << 4) | (ord($this->data[$i]) & 0x0f));
+		}
 		return true;
 	}
 
 	public function getFullBlock(int $x, int $y, int $z) : int{
 		$i = ($x << 8) | ($z << 4) | $y;
-		return (ord($this->ids[$i]) << 4) | ((ord($this->data[$i >> 1]) >> (($y & 1) << 2)) & 0xf);
+		if(($y & 1) === 0){
+			return (ord($this->ids[$i]) << 4) | (ord($this->data[$i >> 1]) & 0x0f);
+		}else{
+			return (ord($this->ids[$i]) << 4) | (ord($this->data[$i >> 1]) >> 4);
+		}
 	}
 
-	public function setBlock(int $x, int $y, int $z, ?int $id = null, ?int $data = null) : bool{
+	public function setBlock(int $x, int $y, int $z, $id = null, $data = null) : bool{
 		$i = ($x << 8) | ($z << 4) | $y;
 		$changed = false;
 		if($id !== null){
@@ -116,12 +106,13 @@ class SubChunk implements SubChunkInterface{
 
 		if($data !== null){
 			$i >>= 1;
-
-			$shift = ($y & 1) << 2;
-			$oldPair = ord($this->data[$i]);
-			$newPair = ($oldPair & ~(0xf << $shift)) | (($data & 0xf) << $shift);
-			if($newPair !== $oldPair){
-				$this->data[$i] = chr($newPair);
+			$byte = ord($this->data[$i]);
+			if(($y & 1) === 0){
+				$this->data[$i] = chr(($byte & 0xf0) | ($data & 0x0f));
+			}else{
+				$this->data[$i] = chr((($data & 0x0f) << 4) | ($byte & 0x0f));
+			}
+			if($this->data[$i] !== $byte){
 				$changed = true;
 			}
 		}
@@ -130,30 +121,42 @@ class SubChunk implements SubChunkInterface{
 	}
 
 	public function getBlockLight(int $x, int $y, int $z) : int{
-		return (ord($this->blockLight[($x << 7) | ($z << 3) | ($y >> 1)]) >> (($y & 1) << 2)) & 0xf;
+		$byte = ord($this->blockLight[($x << 7) + ($z << 3) + ($y >> 1)]);
+		if(($y & 1) === 0){
+			return $byte & 0x0f;
+		}else{
+			return $byte >> 4;
+		}
 	}
 
 	public function setBlockLight(int $x, int $y, int $z, int $level) : bool{
-		$i = ($x << 7) | ($z << 3) | ($y >> 1);
-
-		$shift = ($y & 1) << 2;
+		$i = ($x << 7) + ($z << 3) + ($y >> 1);
 		$byte = ord($this->blockLight[$i]);
-		$this->blockLight[$i] = chr(($byte & ~(0xf << $shift)) | (($level & 0xf) << $shift));
-
+		if(($y & 1) === 0){
+			$this->blockLight[$i] = chr(($byte & 0xf0) | ($level & 0x0f));
+		}else{
+			$this->blockLight[$i] = chr((($level & 0x0f) << 4) | ($byte & 0x0f));
+		}
 		return true;
 	}
 
 	public function getBlockSkyLight(int $x, int $y, int $z) : int{
-		return (ord($this->skyLight[($x << 7) | ($z << 3) | ($y >> 1)]) >> (($y & 1) << 2)) & 0xf;
+		$byte = ord($this->skyLight[($x << 7) + ($z << 3) + ($y >> 1)]);
+		if(($y & 1) === 0){
+			return $byte & 0x0f;
+		}else{
+			return $byte >> 4;
+		}
 	}
 
 	public function setBlockSkyLight(int $x, int $y, int $z, int $level) : bool{
-		$i = ($x << 7) | ($z << 3) | ($y >> 1);
-
-		$shift = ($y & 1) << 2;
+		$i = ($x << 7) + ($z << 3) + ($y >> 1);
 		$byte = ord($this->skyLight[$i]);
-		$this->skyLight[$i] = chr(($byte & ~(0xf << $shift)) | (($level & 0xf) << $shift));
-
+		if(($y & 1) === 0){
+			$this->skyLight[$i] = chr(($byte & 0xf0) | ($level & 0x0f));
+		}else{
+			$this->skyLight[$i] = chr((($level & 0x0f) << 4) | ($byte & 0x0f));
+		}
 		return true;
 	}
 
@@ -170,19 +173,19 @@ class SubChunk implements SubChunkInterface{
 	}
 
 	public function getBlockIdColumn(int $x, int $z) : string{
-		return substr($this->ids, (($x << 8) | ($z << 4)), 16);
+		return substr($this->ids, ($x << 8) | ($z << 4), 16);
 	}
 
 	public function getBlockDataColumn(int $x, int $z) : string{
-		return substr($this->data, (($x << 7) | ($z << 3)), 8);
+		return substr($this->data, ($x << 7) | ($z << 3), 8);
 	}
 
 	public function getBlockLightColumn(int $x, int $z) : string{
-		return substr($this->blockLight, (($x << 7) | ($z << 3)), 8);
+		return substr($this->blockLight, ($x << 7) | ($z << 3), 8);
 	}
 
-	public function getSkyLightColumn(int $x, int $z) : string{
-		return substr($this->skyLight, (($x << 7) | ($z << 3)), 8);
+	public function getBlockSkyLightColumn(int $x, int $z) : string{
+		return substr($this->skyLight, ($x << 7) | ($z << 3), 8);
 	}
 
 	public function getBlockIdArray() : string{
@@ -195,7 +198,7 @@ class SubChunk implements SubChunkInterface{
 		return $this->data;
 	}
 
-	public function getSkyLightArray() : string{
+	public function getBlockSkyLightArray() : string{
 		assert(strlen($this->skyLight) === 2048, "Wrong length of skylight array, expecting 2048 bytes, got " . strlen($this->skyLight));
 		return $this->skyLight;
 	}
@@ -220,27 +223,20 @@ class SubChunk implements SubChunkInterface{
 		return "\x00" . $this->ids . $this->data . $this->skyLight . $this->blockLight;
 	}
 
-	/**
-	 * @return mixed[]
-	 */
-	public function __debugInfo(){
-		return [];
+	public function fastSerialize() : string{
+		return
+			$this->ids .
+			$this->data .
+			$this->skyLight .
+			$this->blockLight;
 	}
 
-	public function collectGarbage() : void{
-		/*
-		 * This strange looking code is designed to exploit PHP's copy-on-write behaviour. Assigning will copy a
-		 * reference to the const instead of duplicating the whole string. The string will only be duplicated when
-		 * modified, which is perfect for this purpose.
-		 */
-		if($this->data === self::ZERO_NIBBLE_ARRAY){
-			$this->data = self::ZERO_NIBBLE_ARRAY;
-		}
-		if($this->skyLight === self::ZERO_NIBBLE_ARRAY){
-			$this->skyLight = self::ZERO_NIBBLE_ARRAY;
-		}
-		if($this->blockLight === self::ZERO_NIBBLE_ARRAY){
-			$this->blockLight = self::ZERO_NIBBLE_ARRAY;
-		}
+	public static function fastDeserialize(string $data) : SubChunk{
+		return new SubChunk(
+			substr($data,    0, 4096), //ids
+			substr($data, 4096, 2048), //data
+			substr($data, 6144, 2048), //sky light
+			substr($data, 8192, 2048)  //block light
+		);
 	}
 }

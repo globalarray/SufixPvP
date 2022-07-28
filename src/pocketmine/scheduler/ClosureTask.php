@@ -19,6 +19,8 @@
  *
 */
 
+declare(strict_types=1);
+
 namespace pocketmine\scheduler;
 
 use pocketmine\utils\Utils;
@@ -29,7 +31,7 @@ use pocketmine\utils\Utils;
  * Example usage:
  *
  * ```
- * TaskScheduler->scheduleTask(new ClosureTask(function($currentTick) : void{
+ * TaskScheduler->scheduleTask(new ClosureTask(function(int $currentTick) : void{
  *     echo "HI on $currentTick\n";
  * });
  * ```
@@ -47,14 +49,19 @@ class ClosureTask extends Task{
 	 * @phpstan-param \Closure(int) : void $closure
 	 */
 	public function __construct(\Closure $closure){
+		Utils::validateCallableSignature(function(int $currentTick) : void{}, $closure);
 		$this->closure = $closure;
 	}
 
-	public function getName() : string{
+	/**
+	 * @return string
+	 * @throws \ReflectionException
+	 */
+	public function getName() : string {
 		return Utils::getNiceClosureName($this->closure);
 	}
 
-	public function onRun(int $currentTick) : void{
+	public function onRun(int $currentTick){
 		($this->closure)($currentTick);
 	}
 }

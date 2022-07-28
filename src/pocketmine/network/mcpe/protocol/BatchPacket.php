@@ -2,11 +2,11 @@
 
 /*
  *
- *  ____            _        _   __  __ _                  __  __ ____  
- * |  _ \ ___   ___| | _____| |_|  \/  (_)_ __   ___      |  \/  |  _ \ 
+ *  ____            _        _   __  __ _                  __  __ ____
+ * |  _ \ ___   ___| | _____| |_|  \/  (_)_ __   ___      |  \/  |  _ \
  * | |_) / _ \ / __| |/ / _ \ __| |\/| | | '_ \ / _ \_____| |\/| | |_) |
- * |  __/ (_) | (__|   <  __/ |_| |  | | | | | |  __/_____| |  | |  __/ 
- * |_|   \___/ \___|_|\_\___|\__|_|  |_|_|_| |_|\___|     |_|  |_|_| 
+ * |  __/ (_) | (__|   <  __/ |_| |  | | | | | |  __/_____| |  | |  __/
+ * |_|   \___/ \___|_|\_\___|\__|_|  |_|_|_| |_|\___|     |_|  |_|_|
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -15,23 +15,22 @@
  *
  * @author PocketMine Team
  * @link http://www.pocketmine.net/
- * 
+ *
  *
 */
+
+declare(strict_types=1);
 
 namespace pocketmine\network\mcpe\protocol;
 
 #include <rules/DataPacket.h>
 
-use pocketmine\utils\Binary;
-use pocketmine\utils\BinaryStream;
-use function get_class;
-use function strlen;
-use function zlib_encode;
-use const ZLIB_ENCODING_DEFLATE;
 
+use pocketmine\network\mcpe\NetworkSession;
 #ifndef COMPILE
+use pocketmine\utils\Binary;
 #endif
+use pocketmine\utils\BinaryStream;
 
 class BatchPacket extends DataPacket{
 	const NETWORK_ID = 0xfe;
@@ -49,19 +48,21 @@ class BatchPacket extends DataPacket{
 		return true;
 	}
 
-	public function decode(){
-		$this->payload = $this->getRemaining();
+	public function decodePayload(){
+		$data = $this->getRemaining();
+		try{
+			$this->payload = zlib_decode($data, 1024 * 1024 * 64); //Max 64MB
+		}catch(\ErrorException $e){ //zlib decode error
+			$this->payload = "";
+		}
 	}
 
-	public function encode(){
-		$this->reset();
-		$encoded = zlib_encode($this->payload, ZLIB_ENCODING_DEFLATE, $this->compressionLevel);
-		if($encoded === false) throw new \Error("ZLIB compression failed");
-		$this->put($encoded);
+	public function encodePayload(){
+		$this->put(zlib_encode($this->payload, ZLIB_ENCODING_DEFLATE, $this->compressionLevel));
 	}
 
 	/**
-	 * @return void
+	 * @param DataPacket $packet
 	 */
 	public function addPacket(DataPacket $packet){
 		if(!$packet->canBeBatched()){
@@ -76,15 +77,10 @@ class BatchPacket extends DataPacket{
 
 	/**
 	 * @return \Generator
-	 * @phpstan-return \Generator<int, string, void, void>
 	 */
 	public function getPackets(){
 		$stream = new BinaryStream($this->payload);
-		$count = 0;
 		while(!$stream->feof()){
-			if($count++ >= 500){
-				throw new \UnexpectedValueException("Too many packets in a single batch");
-			}
 			yield $stream->getString();
 		}
 	}
@@ -93,18 +89,26 @@ class BatchPacket extends DataPacket{
 		return $this->compressionLevel;
 	}
 
-	/**
-	 * @return void
-	 */
 	public function setCompressionLevel(int $level){
 		$this->compressionLevel = $level;
 	}
 
-	/**
-	 * @return string Current packet name
-	 */
-	public function getName(){
-		return "BatchPacket";
+	public function handle(NetworkSession $session) : bool{
+		if($this->payload === ""){
+			return false;
+		}
+
+		foreach($this->getPackets() as $buf){
+			if (isset($buf[0])) {
+				$pk = PacketPool::getPacketById(ord($buf[0]));
+				if(!$pk->canBeBatched()) {
+					throw new \InvalidArgumentException("Received invalid " . get_class($pk) . " inside BatchPacket");
+				}
+				$pk->setBuffer($buf, 1);
+				$session->handleDataPacket($pk);
+			}
+		}
+		return true;
 	}
 
 }

@@ -19,38 +19,13 @@
  *
 */
 
+declare(strict_types=1);
+
 namespace pocketmine\utils;
 
 use LogLevel;
 use pocketmine\Thread;
 use pocketmine\Worker;
-use function fclose;
-use function fopen;
-use function fwrite;
-use function get_class;
-use function is_resource;
-use function preg_replace;
-use function sprintf;
-use function time;
-use function touch;
-use function trim;
-use const E_COMPILE_ERROR;
-use const E_COMPILE_WARNING;
-use const E_CORE_ERROR;
-use const E_CORE_WARNING;
-use const E_DEPRECATED;
-use const E_ERROR;
-use const E_NOTICE;
-use const E_PARSE;
-use const E_RECOVERABLE_ERROR;
-use const E_STRICT;
-use const E_USER_DEPRECATED;
-use const E_USER_ERROR;
-use const E_USER_NOTICE;
-use const E_USER_WARNING;
-use const E_WARNING;
-use const PHP_EOL;
-use const PTHREADS_INHERIT_NONE;
 
 class MainLogger extends \AttachableThreadedLogger{
 
@@ -59,33 +34,19 @@ class MainLogger extends \AttachableThreadedLogger{
 	/** @var \Threaded */
 	protected $logStream;
 	/** @var bool */
-	protected $shutdown = false;
+	protected $shutdown;
 	/** @var bool */
 	protected $logDebug;
-	/** @var MainLogger|null */
+	/** @var MainLogger */
 	public static $logger = null;
-	/** @var bool */
-	private $syncFlush = false;
-
-	/** @var string */
-	private $format = TextFormat::AQUA . "[%s] " . TextFormat::RESET . "%s[%s/%s]: %s" . TextFormat::RESET;
-
-	/** @var bool */
-	private $mainThreadHasFormattingCodes = false;
-
-	/** Extra Settings */
-	protected $write = false;
-
-	private $consoleCallback;
-
-	/** @var string */
-	private $timezone;
 
 	/**
+	 * @param string $logFile
+	 * @param bool $logDebug
+	 *
 	 * @throws \RuntimeException
 	 */
 	public function __construct(string $logFile, bool $logDebug = false){
-		parent::__construct();
 		if(static::$logger instanceof MainLogger){
 			throw new \RuntimeException("MainLogger has been already created");
 		}
@@ -93,23 +54,14 @@ class MainLogger extends \AttachableThreadedLogger{
 		$this->logFile = $logFile;
 		$this->logDebug = $logDebug;
 		$this->logStream = new \Threaded;
-
-		//Child threads may not inherit command line arguments, so if there's an override it needs to be recorded here
-		$this->mainThreadHasFormattingCodes = Terminal::hasFormattingCodes();
-		$this->timezone = Timezone::get();
-
-		$this->start(PTHREADS_INHERIT_NONE);
-	}
-
-	public static function getLogger() : MainLogger{
-		return static::$logger;
+		$this->start();
 	}
 
 	/**
-	 * Returns whether a MainLogger instance is statically registered on this thread.
+	 * @return MainLogger
 	 */
-	public static function isRegisteredStatic() : bool{
-		return static::$logger !== null;
+	public static function getLogger() : MainLogger{
+		return static::$logger;
 	}
 
 	/**
@@ -117,35 +69,11 @@ class MainLogger extends \AttachableThreadedLogger{
 	 *
 	 * WARNING: Because static properties are thread-local, this MUST be called from the body of every Thread if you
 	 * want the logger to be accessible via {@link MainLogger#getLogger}.
-	 *
-	 * @return void
 	 */
 	public function registerStatic(){
 		if(static::$logger === null){
 			static::$logger = $this;
 		}
-	}
-
-	/**
-	 * Returns the current logger format used for console output.
-	 */
-	public function getFormat() : string{
-		return $this->format;
-	}
-
-	/**
-	 * Sets the logger format to use for outputting text to the console.
-	 * It should be an sprintf()able string accepting 5 string arguments:
-	 * - time
-	 * - color
-	 * - thread name
-	 * - prefix (debug, info etc)
-	 * - message
-	 *
-	 * @see http://php.net/manual/en/function.sprintf.php
-	 */
-	public function setFormat(string $format) : void{
-		$this->format = $format;
 	}
 
 	public function emergency($message){
@@ -176,49 +104,30 @@ class MainLogger extends \AttachableThreadedLogger{
 		$this->send($message, \LogLevel::INFO, "INFO", TextFormat::WHITE);
 	}
 
-	public function debug($message, bool $force = false){
-		if(!$this->logDebug and !$force){
+	public function debug($message){
+		if($this->logDebug === false){
 			return;
 		}
 		$this->send($message, \LogLevel::DEBUG, "DEBUG", TextFormat::GRAY);
 	}
 
 	/**
-	 * @return void
+	 * @param bool $logDebug
 	 */
 	public function setLogDebug(bool $logDebug){
 		$this->logDebug = $logDebug;
 	}
 
-	/**
-	 * @param mixed[][]|null $trace
-	 * @phpstan-param list<array<string, mixed>>|null $trace
-	 *
-	 * @return void
-	 */
 	public function logException(\Throwable $e, $trace = null){
 		if($trace === null){
 			$trace = $e->getTrace();
 		}
+		$errstr = $e->getMessage();
+		$errfile = $e->getFile();
+		$errno = $e->getCode();
+		$errline = $e->getLine();
 
-		$this->synchronized(function() use ($e, $trace) : void{
-			$this->critical(self::printExceptionMessage($e));
-			foreach(Utils::printableTrace($trace) as $line){
-				$this->critical($line);
-			}
-			for($prev = $e->getPrevious(); $prev !== null; $prev = $prev->getPrevious()){
-				$this->critical("Previous: " . self::printExceptionMessage($prev));
-				foreach(Utils::printableTrace($prev->getTrace()) as $line){
-					$this->critical("  " . $line);
-				}
-			}
-		});
-
-		$this->syncFlushBuffer();
-	}
-
-	private static function printExceptionMessage(\Throwable $e) : string{
-		static $errorConversion = [
+		$errorConversion = [
 			0 => "EXCEPTION",
 			E_ERROR => "E_ERROR",
 			E_WARNING => "E_WARNING",
@@ -236,16 +145,18 @@ class MainLogger extends \AttachableThreadedLogger{
 			E_DEPRECATED => "E_DEPRECATED",
 			E_USER_DEPRECATED => "E_USER_DEPRECATED"
 		];
-
-		$errstr = preg_replace('/\s+/', ' ', trim($e->getMessage()));
-
-		$errno = $e->getCode();
+		if($errno === 0){
+			$type = LogLevel::CRITICAL;
+		}else{
+			$type = ($errno === E_ERROR or $errno === E_USER_ERROR) ? LogLevel::ERROR : (($errno === E_USER_WARNING or $errno === E_WARNING) ? LogLevel::WARNING : LogLevel::NOTICE);
+		}
 		$errno = $errorConversion[$errno] ?? $errno;
-
-		$errfile = Utils::cleanPath($e->getFile());
-		$errline = $e->getLine();
-
-		return get_class($e) . ": \"$errstr\" ($errno) in \"$errfile\" at line $errline";
+		$errstr = preg_replace('/\s+/', ' ', trim($errstr));
+		$errfile = \pocketmine\cleanPath($errfile);
+		$this->log($type, get_class($e) . ": \"$errstr\" ($errno) in \"$errfile\" at line $errline");
+		foreach(\pocketmine\getTrace(0, $trace) as $i => $line){
+			$this->debug($line);
+		}
 	}
 
 	public function log($level, $message){
@@ -277,31 +188,13 @@ class MainLogger extends \AttachableThreadedLogger{
 		}
 	}
 
-	/**
-	 * @return void
-	 */
 	public function shutdown(){
-		$this->synchronized(function() : void{
-			$this->shutdown = true;
-			$this->notify();
-		});
+		$this->shutdown = true;
+		$this->notify();
 	}
 
-	/**
-	 * @param string $message
-	 * @param string $level
-	 * @param string $prefix
-	 * @param string $color
-	 *
-	 * @return void
-	 */
 	protected function send($message, $level, $prefix, $color){
-		/** @var \DateTime|null $time */
-		static $time = null;
-		if($time === null){ //thread-local
-			$time = new \DateTime('now', new \DateTimeZone($this->timezone));
-		}
-		$time->setTimestamp(time());
+		$now = time();
 
 		$thread = \Thread::getCurrentThread();
 		if($thread === null){
@@ -312,97 +205,48 @@ class MainLogger extends \AttachableThreadedLogger{
 			$threadName = (new \ReflectionClass($thread))->getShortName() . " thread";
 		}
 
-		$message = sprintf($this->format, $time->format("H:i:s"), $color, $threadName, $prefix, TextFormat::clean($message, false));
+		$message = TextFormat::toANSI(TextFormat::AQUA . "[" . date("H:i:s", $now) . "] " . TextFormat::RESET . $color . "[" . $threadName . "/" . $prefix . "]:" . " " . $message . TextFormat::RESET);
+		$cleanMessage = TextFormat::clean($message);
 
-		if(!Terminal::isInit()){
-			Terminal::init($this->mainThreadHasFormattingCodes); //lazy-init colour codes because we don't know if they've been registered on this thread
+		if(!Terminal::hasFormattingCodes()){
+			echo $cleanMessage . PHP_EOL;
+		}else{
+			echo $message . PHP_EOL;
 		}
 
-		if(isset($this->consoleCallback)){
-			call_user_func($this->consoleCallback);
+		if($this->attachment instanceof \ThreadedLoggerAttachment){
+			$this->attachment->call($level, $message);
 		}
 
-		$this->synchronized(function() use ($message, $level, $time) : void{
-			Terminal::writeLine($message);
-
-			foreach($this->attachments as $attachment){
-				$attachment->call($level, $message);
-			}
-
-			$this->logStream[] = $time->format("Y-m-d") . " " . TextFormat::clean($message) . PHP_EOL;
-			$this->notify();
-		});
-	}
-
-	/**
-	 * @return void
-	 */
-	public function syncFlushBuffer(){
-		$this->synchronized(function() : void{
-			$this->syncFlush = true;
-			$this->notify(); //write immediately
-		});
-		$this->synchronized(function() : void{
-			while($this->syncFlush){
-				$this->wait(); //block until it's all been written to disk
-			}
-		});
+		$this->logStream[] = date("Y-m-d", $now) . " " . $cleanMessage . PHP_EOL;
 	}
 
 	/**
 	 * @param resource $logResource
 	 */
-	private function writeLogStream($logResource) : void{
-		if ($this->write) {
-		    while($this->logStream->count() > 0){
-			    /** @var string $chunk */
-			    $chunk = $this->logStream->shift();
-			    fwrite($logResource, $chunk);
-			}
+	private function writeLogStream($logResource){
+		while($this->logStream->count() > 0){
+			$chunk = $this->logStream->shift();
+			fwrite($logResource, $chunk);
 		}
-
-		$this->synchronized(function() : void{
-			if($this->syncFlush){
-				$this->syncFlush = false;
-				$this->notify(); //if this was due to a sync flush, tell the caller to stop waiting
-			}
-		});
 	}
 
-	/**
-	 * @return void
-	 */
 	public function run(){
+		$this->shutdown = false;
 		$logResource = fopen($this->logFile, "ab");
 		if(!is_resource($logResource)){
 			throw new \RuntimeException("Couldn't open log file");
 		}
 
-		while(!$this->shutdown){
+		while($this->shutdown === false){
 			$this->writeLogStream($logResource);
-			$this->synchronized(function() : void{
-				if(!$this->shutdown && !$this->syncFlush){
-					$this->wait();
-				}
+			$this->synchronized(function(){
+				$this->wait(25000);
 			});
 		}
 
 		$this->writeLogStream($logResource);
 
 		fclose($logResource);
-	}
-
-	/**
-	 * @return void
-	 */
-	public function setWrite(bool $write){
-		$this->write = $write;
-	}
-
-	/**
-	 * @param $callback
-	 */
-	public function setConsoleCallback($callback){
-		$this->consoleCallback = $callback;
 	}
 }

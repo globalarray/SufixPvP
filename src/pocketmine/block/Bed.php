@@ -15,15 +15,16 @@
  *
  * @author PocketMine Team
  * @link http://www.pocketmine.net/
- * 
+ *
  *
 */
+
+declare(strict_types=1);
 
 namespace pocketmine\block;
 
 use pocketmine\event\TranslationContainer;
 use pocketmine\item\Item;
-use pocketmine\level\Explosion;
 use pocketmine\level\Level;
 use pocketmine\math\AxisAlignedBB;
 use pocketmine\math\Vector3;
@@ -40,37 +41,20 @@ class Bed extends Transparent{
 	const BITFLAG_OCCUPIED = 0x04;
 	const BITFLAG_HEAD = 0x08;
 
-	/**
-	 * @var int
-	 */
 	protected $id = self::BED_BLOCK;
 
-	/**
-	 * Bed constructor.
-	 *
-	 * @param int $meta
-	 */
 	public function __construct($meta = 0){
 		$this->meta = $meta;
 	}
 
-	/**
-	 * @return float
-	 */
 	public function getHardness(){
 		return 0.2;
 	}
 
-	/**
-	 * @return string
-	 */
-	public function getName() : string{
+	public function getName(){
 		return "Bed Block";
 	}
 
-	/**
-	 * @return AxisAlignedBB
-	 */
 	protected function recalculateBoundingBox(){
 		return new AxisAlignedBB(
 			$this->x,
@@ -102,7 +86,7 @@ class Bed extends Transparent{
 
 		$this->getLevel()->setBlock($this, $this, false, false);
 
-		if(($other = $this->getOtherHalf()) !== null and $other->isOccupied() !== $occupied){
+		if(($other = $this->getOtherHalf()) !== null and !$other->isOccupied()){
 			$other->setOccupied($occupied);
 		}
 	}
@@ -151,20 +135,7 @@ class Bed extends Transparent{
 		return null;
 	}
 
-	/**
-	 * @param Item        $item
-	 * @param Player|null $player
-	 *
-	 * @return bool
-	 */
 	public function onActivate(Item $item, Player $player = null){
-		$dimension = $this->getLevel()->getDimension();
-		if($dimension == Level::DIMENSION_NETHER or $dimension == Level::DIMENSION_END){
-			$explosion = new Explosion($this, 6, $this, true, $player);
-			$explosion->explodeA();
-			return true;
-		}
-
 		if($player !== null){
 			$other = $this->getOtherHalf();
 			if($other === null){
@@ -176,7 +147,7 @@ class Bed extends Transparent{
 				return true;
 			}
 
-			$time = $this->getLevel()->getTimeOfDay();
+			$time = $this->getLevel()->getTime() % Level::TIME_FULL;
 
 			$isNight = ($time >= Level::TIME_NIGHT and $time < Level::TIME_SUNRISE);
 
@@ -198,20 +169,9 @@ class Bed extends Transparent{
 		}
 
 		return true;
+
 	}
 
-	/**
-	 * @param Item        $item
-	 * @param Block       $block
-	 * @param Block       $target
-	 * @param int         $face
-	 * @param float       $fx
-	 * @param float       $fy
-	 * @param float       $fz
-	 * @param Player|null $player
-	 *
-	 * @return bool
-	 */
 	public function place(Item $item, Block $block, Block $target, $face, $fx, $fy, $fz, Player $player = null){
 		$down = $this->getSide(Vector3::SIDE_DOWN);
 		if(!$down->isTransparent()){
@@ -226,11 +186,13 @@ class Bed extends Transparent{
 					new ByteTag("color", $item->getDamage() & 0x0f),
 					new IntTag("x", $block->x),
 					new IntTag("y", $block->y),
-					new IntTag("z", $block->z)
+					new IntTag("z", $block->z),
 				]);
+
 				$nbt2 = clone $nbt;
 				$nbt2["x"] = $next->x;
 				$nbt2["z"] = $next->z;
+
 				Tile::createTile(Tile::BED, $this->getLevel(), $nbt);
 				Tile::createTile(Tile::BED, $this->getLevel(), $nbt2);
 
@@ -241,26 +203,16 @@ class Bed extends Transparent{
 		return false;
 	}
 
-	/**
-	 * @param Item $item
-	 *
-	 * @return bool
-	 */
 	public function onBreak(Item $item){
 		$this->getLevel()->setBlock($this, Block::get(Block::AIR), true, true);
 		if(($other = $this->getOtherHalf()) !== null){
-			$this->getLevel()->useBreakOn($other, $item, null); //make sure tiles get removed
+			$this->getLevel()->useBreakOn($other); //make sure tiles get removed
 		}
 
 		return true;
 	}
 
-	/**
-	 * @param Item $item
-	 *
-	 * @return array
-	 */
-	public function getDrops(Item $item) : array{
+	public function getDrops(Item $item){
 		if($this->isHeadPart()){
 			$tile = $this->getLevel()->getTile($this);
 			if($tile instanceof TileBed){
@@ -277,18 +229,4 @@ class Bed extends Transparent{
 		}
 	}
 
-	/**
-	 * @return int
-	 */
-	public function getVariantBitmask() : int{
-		return 0x08;
-	}
-
-	public function getAffectedBlocks() : array{
-		if(($other = $this->getOtherHalf()) !== null){
-			return [$this, $other];
-		}
-
-		return parent::getAffectedBlocks();
-	}
 }
