@@ -23,17 +23,15 @@ namespace ddosnik\menu;
 use ddosnik\player\SufixPlayer;
 use const PHP_EOL;
 
-final class QuitItem extends ClickableItem {
+final class SetDayTimeItem extends ClickableItem {
 
-	public function __construct(int $meta = 0, int $count = 1) {
-		$this->setCustomName('§r§cВернуться§c' . PHP_EOL . '§7Нажми, чтобы вернуться');
-		parent::__construct(self::ARROW, $meta, $count);
-	}
+    public function __construct(int $meta = 0, int $count = 1) {
+        $this->setCustomName('§r§eДень§c' . PHP_EOL . '§fВремя: §l12:00§r' . PHP_EOL . '§7Нажми, чтобы изменить время');
+        parent::__construct(self::CLOCK, $meta, $count);
+    }
 
-	public function handleClick(SufixPlayer $player) : void{
-		$player->getInventory()->clearAll();
-		$player->getInventory()->setItem(2, ClickableItemFactory::get('item_cloaks'));
-		$player->getInventory()->setItem(4, ClickableItemFactory::get('join_arena'));
-		$player->getInventory()->setItem(6, ClickableItemFactory::get('item_customization'));
-	}
+    public function handleClick(SufixPlayer $player) : void{
+        $player->setTime(1000);
+        $player->sendMessage(Loader::Prefix . '§eУстановленное время: §eДень §7(Время: §l§f12:00§r§7)');
+    }
 }

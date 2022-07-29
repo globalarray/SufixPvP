@@ -20,20 +20,19 @@ declare(strict_types=1);
 
 namespace ddosnik\menu;
 
+use ddosnik\Loader;
 use ddosnik\player\SufixPlayer;
+use const PHP_EOL;
 
-final class JoinArenaItem extends ClickableItem {
+final class CreeperCloakItem extends ClickableItem {
 
-	public function __construct(int $meta = 0, int $count = 1) {
-		$this->setCustomName('§r§eВойти на арену'. PHP_EOL .'§7Нажмите, чтобы открыть.');
-		parent::__construct(self::COMPASS, $meta, $count);
+	public function __construct(int $meta = 4, int $count = 1) {
+		$this->setCustomName('§r§cCreeper Cloak' . PHP_EOL . '§7Нажми, чтобы установить');
+		parent::__construct(self::MOB_HEAD, $meta, $count);
 	}
 
-	public function handleClick(SufixPlayer $player) : void{
-		$player->getInventory()->clearAll();
-        $player->getInventory()->setItem(2, ClickableItemFactory::get('ffa_gapple'));
-        $player->getInventory()->setItem(4, ClickableItemFactory::get('ffa_fist'));
-        $player->getInventory()->setItem(6, ClickableItemFactory::get('ffa_resistance'));
-        $player->getInventory()->setItem(7, ClickableItemFactory::get('item_back_menu'));
+    public function handleClick(SufixPlayer $player) : void{
+        $player->sendMessage(Loader::Prefix . 'Вы успешно установили себе плащ §l§cCreeper Cloak§r');
+        $player->setCloak('Minecon_MineconSteveCape2011');
     }
 }

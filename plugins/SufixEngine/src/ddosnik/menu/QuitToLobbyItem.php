@@ -25,22 +25,22 @@ use pocketmine\Server;
 use ddosnik\player\SufixPlayer;
 use const PHP_EOL;
 
-final class CloaksListItem extends ClickableItem {
+final class QuitToLobbyItem extends ClickableItem {
 
 	public function __construct(int $meta = 0, int $count = 1) {
-		$this->setCustomName('§r§aПлащи' . PHP_EOL . '§7Нажмите, чтобы выбрать себе плащ.');
-		parent::__construct(self::EMERALD, $meta, $count);
+		$this->setCustomName('§r§cВыход' . PHP_EOL . '§7Нажмите, чтобы выйти в лобби');
+		parent::__construct(self::BED, $meta, $count);
 	}
 
     public function handleClick(SufixPlayer $player) : void{
-        if ($player->getRank() === 'GUEST') {
-            $player->sendMessage(Loader::Prefix . ' §cДанный раздел доступен игрокам с привилегией §l§aＧｕｅｓｔ§6+§r' . PHP_EOL . Loader::Prefix . "Повысить свой §aранг§r можно в нашем магазине §8- §epay.sufixpvp.su");
-            return;
-        }
         $player->getInventory()->clearAll();
-        for ($i = 0; $i < sizeof($cloaks = $this->getCloaksList()); $i++) {
-            $player->getInventory()->setItem($cloaks[$i][0], $cloaks[$i][1]);
+        $player->removeAllEffects();
+        $player->setGamemode(2);
+        $player->setMaxHealth(20);
+        $player->setHealth(20);
+        $player->teleport(Server::getInstance()->getDefaultLevel()->getSpawnLocation());
+        for ($i = 0; $i < sizeof($items = $this->getMainMenuItems()); $i++) {
+            $player->getInventory()->setItem($items[$i][0], $items[$i][1]);
         }
-        $player->getInventory()->setItem(7, ClickableItemFactory::get('item_back_menu'));
     }
 }

@@ -33,8 +33,18 @@ class ClickableItemFactory {
 			self::$list['ffa_gapple'] = JoinArenaGappleItem::class;
 			self::$list['ffa_fist'] = JoinArenaFistItem::class;
 			self::$list['ffa_resistance'] = JoinArenaResistanceItem::class;
-			self::$list['item_quit'] = QuitItem::class;
+			self::$list['item_back_menu'] = BackToMenuItem::class;
 			self::$list['item_cloaks'] = CloaksListItem::class;
+			self::$list['dragon_cloak'] = DragonCloakItem::class;
+			self::$list['golem_cloak'] = GolemCloakItem::class;
+			self::$list['piston_cloak'] = PistonCloakItem::class;
+			self::$list['pickaxe_cloak'] = PickaxeCloakItem::class;
+			self::$list['creeper_cloak'] = CreeperCloakItem::class;
+			self::$list['item_quit_lobby'] = QuitToLobbyItem::class;
+			self::$list['item_change_time'] = ChangeTimeItem::class;
+			self::$list['item_time_morning'] = SetMorningTimeItem::class;
+			self::$list['item_time_day'] = SetDayTimeItem::class;
+			self::$list['item_time_evening'] = SetEveningTimeItem::class;
 		}
 	}
 

@@ -45,8 +45,16 @@ abstract class ClickableItem extends Item implements ItemIds {
 			[1, ClickableItemFactory::get('dragon_cloak')],
 			[2, ClickableItemFactory::get('golem_cloak')],
 			[3, ClickableItemFactory::get('piston_cloak')],
-			[4, ClickableItemFactory::get('pick_cloak')],
+			[4, ClickableItemFactory::get('pickaxe_cloak')],
 			[5, ClickableItemFactory::get('creeper_cloak')]
+		];
+	}
+
+	public function getMainMenuItems() : array{
+		return [
+			[2, ClickableItemFactory::get('item_cloaks')],
+			[4, ClickableItemFactory::get('join_arena')],
+			[6, ClickableItemFactory::get('item_customization')]
 		];
 	}
 }
