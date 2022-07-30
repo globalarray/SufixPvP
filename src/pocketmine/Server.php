@@ -253,6 +253,9 @@ class Server{
 	/** @var Network */
 	private Network $network;
 
+	/** @var String[] */
+	private array $online_players = [];
+
 	private bool $networkCompressionAsync = true;
 	public int $networkCompressionLevel = 6;
 
