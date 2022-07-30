@@ -2323,11 +2323,21 @@ class Server{
 		$this->updatePlayerListData($player->getUniqueId(), $player->getId(), $player->getDisplayName(), $player->getSkinId(), $player->getSkinData());
 
 		$this->playerList[$player->getRawUniqueId()] = $player;
+		foreach($this->getOnlinePlayers() as $p){
+			if ($player->getLowerCaseName() === $p->getLowerCaseName()) {
+				if (!isset($this->online_players[$p->getLowerCaseName()])) {
+					$this->online_players[$p->getLowerCaseName()] = 1;
+			} else {
+				$player->close($player->getLeaveMessage(), TextFormat::RED . 'Игрок ' . TextFormat::YELLOW . $p->iusername . TextFormat::RED . ' уже играет на сервере!');
+			   }
+			}
+		}
 	}
 
 	public function removeOnlinePlayer(Player $player){
 		if(isset($this->playerList[$player->getRawUniqueId()])){
 			unset($this->playerList[$player->getRawUniqueId()]);
+			unset($this->online_players[$player->getLowerCaseName()]);
 
 			$pk = new PlayerListPacket();
 			$pk->type = PlayerListPacket::TYPE_REMOVE;
