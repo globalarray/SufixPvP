@@ -35,6 +35,7 @@ use raklib\protocol\DATA_PACKET_E;
 use raklib\protocol\DATA_PACKET_F;
 use raklib\protocol\EncapsulatedPacket;
 use raklib\protocol\NACK;
+use raklib\utils\InternetAddress;
 use raklib\protocol\OPEN_CONNECTION_REPLY_1;
 use raklib\protocol\OPEN_CONNECTION_REPLY_2;
 use raklib\protocol\OPEN_CONNECTION_REQUEST_1;
@@ -52,6 +53,9 @@ class SessionManager{
 
 	/** @var RakLibServer */
 	protected $server;
+
+	/** @var InternetAddress */
+	protected ?InternetAddress $reusableAddress = null;
 
 	protected $socket;
 
@@ -78,13 +82,14 @@ class SessionManager{
 	public function __construct(RakLibServer $server, Socket $socket){
 		$this->server = $server;
 		$this->socket = $socket;
+		$this->reusableAddress = clone $this->socket->getBindAddress();
 		$this->registerPackets();
 
 		$this->serverId = mt_rand(0, PHP_INT_MAX);
 	}
 
 	public function getPort(){
-		return $this->server->getPort();
+		return $this->socket->getBindAddress()->port;
 	}
 
 	public function getLogger(){
@@ -156,18 +161,19 @@ class SessionManager{
 	}
 
 
-	private function receivePacket(){
-		$len = $this->socket->readPacket($buffer, $source, $port);
+	private function receivePacket() {
+		$address = $this->reusableAddress;
+		$len = $this->socket->readPacket($buffer, $address->ip, $address->port);
 		if($buffer !== null){
 			$this->receiveBytes += $len;
-			if(isset($this->block[$source])){
+			if(isset($this->block[$address->ip])){
 				return true;
 			}
 
-			if(isset($this->ipSec[$source])){
-				$this->ipSec[$source]++;
+			if(isset($this->ipSec[$address->ip])){
+				$this->ipSec[$address->ip]++;
 			}else{
-				$this->ipSec[$source] = 1;
+				$this->ipSec[$address->ip] = 1;
 			}
 
 			if($len > 0){
@@ -183,14 +189,14 @@ class SessionManager{
 					$pk->serverID = $this->getID();
 					$pk->pingID = $packet->pingID;
 					$pk->serverName = $this->getName();
-					$this->sendPacket($pk, $source, $port);
+					$this->sendPacket($pk, $address->ip, $address->port);
 				}elseif($pid === UNCONNECTED_PONG::$ID){
 					//ignored
 				}elseif(($packet = $this->getPacketFromPool($pid)) !== null){
 					$packet->buffer = $buffer;
-					$this->getSession($source, $port)->handlePacket($packet);
+					$this->getSession($address)->handlePacket($packet);
 				}else{
-					$this->streamRaw($source, $port, $buffer);
+					$this->streamRaw($address->ip, $address->port, $buffer);
 				}
 			}
 			return true;
@@ -352,17 +358,11 @@ class SessionManager{
 		}
 	}
 
-	/**
-	 * @param string $ip
-	 * @param int	$port
-	 *
-	 * @return Session
-	 */
-	public function getSession($ip, $port){
-		$id = $ip . ":" . $port;
+	public function getSession(InternetAddress $address) : Session{
+		$id = $address->toString();
 		if(!isset($this->sessions[$id])){
 			$this->checkSessions();
-			$this->sessions[$id] = new Session($this, $ip, $port);
+			$this->sessions[$id] = new Session($this, $address->ip, $address->port);
 		}
 
 		return $this->sessions[$id];

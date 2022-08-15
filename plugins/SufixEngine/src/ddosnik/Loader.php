@@ -39,7 +39,8 @@ use ddosnik\flytext\handler\EventHandler;
 use ddosnik\flytext\particle\TextParticle;
 use ddosnik\flytext\scheduler\ParticleUpdate;
 use pocketmine\event\inventory\InventoryTransactionEvent;
-use pocketmine\network\mcpe\protocol\{InteractPacket,
+use pocketmine\network\mcpe\protocol\{
+    InteractPacket,
     BossEventPacket,
     AddEntityPacket,
     MoveEntityPacket,
@@ -63,7 +64,6 @@ use pocketmine\event\player\{
     PlayerPreLoginEvent,
     PlayerCreationEvent
 };
-
 use ddosnik\commands\{
     KickCommand
 };
@@ -72,18 +72,21 @@ use ddosnik\menu\{
     ClickableItemFactory,
     ClickableItem
 };
+use ddosnik\sw\SkyWarsTrait;
 
 use SQLite3;
 
 class Loader extends PluginBase implements Listener {
+    use SkyWarsTrait;
 
-    const Prefix = '§l§d» §r';
-    /** @array Broadcast */
-    const MESSAGES = ['sufixpvp.broadcast.site', 'sufixpvp.broadcast.emoji', 'sufixpvp.broadcast.thanks', 'sufixpvp.broadcast.duels', 'sufixpvp.broadcast.follow_our'];
-    /** @array Franchises */
-    const FRANCHISES = ['GUEST' => 0, 'GUEST+' => 1, 'YT' => 2, 'SAKURA' => 3, 'MOD' => 4, 'OWNER' => 5];
-    /** @var array */
-    const CUSTOM_WINGS = [
+    private const ARMOR_ENCHANTMENTS = [0, 1, 4, 5];
+    private const WEAPONS_ENCHANTMENTS = [9, 13, 12, 17];
+    private const BOW_ENCHANTMENTS = [19, 20, 21, 22];
+
+    public const Prefix = '§l§d» §r';
+    public const MESSAGES = ['sufixpvp.broadcast.site', 'sufixpvp.broadcast.emoji', 'sufixpvp.broadcast.thanks', 'sufixpvp.broadcast.duels', 'sufixpvp.broadcast.follow_our'];
+    public const FRANCHISES = ['GUEST' => 0, 'GUEST+' => 1, 'YT' => 2, 'SAKURA' => 3, 'MOD' => 4, 'OWNER' => 5];
+    public const CUSTOM_WINGS = [
         'EXAMPLE_WINGS' =>
             ['shape' => [
                 [0, 0, 'f', 'f', 'f', 'f', 0, 0, 0, 0, 'f', 'f', 'f', 'f', 0, 0],
@@ -201,7 +204,6 @@ class Loader extends PluginBase implements Listener {
     public function handleDisplayAndNametag(PlayerJoinEvent $event): void
     {
         $player = $event->getPlayer();
-        $this->equipWings($player, 'EXAMPLE_WINGS');
         $franchise = match ($this->getGroup($player)) {
             'GUEST' => '§7(§r§e' . $this->getLvL($player) . '§7) ' . $this->getCustomizeCurrentColor($player) . $player->getName(),
             'GUEST+' => '§7(§r§e' . $this->getLvL($player) . '§7) §aＧｕｅｓｔ§6+ ' . $this->getCustomizeCurrentColor($player) . $player->getName(),

@@ -72,6 +72,43 @@ abstract class Terminal{
 		return self::$formattingCodes;
 	}
 
+	/**
+	 * Returns a string with colorized ANSI Escape codes for the current terminal
+	 * Note that this is platform-dependent and might produce different results depending on the terminal type and/or OS.
+	 */
+	public static function toANSI(string $string) : string{
+		$newString = "";
+		foreach(TextFormat::tokenize($string) as $token){
+			$newString .= match($token){
+				TextFormat::BOLD => Terminal::$FORMAT_BOLD,
+				TextFormat::OBFUSCATED => Terminal::$FORMAT_OBFUSCATED,
+				TextFormat::ITALIC => Terminal::$FORMAT_ITALIC,
+				TextFormat::UNDERLINE => Terminal::$FORMAT_UNDERLINE,
+				TextFormat::STRIKETHROUGH => Terminal::$FORMAT_STRIKETHROUGH,
+				TextFormat::RESET => Terminal::$FORMAT_RESET,
+				TextFormat::BLACK => Terminal::$COLOR_BLACK,
+				TextFormat::DARK_BLUE => Terminal::$COLOR_DARK_BLUE,
+				TextFormat::DARK_GREEN => Terminal::$COLOR_DARK_GREEN,
+				TextFormat::DARK_AQUA => Terminal::$COLOR_DARK_AQUA,
+				TextFormat::DARK_RED => Terminal::$COLOR_DARK_RED,
+				TextFormat::DARK_PURPLE => Terminal::$COLOR_PURPLE,
+				TextFormat::GOLD => Terminal::$COLOR_GOLD,
+				TextFormat::GRAY => Terminal::$COLOR_GRAY,
+				TextFormat::DARK_GRAY => Terminal::$COLOR_DARK_GRAY,
+				TextFormat::BLUE => Terminal::$COLOR_BLUE,
+				TextFormat::GREEN => Terminal::$COLOR_GREEN,
+				TextFormat::AQUA => Terminal::$COLOR_AQUA,
+				TextFormat::RED => Terminal::$COLOR_RED,
+				TextFormat::LIGHT_PURPLE => Terminal::$COLOR_LIGHT_PURPLE,
+				TextFormat::YELLOW => Terminal::$COLOR_YELLOW,
+				TextFormat::WHITE => Terminal::$COLOR_WHITE,
+				default => $token,
+			};
+		}
+
+		return $newString;
+	}
+
 	protected static function getFallbackEscapeCodes(){
 		self::$FORMAT_BOLD = "\x1b[1m";
 		self::$FORMAT_OBFUSCATED = "";
@@ -138,6 +175,10 @@ abstract class Terminal{
 		}
 	}
 
+	public static function isInit() : bool{
+		return self::$formattingCodes !== null;
+	}
+
 	public static function init(){
 		if(!self::hasFormattingCodes()){
 			return;
@@ -157,6 +198,14 @@ abstract class Terminal{
 		}
 
 		//TODO: iOS
+	}
+
+	/**
+	 * Emits a string containing Minecraft colour codes to the console formatted with native colours, followed by a
+	 * newline character.
+	 */
+	public static function writeLine(string $line) : void{
+		echo self::toANSI($line) . self::$FORMAT_RESET . PHP_EOL;
 	}
 
 }

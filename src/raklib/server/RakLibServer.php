@@ -19,8 +19,6 @@ use raklib\utils\InternetAddress;
 use raklib\generic\Socket;
 
 class RakLibServer extends \Thread{
-	protected $port;
-	protected $interface;
 	/** @var \ThreadedLogger */
 	protected $logger;
 	protected $loader;
@@ -51,13 +49,7 @@ class RakLibServer extends \Thread{
 	 * @throws \Exception
 	 */
 	public function __construct(\ThreadedLogger $logger, \ClassLoader $loader, InternetAddress $bindAddress){
-		$this->port = $bindAddress->getPort();
 		$this->bindAddress = $bindAddress;
-		if($this->port < 1 or $this->port > 65536){
-			throw new \Exception("Invalid port range");
-		}
-
-		$this->interface = $bindAddress->getIp();
 		$this->logger = $logger;
 		$this->loader = $loader;
 		$loadPaths = [];
@@ -97,14 +89,6 @@ class RakLibServer extends \Thread{
 
 	public function shutdown(){
 		$this->shutdown = true;
-	}
-
-	public function getPort(){
-		return $this->port;
-	}
-
-	public function getInterface(){
-		return $this->interface;
 	}
 
 	/**

@@ -53,10 +53,6 @@ class BinaryStream{
 		return $this->offset;
 	}
 
-	public function getBuffer() : string{
-		return $this->buffer;
-	}
-
 	/**
 	 * @param int|bool $len
 	 *
@@ -75,6 +71,10 @@ class BinaryStream{
 		}
 
 		return $len === 1 ? $this->buffer[$this->offset++] : substr($this->buffer, ($this->offset += $len) - $len, $len);
+	}
+
+	public function getBuffer() : string{
+		return $this->buffer;
 	}
 
 	public function getRemaining() : string{

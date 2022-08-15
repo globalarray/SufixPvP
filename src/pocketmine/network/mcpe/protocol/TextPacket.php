@@ -58,9 +58,8 @@ class TextPacket extends DataPacket{
 			case self::TYPE_TIP:
 			case self::TYPE_SYSTEM:
 				$this->message = $this->getString();
-				break;
+			}
 		}
-	}
 
 	public function encodePayload(){
 		$this->putByte($this->type);
@@ -76,8 +75,14 @@ class TextPacket extends DataPacket{
 			case self::TYPE_SYSTEM:
 				$this->putString($this->message);
 				break;
+			case self::TYPE_TRANSLATION:
+				$this->putString($this->message);
+				$this->putUnsignedVarInt(count($this->parameters));
+				foreach($this->parameters as $p){
+					$this->putString($p);
+				}
+			}
 		}
-	}
 
 	public function handle(NetworkSession $session) : bool{
 		return $session->handleText($this);

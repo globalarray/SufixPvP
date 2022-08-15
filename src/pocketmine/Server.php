@@ -54,6 +54,8 @@ use pocketmine\item\Item;
 use pocketmine\lang\BaseLang;
 use pocketmine\level\format\io\leveldb\LevelDB;
 use pocketmine\level\format\io\LevelProvider;
+use pocketmine\snooze\SleeperHandler;
+use pocketmine\snooze\SleeperNotifier;
 use pocketmine\level\format\io\LevelProviderManager;
 use pocketmine\level\format\io\region\Anvil;
 use pocketmine\level\format\io\region\McRegion;
@@ -164,8 +166,7 @@ class Server{
 	/** @var Server */
 	private static Server $instance;
 
-	/** @var \Threaded */
-	private static \Threaded $sleeper;
+	private SleeperHandler $tickSleeper;
 
 	/** @var BanList */
 	private BanList $banByName;
@@ -183,6 +184,9 @@ class Server{
 	private bool $isRunning = true;
 
 	private bool $hasStopped = false;
+
+	/** @var Threaded */
+	private static ?\Threaded $sleeper = null;
 
 	/** @var PluginManager */
 	private PluginManager $pluginManager;
@@ -314,6 +318,7 @@ class Server{
 	private ?Level $levelDefault = null;
 
 	public bool $allowInventoryCheats = false;
+	public bool $advancedCommandSelector = false;
 
 	/**
 	 * @return string
@@ -1461,7 +1466,10 @@ class Server{
 	}
 
 	public static function microSleep(int $microseconds){
-		Server::$sleeper->synchronized(function(int $ms){
+		if(self::$sleeper === null){
+			self::$sleeper = new \Threaded();
+		}
+		self::$sleeper->synchronized(function(int $ms) : void{
 			Server::$sleeper->wait($ms);
 		}, $microseconds);
 	}
@@ -1475,9 +1483,9 @@ class Server{
 	 */
 	public function __construct(\ClassLoader $autoloader, \ThreadedLogger $logger, string $filePath, string $dataPath, string $pluginPath){
 		self::$instance = $this;
-		self::$sleeper = new \Threaded;
 		$this->autoloader = $autoloader;
 		$this->logger = $logger;
+		$this->tickSleeper = new SleeperHandler();
 
 		try{
 
@@ -1497,7 +1505,12 @@ class Server{
 			$this->dataPath = realpath($dataPath) . DIRECTORY_SEPARATOR;
 			$this->pluginPath = realpath($pluginPath) . DIRECTORY_SEPARATOR;
 
-			$this->console = new CommandReader();
+			$consoleNotifier = new SleeperNotifier();
+			$this->console = new CommandReader($consoleNotifier);
+			$this->tickSleeper->addNotifier($consoleNotifier, function() : void{
+			    $this->checkConsole();
+            });
+            $this->console->start(PTHREADS_INHERIT_CONSTANTS);
 
 			$version = new VersionString($this->getPocketMineVersion());
 
@@ -1581,17 +1594,16 @@ class Server{
 
 			$this->scheduler = new ServerScheduler();
 
-			if($this->getConfigBoolean("enable-rcon", false) === true){
+			if($this->getConfigBoolean("enable-rcon", false)){
 				try{
 					$this->rcon = new RCON(
 						$this,
 						$this->getConfigString("rcon.password", ""),
 						$this->getConfigInt("rcon.port", $this->getPort()),
-						($ip = $this->getIp()) != "" ? $ip : "0.0.0.0",
-						$this->getConfigInt("rcon.threads", 1),
-						$this->getConfigInt("rcon.clients-per-thread", 50)
+						$this->getIp(),
+						$this->getConfigInt("rcon.max-clients", 50)
 					);
-				}catch(\Throwable $e){
+				}catch(\Exception $e){
 					$this->getLogger()->critical("RCON can't be started: " . $e->getMessage());
 				}
 			}
@@ -1684,11 +1696,12 @@ class Server{
 			register_shutdown_function([$this, "crashDump"]);
 
 			$this->queryRegenerateTask = new QueryRegenerateEvent($this, 5);
-			$this->network->registerInterface(new RakLibInterface($this));
 
 			$this->pluginManager->loadPlugins($this->pluginPath);
 
 			$this->enablePlugins(PluginLoadOrder::STARTUP);
+
+			$this->network->registerInterface(new RakLibInterface($this));
 
 			LevelProviderManager::addProvider(Anvil::class);
 			LevelProviderManager::addProvider(McRegion::class);
@@ -2295,16 +2308,12 @@ class Server{
 
 	private function tickProcessor(){
 		$this->nextTick = microtime(true);
+
 		while($this->isRunning){
 			$this->tick();
-			$next = $this->nextTick - 0.0001;
-			if($next > microtime(true)){
-				try{
-					@time_sleep_until($next);
-				}catch(\Throwable $e){
-					//Sometimes $next is less than the current time. High load?
-				}
-			}
+
+			//sleeps are self-correcting - if we undersleep 1ms on this tick, we'll sleep an extra ms on the next tick
+			$this->tickSleeper->sleepUntil($this->nextTick);
 		}
 	}
 
@@ -2501,6 +2510,7 @@ class Server{
 	 * TODO: move this to Network
 	 */
 	public function handlePacket(string $address, int $port, string $payload){
+		Timings::$serverRawPacketTimer->startTiming();
 		try{
 			if(strlen($payload) > 2 and substr($payload, 0, 2) === "\xfe\xfd" and $this->queryHandler instanceof QueryHandler){
 				$this->queryHandler->handle($address, $port, $payload);
@@ -2513,6 +2523,7 @@ class Server{
 			$this->getNetwork()->blockAddress($address, 600);
 		}
 		//TODO: add raw packet events
+		Timings::$serverRawPacketTimer->stopTiming();
 	}
 
 
@@ -2615,6 +2626,10 @@ class Server{
 
 		return true;
 	}
+
+    public function getTickSleeper() : SleeperHandler{
+        return $this->tickSleeper;
+    }
 
 	/**
 	 * Called when something attempts to serialize the server instance.

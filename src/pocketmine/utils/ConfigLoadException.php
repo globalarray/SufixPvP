@@ -17,16 +17,15 @@
  * @link http://www.pocketmine.net/
  *
  *
-*/
+ */
 
 declare(strict_types=1);
 
-namespace pocketmine\item;
+namespace pocketmine\utils;
 
+final class ConfigLoadException extends \RuntimeException{
 
-class Snowball extends ProjectileItem{
-	public function __construct($meta = 0, $count = 1){
-		parent::__construct(self::SNOWBALL, $meta, $count, "Snowball");
+	public static function wrap(string $fileName, \Exception $e) : self{
+		return new self("Failed to parse config $fileName: " . $e->getMessage(), 0, $e);
 	}
-
 }

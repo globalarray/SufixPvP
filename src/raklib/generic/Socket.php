@@ -50,6 +50,7 @@ class Socket{
 	 */
 
 	public function __construct(InternetAddress $bindAddress){
+		$this->bindAddress = $bindAddress;
 		$this->socket = socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
 		//socket_set_option($this->socket, SOL_SOCKET, SO_BROADCAST, 1); //Allow sending broadcast messages
 		if(@socket_bind($this->socket, $bindAddress->getIp(), $bindAddress->getPort()) === true){

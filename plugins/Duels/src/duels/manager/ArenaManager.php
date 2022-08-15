@@ -41,11 +41,7 @@ class ArenaManager {
     }
 
     final public static function onDisable() : void{
-        foreach(self::$arenas as $arena){
-            if($arena->getGamemode() === 'mlgrush'){
-                $arena->startWorldClear();
-            }
-        }
+
     }
 
     public static function getArenas() : array{

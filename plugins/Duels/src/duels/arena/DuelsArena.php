@@ -7,7 +7,7 @@ namespace duels\arena;
 use pocketmine\utils\Config;
 
 use pocketmine\{Player, Server};
-
+use pocketmine\tile\Chest;
 use pocketmine\level\{Level, Position};
 use pocketmine\level\sound\{ExperienceOrbSound,
     PopSound,
@@ -352,6 +352,20 @@ final class DuelsArena
                         if ($this->gamemode === 'mlgrush') {
                             $player->setGamemode(0);
                         }
+                        
+                        if ($this->gamemode === 'sw') {
+                            foreach ($this->getArenaLevel()->getTiles() as $tile) {
+                                for ($i = 0; $i < 27; $i++) {
+                                    $tile_slots_free[$i] = $i;
+                                }
+                                if ($tile instanceof Chest) {
+                                    foreach ($this->api->getSkyWarsItems() as $item) {
+                                        var_dump($tile->getInventory()->setItem($tile_slots_free[array_rand($tile_slots_free)], $item));
+                                        unset($tile_slots_free[array_rand($tile_slots_free)]);
+                                    }
+                                }
+                            }
+                        }
                     }
                     $this->status = self::STATUS_RUNNING;
                     return true;
@@ -445,12 +459,14 @@ final class DuelsArena
             'fist' => '§cFist',
             'mlgrush' => '§cMLGRush',
             'bow' => '§cBow',
+            'sw' => '§eＳｋｙＷａｒｓ Ｄｕｅｌｓ',
+            'tntrun' => '§cTNT§fRun'
         };
     }
 
     public function gameStats(bool $fullTime = false): void
     {
-        $this->startWorldClear();
+        //$this->startWorldClear();
         $this->status = self::STATUS_END;
         $this->time = 6;
         foreach ($this->players as $players) {
@@ -461,7 +477,7 @@ final class DuelsArena
             $players->removeAllEffects();
             $players->setGamemode(2);
             $players->getInventory()->setItem(1, Item::get(Item::PAPER)->setCustomName(Translate::tr($players->getLocale(), 'saintpvp.duels.new_game')));
-            //$players->getInventory()->setItem(7, Item::get(Item::BED, 0, 1)->setCustomName(Translate::tr($players->getLocale(), 'saintpvp.duels.quit')));
+            $players->getInventory()->setItem(7, Item::get(Item::BED, 0, 1)->setCustomName(Translate::tr($players->getLocale(), 'saintpvp.duels.quit')));
         }
         if ($fullTime) {
             foreach ($this->players as $players) {

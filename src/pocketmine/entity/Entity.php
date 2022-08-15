@@ -1259,7 +1259,11 @@ abstract class Entity extends Location implements Metadatable{
 		//return !($this instanceof Player);
 	}
 
-	final public function scheduleUpdate(){
+	final public function scheduleUpdate() {
+		if ($this->closed) {
+			return;
+		}
+
 		$this->level->updateEntities[$this->id] = $this;
 	}
 

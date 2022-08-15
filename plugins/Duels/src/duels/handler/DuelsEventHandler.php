@@ -60,6 +60,23 @@ final class DuelsEventHandler implements Listener
         if ($player instanceof Player) {
             if (ArenaManager::inGame($player)) {
                 $game = ArenaManager::getGameByPlayer($player);
+                if ($game->getGamemode() === 'sw') {
+                    if ($event->getCause() === EntityDamageEvent::CAUSE_VOID && !$player->isSpectator()) {
+                        $event->setCancelled();
+                        $game->kill($player);
+                        if ($this->getLastDamager($player) === NULL) {
+                            foreach ($game->getArenaLevel()->getPlayers() as $players) {
+                                $players->sendMessage(Translate::tr($players->getLocale(), 'saintpvp.duels.death', [$api->getRankColor($player) . $player->getName(true)]));
+                            }
+                        } else {
+                            $damager = $this->getLastDamager($player);
+                            foreach ($game->getArenaLevel()->getPlayers() as $players) {
+                                $players->sendMessage(Translate::tr($players->getLocale(), 'saintpvp.duels.kill', [$api->getRankColor($player) . $player->getName(true), $api->getRankColor($damager) . $damager->getName(true)]));
+                            }
+                            $damager->getLevel()->addSound(new MinecraftSound($damager->asVector3(), 'mob.bat.death'));
+                        }
+                    }
+                }
                 if ($game->getGamemode() === 'bow') {
                     if (!$event instanceof EntityDamageByChildEntityEvent) $event->setCancelled();
                 }
@@ -81,6 +98,16 @@ final class DuelsEventHandler implements Listener
                         }
                     }
                     if (($player->getHealth() - $event->getFinalDamage()) <= 2 && ($player->isAdventure() or $player->isSurvival())) {
+                        if ($game->getGamemode() === 'sw' && $event instanceof EntityDamageByEntityEvent) {
+                            $damager = $event->getDamager();
+                            if ($damager instanceof Player) {
+                                $damager->getLevel()->addSound(new MinecraftSound($damager->asVector3(), 'mob.bat.death'));
+                                foreach ($game->getArenaLevel()->getPlayers() as $players) {
+                                    $players->sendMessage(Translate::tr($players->getLocale(), 'saintpvp.duels.kill', [$api->getRankColor($player) . $player->getName(true), $api->getRankColor($damager) . $damager->getName(true)]));
+                                }
+                            }
+                            $game->kill($player);
+                        }
                         if ($game->getGamemode() === 'mlgrush') {
                             $player->getLevel()->addSound(new MinecraftSound($player->asVector3(), 'mob.bat.death'));
                         }
@@ -137,7 +164,18 @@ final class DuelsEventHandler implements Listener
         }
     }
 
-    final public function onBreak(BlockBreakEvent $event): void
+    final public function handleBreak(BlockBreakEvent $event) : void {
+        $player = $event->getPlayer();
+        if (ArenaManager::inGame($player)) {
+            $game = ArenaManager::getGameByPlayer($player);
+            if ($game->getGamemode() !== 'sw') {
+                $event->setCancel();
+            }
+        } else {
+            //$event->setCancel();
+        }
+    }
+    /*final public function onBreak(BlockBreakEvent $event): void
     {
         $player = $event->getPlayer();
         $block = $event->getBlock();
@@ -163,17 +201,13 @@ final class DuelsEventHandler implements Listener
             }
         }
     }
-
-    public function onPlace(BlockPlaceEvent $event): void
-    {
+*/
+    public function onPlace(BlockPlaceEvent $event): void {
         $player = $event->getPlayer();
-        $event->setCancel();
         if (ArenaManager::inGame($player)) {
             $game = ArenaManager::getGameByPlayer($player);
-            if ($game->getGamemode() === 'mlgrush' and $game->getState() >= 2) {
-                ArenaManager::getGameByPlayer($player)->addBlockToClear($event->getBlock()->asVector3());
-            } else {
-                $event->setCancelled();
+            if ($game->getGamemode() !== 'sw') {
+                //$event->setCancel();
             }
         }
     }

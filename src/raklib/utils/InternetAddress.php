@@ -17,6 +17,8 @@ declare(strict_types=1);
 
 namespace raklib\utils;
 
+use raklib\errorhandler\RakLibException;
+
 class InternetAddress{
 
 	/** @var string */
@@ -28,8 +30,8 @@ class InternetAddress{
 
 	public function __construct(string $address, int $port, int $version){
 		$this->ip = $address;
-		if($port < 0 or $port > 65535){
-			throw new \InvalidArgumentException("Invalid port range");
+		if($port < 1 or $port > 65536){
+			throw new RakLibException("Invalid port range, you must used port much 1 and less 65536");
 		}
 		$this->port = $port;
 		$this->version = $version;
@@ -48,7 +50,7 @@ class InternetAddress{
 	}
 
 	public function __toString(){
-		return $this->ip . " " . $this->port;
+		return $this->ip . ":" . $this->port;
 	}
 
 	public function toString() : string{

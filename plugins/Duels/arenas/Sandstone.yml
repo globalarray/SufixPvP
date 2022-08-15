@@ -1,0 +1,14 @@
+---
+name: Sandstone
+level-name: Sandstone
+gamemode: tntrun
+spawns:
+  1:
+    x: 258
+    "y": 1
+    z: 258
+  2:
+    x: 258
+    "y": 1
+    z: 262
+...

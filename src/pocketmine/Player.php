@@ -258,7 +258,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	protected $removeFormat = true;
 	protected $port;
 	protected $username;
-	protected $iusername;
+	public $iusername;
 	protected $displayName;
 	protected $languageCode = "en_UK";
 	protected $startAction = -1;
@@ -1679,7 +1679,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 			$this->entityBaseTick($tickDiff);
 			$this->motionX = $this->motionY = $this->motionZ = 0;
 			if(!$this->isSpectator()){
-				//$this->checkNearEntities($tickDiff);
+				$this->checkNearEntities($tickDiff);
 
 				if($this->speed !== null){
 					if($this->onGround){
@@ -3503,11 +3503,11 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	 * @param TextContainer|string $message
 	 */
 	public function sendMessage($message){
-		if($message instanceof TextContainer){
-			if($message instanceof TranslationContainer){
-				$this->sendTranslation($message->getText(), $message->getParameters());
-				return;
-			}
+		if ($message instanceof TranslationContainer) {
+			$this->sendTranslation($message->getText(), $message->getParameters());
+			return;
+		}
+		if ($message instanceof TextContainer) {
 			$message = $message->getText();
 		}
 
