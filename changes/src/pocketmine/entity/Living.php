@@ -32,7 +32,6 @@ use pocketmine\event\entity\EntityDeathEvent;
 use pocketmine\event\entity\EntityRegainHealthEvent;
 use pocketmine\event\Timings;
 use pocketmine\item\Item as ItemItem;
-use pocketmine\level\particle\CriticalParticle;
 use pocketmine\math\Vector3;
 use pocketmine\nbt\tag\ByteTag;
 use pocketmine\nbt\tag\CompoundTag;
@@ -348,19 +347,6 @@ abstract class Living extends Entity implements Damageable{
 			$source->setDamage(-($source->getDamage(EntityDamageEvent::MODIFIER_BASE) * 0.20 * $this->getEffect(Effect::DAMAGE_RESISTANCE)->getEffectLevel()), EntityDamageEvent::MODIFIER_RESISTANCE);
 		}
 
-		if($source instanceof EntityDamageByEntityEvent){
-			$damager = $source->getDamager();
-			if($damager instanceof Player){
-				if(!$damager->isOnGround() and !$damager->isSprinting() and !$damager->hasEffect(Effect::BLINDNESS)){
-					//Critical hit
-					for($i = 0; $i < 5; $i++){
-						$this->level->addParticle(new CriticalParticle(new Vector3($this->x + mt_rand(-15, 15) / 10, $this->y + mt_rand(0, 20) / 10, $this->z + mt_rand(-15, 15) / 10)));
-					}
-					$source->setDamage($source->getDamage() / 2, EntityDamageEvent::MODIFIER_CRITICAL);
-				}
-			}
-		}
-
 		if($source->getCause() === EntityDamageEvent::CAUSE_FALL and $this->level->getBlockIdAt($this->getFloorX(), $this->getFloorY() - 1, $this->getFloorZ()) === Block::SLIME_BLOCK and !$this->isSneaking()){
 			$this->resetFallDistance();
 			return;
@@ -404,6 +390,8 @@ abstract class Living extends Entity implements Damageable{
 		}
 
 		$f = 1 / $f;
+		
+		$baseY = max(0.4, $base / 1.5);
 
 		$motion = new Vector3($this->motionX, $this->motionY, $this->motionZ);
 
@@ -411,11 +399,11 @@ abstract class Living extends Entity implements Damageable{
 		$motion->y /= 2;
 		$motion->z /= 2;
 		$motion->x += $x * $f * $base;
-		$motion->y += $base;
+		$motion->y += $baseY;
 		$motion->z += $z * $f * $base;
 
-		if($motion->y > $base){
-			$motion->y = $base;
+		if($motion->y > $baseY){
+			$motion->y = $baseY;
 		}
 
 		$this->setMotion($motion);
@@ -497,9 +485,11 @@ abstract class Living extends Entity implements Damageable{
 				if($effect->canTick()){
 					$effect->applyEffect($this);
 				}
-				$effect->setDuration($effect->getDuration() - $tickDiff);
-				if($effect->getDuration() <= 0){
+				$duration = $effect->getDuration() - $tickDiff;
+				if($duration <= 0){
 					$this->removeEffect($effect->getId());
+				}else{
+					$effect->setDuration($duration);
 				}
 			}
 		}

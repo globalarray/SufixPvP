@@ -25,9 +25,11 @@ namespace pocketmine\network\mcpe;
 
 use pocketmine\event\player\PlayerCreationEvent;
 use pocketmine\network\AdvancedSourceInterface;
+use pocketmine\network\mcpe\multiversion\Multiversion;
 use pocketmine\network\mcpe\protocol\BatchPacket;
 use pocketmine\network\mcpe\protocol\DataPacket;
 use pocketmine\network\mcpe\protocol\PacketPool;
+use pocketmine\network\mcpe\protocol\PacketPool120;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use pocketmine\network\Network;
 use pocketmine\Player;
@@ -128,7 +130,6 @@ class RakLibInterface implements ServerInstance, AdvancedSourceInterface{
 		$this->players[$identifier] = $player;
 		$this->identifiersACK[$identifier] = 0;
 		$this->identifiers[spl_object_hash($player)] = $identifier;
-		$player->setIdentifier($identifier);
 		$this->server->addPlayer($identifier, $player);
 	}
 
@@ -136,7 +137,7 @@ class RakLibInterface implements ServerInstance, AdvancedSourceInterface{
 		if(isset($this->players[$identifier])){
 			try{
 				if($packet->buffer !== ""){
-					$pk = $this->getPacket($packet->buffer);
+					$pk = $this->getPacket($packet->buffer, $this->players[$identifier]->getProtocol());
 					$this->players[$identifier]->handleDataPacket($pk);
 				}
 			}catch(\Throwable $e){
@@ -173,11 +174,11 @@ class RakLibInterface implements ServerInstance, AdvancedSourceInterface{
 				"MCPE",
 				rtrim(addcslashes($name, ";"), '\\'),
 				ProtocolInfo::CURRENT_PROTOCOL,
-				ProtocolInfo::MINECRAFT_VERSION_NETWORK,
+				ProtocolInfo::VERSION,
 				$info->getPlayerCount(),
 				$info->getMaxPlayerCount(),
-				"0",
-				$name,
+				$this->rakLib->getServerId(),
+				$name . " - v" . ProtocolInfo::MINECRAFT_VERSION_NETWORK,
 				Server::getGamemodeName($this->server->getGamemode())
 			]) . ";"
 		);
@@ -197,6 +198,10 @@ class RakLibInterface implements ServerInstance, AdvancedSourceInterface{
 	public function putPacket(Player $player, DataPacket $packet, bool $needACK = false, bool $immediate = true){
 		if(isset($this->identifiers[$h = spl_object_hash($player)])){
 			$identifier = $this->identifiers[$h];
+			if(!($packet instanceof BatchPacket) and $player->getProtocol() === ProtocolInfo::MULTIVERSION_PROTOCOL and $packet->protocol !== ProtocolInfo::MULTIVERSION_PROTOCOL and count($packets = Multiversion::convertTo120($packet, $player)) > 0){
+				$this->server->batchPackets([$player], $packets, true, $immediate);
+				return null;
+			}
 			if(!$packet->isEncoded){
 				$packet->encode();
 			}
@@ -233,17 +238,20 @@ class RakLibInterface implements ServerInstance, AdvancedSourceInterface{
 		return null;
 	}
 
-	private function getPacket($buffer){
+	private function getPacket($buffer, int $protocol = ProtocolInfo::CURRENT_PROTOCOL){
 		$pid = ord($buffer{0});
-		if(($data = PacketPool::getPacketById($pid)) === null){
-			return null;
+		if($protocol < ProtocolInfo::MULTIVERSION_PROTOCOL){
+			if(($data = PacketPool::getPacketById($pid)) === null){
+				return null;
+			}
+			$data->setBuffer($buffer, 1);
+		}else{
+			if(($data = PacketPool120::getPacketById($pid)) === null){
+				return null;
+			}
+			$data->setBuffer($buffer, 1);
 		}
-		$data->setBuffer($buffer, 1);
 
 		return $data;
-	}
-
-	public function putReadyPacket($buffer) {
-		$this->interface->sendReadyEncapsulated($buffer);
 	}
 }

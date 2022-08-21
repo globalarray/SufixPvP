@@ -323,7 +323,7 @@ class BinaryStream{
 	 * Reads a 32-bit zigzag-encoded variable-length integer from the buffer and returns it.
 	 * @return int
 	 */
-	public function getVarInt() : int{
+	public function getVarInt(){
 		return Binary::readVarInt($this->buffer, $this->offset);
 	}
 
@@ -331,7 +331,7 @@ class BinaryStream{
 	 * Writes a 32-bit zigzag-encoded variable-length integer to the end of the buffer.
 	 * @param int $v
 	 */
-	public function putVarInt(int $v){
+	public function putVarInt($v){
 		$this->put(Binary::writeVarInt($v));
 	}
 
@@ -339,7 +339,7 @@ class BinaryStream{
 	 * Reads a 64-bit variable-length integer from the buffer and returns it.
 	 * @return int
 	 */
-	public function getUnsignedVarLong() : int{
+	public function getUnsignedVarLong(){
 		return Binary::readUnsignedVarLong($this->buffer, $this->offset);
 	}
 
@@ -347,7 +347,7 @@ class BinaryStream{
 	 * Writes a 64-bit variable-length integer to the end of the buffer.
 	 * @param int $v
 	 */
-	public function putUnsignedVarLong(int $v){
+	public function putUnsignedVarLong($v){
 		$this->buffer .= Binary::writeUnsignedVarLong($v);
 	}
 
@@ -355,7 +355,7 @@ class BinaryStream{
 	 * Reads a 64-bit zigzag-encoded variable-length integer from the buffer and returns it.
 	 * @return int
 	 */
-	public function getVarLong() : int{
+	public function getVarLong(){
 		return Binary::readVarLong($this->buffer, $this->offset);
 	}
 
@@ -363,7 +363,7 @@ class BinaryStream{
 	 * Writes a 64-bit zigzag-encoded variable-length integer to the end of the buffer.
 	 * @param int
 	 */
-	public function putVarLong(int $v){
+	public function putVarLong($v){
 		$this->buffer .= Binary::writeVarLong($v);
 	}
 

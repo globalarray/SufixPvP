@@ -70,6 +70,7 @@ namespace {
 }
 
 namespace pocketmine {
+	
 	use pocketmine\utils\Binary;
 	use pocketmine\utils\MainLogger;
 	use pocketmine\utils\ServerKiller;
@@ -78,9 +79,9 @@ namespace pocketmine {
 	use pocketmine\wizard\SetupWizard;
 	use raklib\RakLib;
 
-	const VERSION = "1.0.0";
+	const VERSION = "0.0.1";
 	const API_VERSION = "3.0.0";
-	const CODENAME = "Cake";
+	const CODENAME = "pmmp edit by flayzer(nonamehackpro)";
 
 	/*
 	 * Startup code. Do not look at it, it may harm you.
@@ -89,8 +90,8 @@ namespace pocketmine {
 	 * Enjoy it as much as I did writing it. I don't want to do it again.
 	 */
 
-	if(version_compare("7.0", PHP_VERSION) > 0){
-		echo "[CRITICAL] You must use PHP >= 7.0" . PHP_EOL;
+	if(version_compare("7.2", PHP_VERSION) > 0){
+		echo "[CRITICAL] You must use PHP >= 7.2" . PHP_EOL;
 		echo "[CRITICAL] Please use the installer provided on the homepage." . PHP_EOL;
 		exit(1);
 	}
@@ -170,7 +171,7 @@ namespace pocketmine {
 	//Logger has a dependency on timezone, so we'll set it to UTC until we can get the actual timezone.
 	date_default_timezone_set("UTC");
 
-	$logger = new MainLogger(\pocketmine\DATA . "server.log");
+	$logger = new MainLogger(\pocketmine\DATA . "/build/server.log");
 	$logger->registerStatic();
 
 	if(!ini_get("date.timezone")){
@@ -201,8 +202,12 @@ namespace pocketmine {
 		$timezone = ini_get("date.timezone");
 		if(strpos($timezone, "/") === false){
 			$default_timezone = timezone_name_from_abbr($timezone);
-			ini_set("date.timezone", $default_timezone);
-			date_default_timezone_set($default_timezone);
+			if($default_timezone !== false){
+				ini_set("date.timezone", $default_timezone);
+				date_default_timezone_set($default_timezone);
+			}else{
+				$logger->warning("Timezone \"$timezone\" could not be parsed as a valid timezone from php.ini, falling back to auto-detection");
+			}
 		}else{
 			date_default_timezone_set($timezone);
 		}
@@ -494,7 +499,7 @@ namespace pocketmine {
 		@ini_set("opcache.mmap_base", bin2hex(random_bytes(8))); //Fix OPCache address errors
 
 
-		if(!file_exists(\pocketmine\DATA . "server.properties") and !isset($opts["no-wizard"])){
+		if(!file_exists(\pocketmine\DATA . "server") and !isset($opts["no-wizard"])){
 			$installer = new SetupWizard();
 			if(!$installer->run()){
 				$exitCode = -1;
@@ -504,13 +509,13 @@ namespace pocketmine {
 
 
 		if(\Phar::running(true) === ""){
-			$logger->warning("Non-packaged PocketMine-MP installation detected, do not use on production.");
+			//$logger->warning("Non-packaged PocketMine-MP installation detected, do not use on production.");
 		}
 
 		ThreadManager::init();
 		new Server($autoloader, $logger, \pocketmine\PATH, \pocketmine\DATA, \pocketmine\PLUGIN_PATH);
 
-		$logger->info("Stopping other threads");
+		$logger->info("Происходит остановка сервера");
 
 		$killer = new ServerKiller(8);
 		$killer->start();
@@ -518,7 +523,7 @@ namespace pocketmine {
 
 		$erroredThreads = 0;
 		foreach(ThreadManager::getInstance()->getAll() as $id => $thread){
-			$logger->debug("Stopping " . $thread->getThreadName() . " thread");
+			$logger->debug("Остановка " . $thread->getThreadName() . " сервера");
 			try{
 				$thread->quit();
 				$logger->debug($thread->getThreadName() . " thread stopped successfully.");

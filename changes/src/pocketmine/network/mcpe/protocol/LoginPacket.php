@@ -27,6 +27,7 @@ namespace pocketmine\network\mcpe\protocol;
 
 
 use pocketmine\network\mcpe\NetworkSession;
+use pocketmine\utils\Binary;
 
 class LoginPacket extends DataPacket{
 	const NETWORK_ID = ProtocolInfo::LOGIN_PACKET;
@@ -37,7 +38,7 @@ class LoginPacket extends DataPacket{
 
 	public $username;
 	public $protocol;
-	public $gameEdition;
+	public $gameEdition = self::EDITION_POCKET;
 	public $clientUUID;
 	public $clientId;
 	public $identityPublicKey;
@@ -52,6 +53,9 @@ class LoginPacket extends DataPacket{
 	public $decoded;
 
 	public $languageCode;
+	
+	public $deviceModel;
+	public $deviceOS;
 
 	public function canBeSentBeforeLogin() : bool{
 		return true;
@@ -61,11 +65,24 @@ class LoginPacket extends DataPacket{
 		$this->protocol = $this->getInt();
 
 		if($this->protocol !== ProtocolInfo::CURRENT_PROTOCOL){
-			$this->buffer = null;
-			return; //Do not attempt to decode for non-accepted protocols
+			try{
+				$this->offset = 0;
+				$this->getUnsignedVarInt(); //PID
+				$this->getByte(); //2 split-screen bytes
+				$this->getByte();
+				$this->protocol = $this->getInt();
+				if($this->protocol !== ProtocolInfo::MULTIVERSION_PROTOCOL){
+					$this->buffer = null;
+					return; //Do not attempt to decode for non-accepted protocols
+				}
+			}catch(\Throwable $e){
+				return;
+			}
 		}
 
-		$this->gameEdition = $this->getByte();
+		if($this->protocol < ProtocolInfo::MULTIVERSION_PROTOCOL){
+			$this->gameEdition = $this->getByte();
+		}
 
 		$this->setBuffer($this->getString(), 0);
 
@@ -101,6 +118,14 @@ class LoginPacket extends DataPacket{
 		}
 		if (isset($this->clientData["LanguageCode"])) {
 			$this->languageCode = $this->clientData["LanguageCode"];
+		}
+		
+		if(isset($this->clientData["DeviceModel"])){
+			$this->deviceModel = $this->clientData["DeviceModel"];
+		}
+		
+		if(isset($this->clientData["DeviceOS"])){
+			$this->deviceOS = $this->clientData["DeviceOS"];
 		}
  	}
 

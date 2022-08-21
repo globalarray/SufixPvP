@@ -23,6 +23,8 @@ declare(strict_types=1);
 
 namespace pocketmine\level\format;
 
+use pocketmine\network\mcpe\protocol\ProtocolInfo;
+
 class SubChunk implements SubChunkInterface{
 
 	protected $ids;
@@ -218,9 +220,14 @@ class SubChunk implements SubChunkInterface{
 		$this->blockLight = $data;
 	}
 
-	public function networkSerialize() : string{
-		// storage version, ids, data, skylight, blocklight
-		return "\x00" . $this->ids . $this->data . $this->skyLight . $this->blockLight;
+	public function networkSerialize(int $protocol) : string{
+		if($protocol < ProtocolInfo::MULTIVERSION_PROTOCOL){
+			// storage version, ids, data, skylight, blocklight
+			return "\x00" . $this->ids . $this->data . $this->skyLight . $this->blockLight;
+		}else{
+			// storage version, ids, data
+			return "\x00" . $this->ids . $this->data;
+		}
 	}
 
 	public function fastSerialize() : string{

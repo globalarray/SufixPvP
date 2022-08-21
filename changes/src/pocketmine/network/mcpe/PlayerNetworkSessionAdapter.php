@@ -60,6 +60,9 @@ use pocketmine\network\mcpe\protocol\ShowCreditsPacket;
 use pocketmine\network\mcpe\protocol\SpawnExperienceOrbPacket;
 use pocketmine\network\mcpe\protocol\TextPacket;
 use pocketmine\network\mcpe\protocol\UseItemPacket;
+use pocketmine\network\mcpe\protocol\v120\InventoryContentPacket;
+use pocketmine\network\mcpe\protocol\v120\InventorySlotPacket;
+use pocketmine\network\mcpe\protocol\v120\PlayerHotbarPacket;
 use pocketmine\Player;
 use pocketmine\Server;
 
@@ -84,14 +87,16 @@ class PlayerNetworkSessionAdapter extends NetworkSession{
 		$timings = Timings::getReceiveDataPacketTimings($packet);
 		$timings->startTiming();
 
-		$packet->decode();
-		if(!$packet->feof()){
-			$remains = substr($packet->buffer, $packet->offset);
-			$this->server->getLogger()->debug("Still " . strlen($remains) . " bytes unread in " . $packet->getName() . ": 0x" . bin2hex($remains));
+		if($packet->mustBeDecoded()){ //Allow plugins to decode it
+			$packet->decode();
+			if(!$packet->feof()){
+				$remains = substr($packet->buffer, $packet->offset);
+				$this->server->getLogger()->debug("Still " . strlen($remains) . " bytes unread in " . $packet->getName() . ": 0x" . bin2hex($remains));
+			}
 		}
 
 		$this->server->getPluginManager()->callEvent($ev = new DataPacketReceiveEvent($this->player, $packet));
-		if(!$ev->isCancelled() and !$packet->handle($this)){
+		if(!$ev->isCancelled() and $packet->mustBeDecoded() and !$packet->handle($this)){
 			$this->server->getLogger()->debug("Unhandled " . $packet->getName() . " received from " . $this->player->getName() . ": 0x" . bin2hex($packet->buffer));
 		}
 
@@ -228,5 +233,17 @@ class PlayerNetworkSessionAdapter extends NetworkSession{
 
 	public function handleResourcePackChunkRequest(ResourcePackChunkRequestPacket $packet) : bool{
 		return $this->player->handleResourcePackChunkRequest($packet);
+	}
+
+	public function handleInventoryContent(InventoryContentPacket $packet) : bool{
+		return true; //Not used
+	}
+
+	public function handleInventorySlot(InventorySlotPacket $packet) : bool{
+		return true; //Not used
+	}
+
+	public function handlePlayerHotbar(PlayerHotbarPacket $packet) : bool{
+		return true; //TODO
 	}
 }

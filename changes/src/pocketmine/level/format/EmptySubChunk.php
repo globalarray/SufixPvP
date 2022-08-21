@@ -23,6 +23,8 @@ declare(strict_types=1);
 
 namespace pocketmine\level\format;
 
+use pocketmine\network\mcpe\protocol\ProtocolInfo;
+
 class EmptySubChunk implements SubChunkInterface{
 
 	public function isEmpty(bool $checkLight = true) : bool{
@@ -113,8 +115,12 @@ class EmptySubChunk implements SubChunkInterface{
 
 	}
 
-	public function networkSerialize() : string{
-		return "\x00" . str_repeat("\x00", 10240);
+	public function networkSerialize(int $protocol) : string{
+		if($protocol < ProtocolInfo::MULTIVERSION_PROTOCOL){
+			return "\x00" . str_repeat("\x00", 10240);
+		}else{
+			return "\x00" . str_repeat("\x00", 6144);
+		}
 	}
 
 	public function fastSerialize() : string{

@@ -306,7 +306,7 @@ class Binary{
 	 * @param float $value
 	 * @return string
 	 */
-	public static function writeFloat(float $value) : string{
+	public static function writeFloat($value){
 		return ENDIANNESS === self::BIG_ENDIAN ? pack("f", $value) : strrev(pack("f", $value));
 	}
 
@@ -548,6 +548,19 @@ class Binary{
 		}
 
 		throw new \InvalidArgumentException("VarLong did not terminate after 10 bytes!");
+		
+		/*$value = 0;
+		for($i = 0; $i <= 28; $i += 7){
+			if(!isset($buffer[$offset])){
+				throw new BinaryDataException("No bytes left in buffer");
+			}
+			$b = ord($buffer[$offset++]);
+			$value |= (($b & 0x7f) << $i);
+			if(($b & 0x80) === 0){
+				return $value;
+			}
+		}
+		throw new BinaryDataException("VarInt did not terminate after 5 bytes!");*/
 	}
 
 	/**
@@ -556,7 +569,7 @@ class Binary{
 	 * @param int $v
 	 * @return string
 	 */
-	public static function writeVarLong(int $v) : string{
+	public static function writeVarLong($v) : string{
 		return self::writeUnsignedVarLong(($v << 1) ^ ($v >> 63));
 	}
 
@@ -566,7 +579,7 @@ class Binary{
 	 *
 	 * @return string
 	 */
-	public static function writeUnsignedVarLong(int $value) : string{
+	public static function writeUnsignedVarLong($value) : string{
 		$buf = "";
 		for($i = 0; $i < 10; ++$i){
 			if(($value >> 7) !== 0){

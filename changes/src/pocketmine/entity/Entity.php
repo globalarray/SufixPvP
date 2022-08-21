@@ -216,6 +216,7 @@ abstract class Entity extends Location implements Metadatable{
 		Entity::registerEntity(Egg::class);
 		Entity::registerEntity(EnderPearl::class);
 		Entity::registerEntity(Squid::class);
+		Entity::registerEntity(ThrownPotion::class);
 		Entity::registerEntity(Villager::class);
 		Entity::registerEntity(Zombie::class);
 
@@ -503,6 +504,14 @@ abstract class Entity extends Location implements Metadatable{
 			$attr = $this->attributeMap->getAttribute(Attribute::MOVEMENT_SPEED);
 			$attr->setValue($value ? ($attr->getValue() * 1.3) : ($attr->getValue() / 1.3), false, true);
 		}
+	}
+
+	public function isGliding(){
+		return $this->getDataFlag(self::DATA_FLAGS, self::DATA_FLAG_GLIDING);
+	}
+
+	public function setGliding($value = true){
+		$this->setDataFlag(self::DATA_FLAGS, self::DATA_FLAG_GLIDING, (bool) $value);
 	}
 
 	public function isImmobile() : bool{

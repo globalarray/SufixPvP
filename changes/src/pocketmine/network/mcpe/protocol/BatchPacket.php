@@ -48,6 +48,11 @@ class BatchPacket extends DataPacket{
 		return true;
 	}
 
+	protected function decodeHeader(){
+		$pid = $this->getByte();
+		assert($pid === static::NETWORK_ID);
+	}
+
 	public function decodePayload(){
 		$data = $this->getRemaining();
 		try{
@@ -55,6 +60,10 @@ class BatchPacket extends DataPacket{
 		}catch(\ErrorException $e){ //zlib decode error
 			$this->payload = "";
 		}
+	}
+
+	protected function encodeHeader(){
+		$this->putByte(static::NETWORK_ID);
 	}
 
 	public function encodePayload(){
@@ -99,7 +108,11 @@ class BatchPacket extends DataPacket{
 		}
 
 		foreach($this->getPackets() as $buf){
-			$pk = PacketPool::getPacketById(ord($buf{0}));
+			if($this->protocol < ProtocolInfo::MULTIVERSION_PROTOCOL){
+				$pk = PacketPool::getPacketById(ord($buf{0}));
+			}else{
+				$pk = PacketPool120::getPacketById(ord($buf{0}));
+			}
 
 			if(!$pk->canBeBatched()){
 				throw new \InvalidArgumentException("Received invalid " . get_class($pk) . " inside BatchPacket");

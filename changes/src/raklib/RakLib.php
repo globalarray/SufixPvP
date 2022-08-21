@@ -18,8 +18,8 @@ namespace raklib;
 
 //Dependencies check
 $errors = 0;
-if(version_compare("7.0", PHP_VERSION) > 0){
-	echo "[CRITICAL] Use PHP >= 7.0" . PHP_EOL;
+if(version_compare("7.2", PHP_VERSION) > 0){
+	echo "[CRITICAL] Use PHP >= 7.2" . PHP_EOL;
 	++$errors;
 }
 

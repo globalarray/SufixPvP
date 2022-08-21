@@ -19,18 +19,20 @@
  *
  */
 
-namespace pocketmine\level;
+declare(strict_types=1);
 
-class PacketMakerEntry {
-	
-	public $packets;
-	public $targets;
-	public $networkCompressionLevel;
+namespace pocketmine\item;
 
-	public function __construct(array $packets, array $targets, int $networkCompressionLevel = 7){
-		$this->packets = $packets;
-		$this->targets = $targets;
-		$this->networkCompressionLevel = $networkCompressionLevel;
+use pocketmine\entity\Entity;
+
+class SplashPotion extends Item{
+
+	public function __construct($meta = 0, $count = 1){
+		parent::__construct(self::SPLASH_POTION, $meta, $count, $this->getNameByMeta($meta));
+	}
+
+	public function getNameByMeta(int $meta) : string{
+		return "Splash " . Potion::getNameByMeta($meta);
 	}
 
 }

@@ -917,14 +917,16 @@ class Chunk{
 	/**
 	 * Serializes the chunk for sending to players
 	 *
+	 * @param int $protocol
+	 *
 	 * @return string
 	 */
-	public function networkSerialize() : string{
+	public function networkSerialize(int $protocol) : string{
 		$result = "";
 		$subChunkCount = $this->getSubChunkSendCount();
 		$result .= chr($subChunkCount);
 		for($y = 0; $y < $subChunkCount; ++$y){
-			$result .= $this->subChunks[$y]->networkSerialize();
+			$result .= $this->subChunks[$y]->networkSerialize($protocol);
 		}
 		$result .= pack("v*", ...$this->heightMap)
 		        .  $this->biomeIds

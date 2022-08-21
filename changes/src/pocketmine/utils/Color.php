@@ -36,6 +36,10 @@ class Color{
 		$this->b = $b & 0xff;
 		$this->a = $a & 0xff;
 	}
+	
+	public static function getRGB($r, $g, $b){
+		return new Color((int) $r, (int) $g, (int) $b);
+	}
 
 	/**
 	 * Returns the alpha (transparency) value of this colour.

@@ -85,7 +85,7 @@ class SimpleCommandMap implements CommandMap{
 	}
 
 	private function setDefaultCommands(){
-		$this->register("pocketmine", new VersionCommand("version"));
+		/*$this->register("pocketmine", new VersionCommand("version"));
 		$this->register("pocketmine", new PluginsCommand("plugins"));
 		$this->register("pocketmine", new SeedCommand("seed"));
 		$this->register("pocketmine", new HelpCommand("help"));
@@ -127,7 +127,7 @@ class SimpleCommandMap implements CommandMap{
 			$this->register("pocketmine", new StatusCommand("status"));
 			$this->register("pocketmine", new GarbageCollectorCommand("gc"));
 			$this->register("pocketmine", new DumpMemoryCommand("dumpmemory"));
-		}
+		}*/
 	}
 
 

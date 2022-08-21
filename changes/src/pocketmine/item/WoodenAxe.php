@@ -32,4 +32,8 @@ class WoodenAxe extends Tool{
 	public function isAxe(){
 		return Tool::TIER_WOODEN;
 	}
+
+	public function getAttackPoints() : int{
+		return 3;
+	}
 }

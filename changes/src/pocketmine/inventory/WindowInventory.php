@@ -21,7 +21,6 @@
 
 namespace pocketmine\inventory;
 
-use pocketmine\network\mcpe\protocol\DataPacket;
 use pocketmine\Player;
 use pocketmine\block\Block;
 use pocketmine\math\Vector3;
@@ -36,18 +35,10 @@ use pocketmine\utils\TextFormat;
 
 class WindowInventory extends CustomInventory{
 
-    /**
-     * @var string
-     */
     protected $customName = "";
-    /**
-     * @var Player
-     */
-    protected $player;
 
     public function __construct(Player $player, string $customName = "") {
         $this->customName = $customName;
-        $this->player = $player;
         $holder = new WindowHolder($player->getFloorX(), $player->getFloorY() - 3, $player->getFloorZ(), $this);
         parent::__construct($holder, InventoryType::get(InventoryType::CHEST));
     }
@@ -61,7 +52,7 @@ class WindowInventory extends CustomInventory{
         $pk->blockId = Block::CHEST;
         $pk->blockData = 0;
         $pk->flags = UpdateBlockPacket::FLAG_ALL;
-        $this->sendPacket($who, $pk);
+        $who->dataPacket($pk);
         $c = new CompoundTag("", [
             new StringTag("id", Tile::CHEST),
             new IntTag("x", (int) $holder->x),
@@ -78,7 +69,7 @@ class WindowInventory extends CustomInventory{
         $pk->y = $holder->y;
         $pk->z = $holder->z;
         $pk->namedtag = $nbt->write(true);
-        $this->sendPacket($who, $pk);
+        $who->dataPacket($pk);
         parent::onOpen($who);
         $this->sendContents($who);
     }
@@ -92,13 +83,6 @@ class WindowInventory extends CustomInventory{
         $pk->blockId = $who->getLevel()->getBlockIdAt($holder->x, $holder->y, $holder->z);
         $pk->blockData = $who->getLevel()->getBlockDataAt($holder->x, $holder->y, $holder->z);
         $pk->flags = UpdateBlockPacket::FLAG_ALL;
-        $this->sendPacket($who, $pk);
-        parent::onClose($who);
-    }
-
-    public function sendPacket(Player $who, DataPacket $pk){
-        if($who->getName() === $this->player->getName()){
-            $this->player->dataPacket($pk);
-        }
+        $who->dataPacket($pk);
     }
 }

@@ -245,6 +245,10 @@ class Item implements ItemIds, \JsonSerializable{
 			self::$list[self::BEETROOT_SEEDS] = BeetrootSeeds::class;
 			self::$list[self::BEETROOT_SOUP] = BeetrootSoup::class;
 
+			self::$list[self::SPLASH_POTION] = SplashPotion::class;
+
+			self::$list[self::ELYTRA] = Elytra::class;
+
 			self::$list[self::ENCHANTED_GOLDEN_APPLE] = GoldenAppleEnchanted::class;
 		}
 
@@ -369,8 +373,10 @@ class Item implements ItemIds, \JsonSerializable{
 				if($item->getId() === self::AIR and strtoupper($b[0]) !== "AIR"){
 					$item = self::get($b[0] & 0xFFFF, $meta);
 				}
-			}else{
+			}elseif(is_numeric($b[0])){
 				$item = self::get($b[0] & 0xFFFF, $meta);
+			}else{
+				return self::get(self::AIR, 0, 0);
 			}
 
 			return $item;
@@ -1053,6 +1059,14 @@ class Item implements ItemIds, \JsonSerializable{
 		return 1;
 	}
 
+	public function getAttackPoints() : int{
+		return 1;
+	}
+
+	public function getArmorPoints() : int{
+		return 0;
+	}
+
 	/**
 	 * Called when a player uses this item on a block.
 	 *
@@ -1080,14 +1094,19 @@ class Item implements ItemIds, \JsonSerializable{
 	 *
 	 * @return bool
 	 */
-	final public function equals(Item $item, bool $checkDamage = true, bool $checkCompound = true) : bool{
-		if($this->id === $item->getId() and ($checkDamage === false or $this->getDamage() === $item->getDamage())){
+	final public function equals(Item $item, bool $checkDamage = true, bool $checkCompound = true, bool $checkCount = false) : bool{
+		if($this->id === $item->getId() and ($checkDamage === false or $this->getDamage() === $item->getDamage()) and ($checkCount === false or $this->getCount() === $item->getCount())){
 			if($checkCompound){
 				if($item->getCompoundTag() === $this->getCompoundTag()){
 					return true;
 				}elseif($this->hasCompoundTag() and $item->hasCompoundTag()){
 					//Serialized NBT didn't match, check the cached object tree.
-					return NBT::matchTree($this->getNamedTag(), $item->getNamedTag());
+					$tag1 = clone $this->getNamedTag();
+					$tag2 = clone $item->getNamedTag();
+					if($tag1->getName() !== $tag2->getName()){ //HACK
+						$tag2->setName($tag1->getName());
+					}
+					return NBT::matchTree($tag1, $tag2);
 				}
 			}else{
 				return true;

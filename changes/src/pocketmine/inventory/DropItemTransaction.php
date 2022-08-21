@@ -54,7 +54,9 @@ class DropItemTransaction extends BaseTransaction{
 	}
 
 	public function sendSlotUpdate(Player $source){
-		//Nothing to update
+		foreach($source->getWindows() as $inv){
+			$inv->sendContents($source);
+		}
 	}
 
 	public function getChange(){
@@ -64,13 +66,13 @@ class DropItemTransaction extends BaseTransaction{
 
 	public function execute(Player $source): bool{
 		$droppedItem = $this->getTargetItem();
-		if($source->getFloatingInventory()->contains($droppedItem)){
+		if(!$source->getServer()->allowInventoryCheats and !$source->isCreative()){
+			if(!$source->getFloatingInventory()->contains($droppedItem)){
+				return false;
+			}
 			$source->getFloatingInventory()->removeItem($droppedItem);
-		}elseif($source->getInventory()->contains($droppedItem)){
-			$source->getInventory()->removeItem($droppedItem);
 		}
 		$source->dropItem($droppedItem);
-		$source->getInventory()->sendContents($source);
 		return true;
 	}
 }
