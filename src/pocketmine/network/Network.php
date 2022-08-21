@@ -27,6 +27,7 @@ declare(strict_types=1);
 namespace pocketmine\network;
 
 use pocketmine\network\mcpe\protocol\PacketPool;
+use pocketmine\network\mcpe\protocol\PacketPool120;
 use pocketmine\Server;
 
 class Network{
@@ -49,7 +50,8 @@ class Network{
 	private $name;
 
 	public function __construct(Server $server){
-		PacketPool::init();
+		PacketPool::init(); // 1.1
+		PacketPool120::init(); // 1.2
 
 		$this->server = $server;
 

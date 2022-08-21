@@ -62,6 +62,11 @@ use pocketmine\network\mcpe\protocol\TextPacket;
 use pocketmine\network\mcpe\protocol\UseItemPacket;
 use pocketmine\Player;
 use pocketmine\Server;
+/* Added 120 protocol (Minecraft Bedrock) */
+use pocketmine\network\mcpe\protocol\v120\InventoryContentPacket;
+use pocketmine\network\mcpe\protocol\v120\InventorySlotPacket;
+use pocketmine\network\mcpe\protocol\v120\PlayerHotbarPacket;
+
 
 class PlayerNetworkSessionAdapter extends NetworkSession{
 
@@ -114,6 +119,18 @@ class PlayerNetworkSessionAdapter extends NetworkSession{
 
 	public function handleText(TextPacket $packet) : bool{
 		return $this->player->handleText($packet);
+	}
+
+    public function handleInventoryContent(InventoryContentPacket $packet) : bool{
+		return true; //Not used
+	}
+
+	public function handleInventorySlot(InventorySlotPacket $packet) : bool{
+		return true; //Not used
+	}
+
+	public function handlePlayerHotbar(PlayerHotbarPacket $packet) : bool{
+		return true; //TODO
 	}
 
 	public function handleMovePlayer(MovePlayerPacket $packet) : bool{

@@ -29,6 +29,7 @@ use pocketmine\entity\Attribute;
 use pocketmine\entity\Entity;
 use pocketmine\item\Item;
 use pocketmine\network\mcpe\NetworkSession;
+use pocketmine\network\mcpe\multiversion\Multiversion;
 use pocketmine\utils\BinaryStream;
 use pocketmine\utils\Utils;
 
@@ -37,7 +38,10 @@ abstract class DataPacket extends BinaryStream{
 
 	const NETWORK_ID = 0;
 
-	public $isEncoded = false;
+	public bool $isEncoded = false;
+	public $protocol = ProtocolInfo::CURRENT_PROTOCOL;
+	public int $extraByte1 = 0;
+	public int $extraByte2 = 0;
 
 	public function pid(){
 		return $this::NETWORK_ID;
@@ -59,9 +63,29 @@ abstract class DataPacket extends BinaryStream{
 		return true;
 	}
 
+	public function isMultiversionNative() : bool{
+		return false;
+	}
+
 	public function decode(){
-		$this->offset = 1;
+		$this->offset = 0;
+		$this->decodeHeader();
 		$this->decodePayload();
+	}
+
+	protected function decodeHeader(){
+		if($this->protocol >= ProtocolInfo::MULTIVERSION_PROTOCOL){
+			$pid = $this->getUnsignedVarInt();
+			$pid = $this->isMultiversionNative() ? $pid : Multiversion::convertPIDBack($pid);
+			assert($pid === static::NETWORK_ID);
+
+			$this->extraByte1 = $this->getByte();
+			$this->extraByte2 = $this->getByte();
+			assert($this->extraByte1 === 0 and $this->extraByte2 === 0, "Got unexpected non-zero split-screen bytes (byte1: $this->extraByte1, byte2: $this->extraByte2");
+		}else{
+			$pid = $this->getByte();
+			assert($pid === static::NETWORK_ID);
+		}
 	}
 
 	/**
@@ -73,8 +97,20 @@ abstract class DataPacket extends BinaryStream{
 
 	public function encode(){
 		$this->reset();
+		$this->encodeHeader();
 		$this->encodePayload();
 		$this->isEncoded = true;
+	}
+
+	protected function encodeHeader(){
+		if($this->protocol >= ProtocolInfo::MULTIVERSION_PROTOCOL){
+			$this->putUnsignedVarInt($this->isMultiversionNative() ? static::NETWORK_ID : Multiversion::convertPID(static::NETWORK_ID));
+
+			$this->putByte($this->extraByte1);
+			$this->putByte($this->extraByte2);
+		}else{
+			$this->putByte(static::NETWORK_ID);
+		}
 	}
 
 	/**
@@ -95,11 +131,6 @@ abstract class DataPacket extends BinaryStream{
 	 * @return bool true if the packet was handled successfully, false if not.
 	 */
 	abstract public function handle(NetworkSession $session) : bool;
-
-	public function reset(){
-		$this->buffer = chr($this::NETWORK_ID);
-		$this->offset = 0;
-	}
 
 	public function clean(){
 		$this->buffer = null;

@@ -76,7 +76,8 @@ class ClientboundMapItemDataPacket extends DataPacket{
 				$this->decorations[$i]["yOffset"] = $this->getByte();
 				$this->decorations[$i]["label"] = $this->getString();
 
-				$this->decorations[$i]["color"] = Color::fromARGB($this->getLInt()); //already BE, don't need to reverse it again
+				//$this->decorations[$i]["color"] = Color::fromARGB($this->getLInt()); //already BE, don't need to reverse it again
+				$this->decorations[$i]["color"] = $this->getLInt();
 			}
 		}
 
@@ -87,7 +88,7 @@ class ClientboundMapItemDataPacket extends DataPacket{
 			$this->yOffset = $this->getVarInt();
 			for($y = 0; $y < $this->height; ++$y){
 				for($x = 0; $x < $this->width; ++$x){
-					$this->colors[$y][$x] = Color::fromABGR($this->getUnsignedVarInt());
+					$this->colors[$y][$x] = $this->getUnsignedVarInt();
 				}
 			}
 		}
@@ -127,8 +128,9 @@ class ClientboundMapItemDataPacket extends DataPacket{
 				$this->putByte($decoration["xOffset"]);
 				$this->putByte($decoration["yOffset"]);
 				$this->putString($decoration["label"]);
-				assert($decoration["color"] instanceof Color);
-				$this->putLInt($decoration["color"]->toARGB());
+				//assert($decoration["color"] instanceof Color);
+				//$this->putLInt($decoration["color"]->toARGB());
+				$this->putLInt($decoration["color"]);
 			}
 		}
 
@@ -139,7 +141,7 @@ class ClientboundMapItemDataPacket extends DataPacket{
 			$this->putVarInt($this->yOffset);
 			for($y = 0; $y < $this->height; ++$y){
 				for($x = 0; $x < $this->width; ++$x){
-					$this->putUnsignedVarInt($this->colors[$y][$x]->toABGR());
+					$this->putUnsignedVarInt($this->colors[$y][$x]);
 				}
 			}
 		}

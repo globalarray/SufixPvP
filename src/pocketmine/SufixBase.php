@@ -79,9 +79,9 @@ namespace pocketmine {
 	use pocketmine\wizard\SetupWizard;
 	use raklib\RakLib;
 
-	const VERSION = 'v0.2';
+	const VERSION = 'v0.4-beta';
 	const API_VERSION = '3.0.0';
-	const CODENAME = 'David Ratnikov && Danila Stroganov && Cake';
+	const CODENAME = 'David Ratnikov & Danila Stroganov & Cake';
 	const NAME = 'SufixBase';
 
 	/*
@@ -90,13 +90,13 @@ namespace pocketmine {
 	 * This is the only non-class based file on this project.
 	 * Enjoy it as much as I did writing it. I don't want to do it again.
 	 */
-	if(version_compare("7.4", PHP_VERSION) > 0){
-		echo "[CRITICAL] You must use PHP >= 7.4" . PHP_EOL;
+	if (version_compare("8.0", PHP_VERSION) > 0) {
+		echo "[CRITICAL] You must use PHP >= 8.0" . PHP_EOL;
 		echo "[CRITICAL] Please use the installer provided on the homepage." . PHP_EOL;
 		exit(1);
 	}
 
-	if(!extension_loaded("pthreads")){
+	if (!extension_loaded("pthreads")) {
 		echo "[CRITICAL] Unable to find the pthreads extension." . PHP_EOL;
 		echo "[CRITICAL] Please use the installer provided on the homepage." . PHP_EOL;
 		exit(1);
@@ -112,7 +112,7 @@ namespace pocketmine {
 		}
 	});
 
-	if(!extension_loaded("phar")){
+	if (!extension_loaded("phar")) {
 		echo "[CRITICAL] Unable to find the Phar extension." . PHP_EOL;
 		echo "[CRITICAL] Please use the installer provided on the homepage." . PHP_EOL;
 		exit(1);
@@ -458,6 +458,8 @@ namespace pocketmine {
 			$logger->warning(PHP_EOL . PHP_EOL . PHP_EOL . "\tYou are running PocketMine with xdebug enabled. This has a major impact on performance." . PHP_EOL . PHP_EOL);
 		}
 
+
+
 		$extensions = [
 			"curl" => "cURL",
 			"json" => "JSON",
@@ -475,7 +477,11 @@ namespace pocketmine {
 			}
 		}
 
-		if($errors > 0){
+		if (extension_loaded('encoding')) {
+			$logger->notice('You are running ' . NAME . ' with encoding extension enabled. This will boost performance.');
+		}
+
+		if ($errors > 0) {
 			$logger->critical("Please use the installer provided on the homepage, or recompile PHP again.");
 			$exitCode = 1;
 			break;
@@ -510,7 +516,7 @@ namespace pocketmine {
 
 
 		if(\Phar::running(true) === ""){
-			$logger->warning("Non-packaged PocketMine-MP installation detected, do not use on production.");
+			$logger->warning('Non-packaged ' . NAME . ' installation detected, do not use on production.');
 		}
 
 		ThreadManager::init();

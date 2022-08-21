@@ -233,6 +233,8 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	public $gamemode;
 	public $uuid;
 	public $lastProjectile;
+	/** @var int */
+	protected $protocol = ProtocolInfo::CURRENT_PROTOCOL;
 
 	protected $windowCnt = 2;
 	/** @var \SplObjectStorage<Inventory> */
@@ -837,13 +839,15 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		$this->usedChunks[Level::chunkHash($x, $z)] = true;
 		$this->chunkLoadCount++;
 
-		$pk = new ChunkRadiusUpdatedPacket();
-		$pk->radius = 16;
-		$this->server->getScheduler()->scheduleDelayedTask(new CallbackTask([$this, "dataPacket"], [$pk]), 5);
+		if ($this->protocol < ProtocolInfo::MULTIVERSION_PROTOCOL) {
+			$pk = new ChunkRadiusUpdatedPacket();
+			$pk->radius = $this->viewDistance + 4;
+			$this->server->getScheduler()->scheduleDelayedTask(new CallbackTask([$this, "dataPacket"], [$pk]), 5);
 
-		$pk1 = new ChunkRadiusUpdatedPacket();
-		$pk1->radius = $this->viewDistance;
-		$this->server->getScheduler()->scheduleDelayedTask(new CallbackTask([$this, "dataPacket"], [$pk1]), 10);
+			$pk1 = new ChunkRadiusUpdatedPacket();
+			$pk1->radius = $this->viewDistance;
+			$this->server->getScheduler()->scheduleDelayedTask(new CallbackTask([$this, "dataPacket"], [$pk1]), 10);
+		}
 
 		$this->dataPacket($payload);
 
@@ -1323,6 +1327,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	public function sendSettings(){
 		$pk = new AdventureSettingsPacket();
 		$pk->flags = 0;
+		$pk->entityUniqueId = $this->getId();
 		$pk->worldImmutable = $this->isSpectator();
 		$pk->noPvp = $this->isSpectator();
 		$pk->autoJump = $this->autoJump;
@@ -1822,6 +1827,11 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	protected function completeLoginSequence(){
 		parent::__construct($this->level, $this->namedtag);
 
+		if (strlen($this->skin) !== 64 * 32 * 4 && strlen($this->skin) !== 64 * 64 * 4) {
+			$this->close("", "Invalid skin.", false);
+			return;
+		}
+
 		if(!$this->hasValidSpawnPosition()){
 			if(isset($this->namedtag->SpawnLevel) and ($level = $this->server->getLevelByName((string) $this->namedtag["SpawnLevel"])) instanceof Level){
 				$this->spawnPosition = new WeakPosition($this->namedtag["SpawnX"], $this->namedtag["SpawnY"], $this->namedtag["SpawnZ"], $level);
@@ -1839,7 +1849,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		$pk->x = $this->x;
 		$pk->y = $this->y + $this->baseOffset;
 		$pk->z = $this->z;
-		$pk->pitch = $this->pitch;
+		$pk->pitch = $this->pitch + 2;
 		$pk->yaw = $this->yaw;
 		$pk->seed = -1;
 		$pk->dimension = DimensionIds::OVERWORLD; //TODO: implement this properly
@@ -1890,7 +1900,15 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		$this->sendCommandData();
 
 		if($this->isCreative()){
-			$this->inventory->sendCreativeContents();
+			if ($this->protocol === ProtocolInfo::MULTIVERSION_PROTOCOL) {
+				$slots = [];
+				foreach (Item::getCreativeItems() as $item) {
+					$slots[] = clone $item;
+				}
+				Multiversion::sendContainer($this, Protocol120::CONTAINER_ID_CREATIVE, $slots);
+			} else {
+				$this->inventory->sendCreativeContents();
+			}
 		}
 
 		$this->server->addOnlinePlayer($this);
@@ -1899,22 +1917,23 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	}
 
 	public function handleLogin(LoginPacket $packet) : bool{
-		if($this->loggedIn){
+		if ($this->loggedIn) {
 			return false;
 		}
 
-		if($packet->protocol !== ProtocolInfo::CURRENT_PROTOCOL){
-			if($packet->protocol < ProtocolInfo::CURRENT_PROTOCOL){
+        if ($packet->protocol !== ProtocolInfo::CURRENT_PROTOCOL && $packet->protocol !== ProtocolInfo::MULTIVERSION_PROTOCOL) {
+			if ($packet->protocol < ProtocolInfo::MULTIVERSION_PROTOCOL) {
 				$message = "disconnectionScreen.outdatedClient";
 				$this->sendPlayStatus(PlayStatusPacket::LOGIN_FAILED_CLIENT, true);
-			}else{
+			} else {
 				$message = "disconnectionScreen.outdatedServer";
 				$this->sendPlayStatus(PlayStatusPacket::LOGIN_FAILED_SERVER, true);
 			}
-			$this->close("", $message, false);
+			$this->close('', $message, false);
 
 			return true;
 		}
+
 
 		$this->username = TextFormat::clean($packet->username);
 		$this->displayName = $this->username;
@@ -1933,6 +1952,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		}
 
 		$this->randomClientId = $packet->clientId;
+		$this->protocol = $packet->protocol;
 		$this->deviceOS = $packet->deviceOS;
 		$this->deviceModel = $packet->deviceModel;
 		$this->clientInput = $packet->clientInput;
@@ -1942,14 +1962,19 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		$this->rawUUID = $this->uuid->toBinary();
 
 		if(!Player::isValidUserName($packet->username)){
-			$this->close("", "disconnectionScreen.invalidName");
+			$this->close($this->getLeaveMessage(), "disconnectionScreen.invalidName");
 			return true;
 		}
 
 		if(!Player::isValidSkin($packet->skin)){
-			$this->close("", "disconnectionScreen.invalidSkin");
+			$this->close($this->getLeaveMessage(), "disconnectionScreen.invalidSkin");
 			return true;
 		}
+
+		if ($packet->protocol === ProtocolInfo::MULTIVERSION_PROTOCOL) {
+        	$this->close($this->getLeaveMessage(), TextFormat::RED . 'Эта версия еще не обрела полную поддержку');
+        	return true;	
+        }
 
 		$this->setSkin($packet->skin, $packet->skinId);
 
@@ -2175,7 +2200,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 				}
 				break;
 			case EntityEventPacket::EATING: 
-				if($packet->data === 0){
+				if($packet->data < 1){
 					return false;
 				}
 				
@@ -3240,7 +3265,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		if($this->spawned === false or !$this->isAlive()){
 			return true;
 		}
-		$this->craftingType = self::CRAFTING_SMALL;
+		$this->craftingType = 0;
 		$commandText = $packet->command;
 		if($packet->inputJson !== null){
 			foreach($packet->inputJson as $arg){ //command ordering will be an issue
@@ -4065,6 +4090,10 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 
 	public function getLoaderId() : int{
 		return $this->loaderId;
+	}
+
+	public function getProtocol() : int{
+		return $this->protocol;
 	}
 
 	public function isLoaderActive() : bool{

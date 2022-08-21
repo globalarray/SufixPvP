@@ -531,8 +531,8 @@ class Session{
 			$packet->decode();
 			if($packet instanceof OPEN_CONNECTION_REQUEST_1){
 				if ($packet->protocol !== self::MCPE_RAKNET_PROTOCOL_VERSION) {
-				    $this->sessionManager->blockAddress($this->address, 17); //when clown sended garbage in buffer
-					return;
+				    //$this->sessionManager->blockAddress($this->address, 17); //when clown sended garbage in buffer
+					//return;
 				}
 				$packet->protocol; //TODO: check protocol number and refuse connections
 				$pk = new OPEN_CONNECTION_REPLY_1();

@@ -61,6 +61,10 @@ class Color{
 		return $this->r;
 	}
 
+	public static function getRGB($r, $g, $b){
+		return new Color((int) $r, (int) $g, (int) $b);
+	}
+
 	/**
 	 * Sets the red value of this colour.
 	 * @param int $r

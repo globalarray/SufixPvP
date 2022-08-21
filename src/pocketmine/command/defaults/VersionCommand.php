@@ -29,9 +29,9 @@ use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use pocketmine\plugin\Plugin;
 use pocketmine\utils\TextFormat;
 
-class VersionCommand extends VanillaCommand{
+class VersionCommand extends VanillaCommand {
 
-	public function __construct($name){
+	public function __construct($name) {
 		parent::__construct(
 			$name,
 			"%pocketmine.command.version.description",
@@ -46,16 +46,21 @@ class VersionCommand extends VanillaCommand{
 			return true;
 		}
 
-		if(count($args) === 0){
-			$sender->sendMessage(new TranslationContainer("pocketmine.server.info.extended", [
-				$sender->getServer()->getName(),
-				$sender->getServer()->getPocketMineVersion(),
-				$sender->getServer()->getCodename(),
-				phpversion(),
-				$sender->getServer()->getApiVersion(),
-				$sender->getServer()->getVersion(),
-				ProtocolInfo::CURRENT_PROTOCOL
-			]));
+		if (count($args) === 0) {
+			$server = $sender->getServer();
+			$messages = [
+				new TranslationContainer('pocketmine.server.info.extended.title', []),
+				new TranslationContainer('pocketmine.server.info.extended.main', [$server->getName(), $server->getPocketMineVersion()]),
+				new TranslationContainer('pocketmine.server.info.extended.php', [phpversion()]),
+				new TranslationContainer('pocketmine.server.info.extended.api', [$server->getApiVersion()]),
+				new TranslationContainer('pocketmine.server.info.extended.version', [$server->getVersion()]),
+				new TranslationContainer('pocketmine.server.info.extended.protocol.current', [ProtocolInfo::CURRENT_PROTOCOL]),
+				new TranslationContainer('pocketmine.server.info.extended.protocol.max', [ProtocolInfo::MULTIVERSION_PROTOCOL])
+			];
+
+			foreach ($messages as $message) {
+				$sender->sendMessage($message);
+			}
 		}else{
 			$pluginName = implode(" ", $args);
 			$exactPlugin = $sender->getServer()->getPluginManager()->getPlugin($pluginName);

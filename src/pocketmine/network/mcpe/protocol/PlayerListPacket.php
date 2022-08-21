@@ -54,6 +54,12 @@ class PlayerListPacket extends DataPacket{
 				$this->entries[$i][2] = $this->getString();
 				$this->entries[$i][3] = $this->getString();
 				$this->entries[$i][4] = $this->getString();
+				if ($this->protocol >= ProtocolInfo::MULTIVERSION_PROTOCOL) {
+					$this->entries[$i][5] = $this->getString();
+					$this->entries[$i][6] = $this->getString();
+					$this->entries[$i][7] = $this->getString();
+					$this->entries[$i][8] = $this->getString();
+				}
 			}else{
 				$this->entries[$i][0] = $this->getUUID();
 			}
@@ -70,6 +76,12 @@ class PlayerListPacket extends DataPacket{
 				$this->putString($d[2]);
 				$this->putString($d[3]);
 				$this->putString($d[4]);
+				if ($this->protocol >= ProtocolInfo::MULTIVERSION_PROTOCOL) {
+					$this->putString($d[5] ?? ""); //Cape
+					$this->putString($d[6] ?? ""); //Geometry name
+					$this->putString($d[7] ?? ""); //Geometry data
+					$this->putString($d[8] ?? ""); //XUID
+				}
 			}else{
 				$this->putUUID($d[0]);
 			}

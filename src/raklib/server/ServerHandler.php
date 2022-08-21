@@ -18,6 +18,7 @@ namespace raklib\server;
 use raklib\protocol\EncapsulatedPacket;
 use raklib\RakLib;
 use pocketmine\utils\Binary;
+use \ByteBuffer;
 
 class ServerHandler{
 
@@ -52,7 +53,8 @@ class ServerHandler{
 	}
 
 	public function blockAddress($address, $timeout){
-		$buffer = chr(RakLib::PACKET_BLOCK_ADDRESS) . chr(strlen($address)) . $address . writeSignedVarInt($timeout);
+		$b = new ByteBuffer(0);
+		$buffer = chr(RakLib::PACKET_BLOCK_ADDRESS) . chr(strlen($address)) . $address . $b->writeSignedVarInt($timeout);
 		$this->server->pushMainToThreadPacket($buffer);
 	}
 

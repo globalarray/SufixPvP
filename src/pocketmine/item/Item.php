@@ -1150,7 +1150,7 @@ class Item implements ItemIds, \JsonSerializable{
 	 *
 	 * @return array
 	 */
-	final public function jsonSerialize(){
+	final public function jsonSerialize() : mixed{
 		return [
 			"id" => $this->getId(),
 			"damage" => $this->getDamage(),

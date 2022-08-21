@@ -267,7 +267,8 @@ class SessionManager{
 	}
 
 	public function receiveStream(){
-		if(strlen($packet = $this->server->readMainToThreadPacket()) > 0){
+		if (($packet = $this->server->readMainToThreadPacket()) === NULL) return;
+		if (strlen($packet) > 0) {
 			$id = ord($packet[0]);
 			$offset = 1;
 			if($id === RakLib::PACKET_ENCAPSULATED){

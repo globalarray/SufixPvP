@@ -27,6 +27,7 @@ namespace pocketmine\network\mcpe\protocol;
 
 
 use pocketmine\network\mcpe\NetworkSession;
+use pocketmine\utils\Binary;
 use pocketmine\Server;
 
 class LoginPacket extends DataPacket{
@@ -37,7 +38,7 @@ class LoginPacket extends DataPacket{
 
 	public $username;
 	public $protocol;
-	public $gameEdition;
+	public $gameEdition = self::EDITION_POCKET;
 	public $clientUUID;
 	public $clientId;
 	public $identityPublicKey;
@@ -64,12 +65,25 @@ class LoginPacket extends DataPacket{
 	public function decodePayload(){
 		$this->protocol = $this->getInt();
 
-		if($this->protocol !== ProtocolInfo::CURRENT_PROTOCOL){
-			$this->buffer = null;
-			return; //Do not attempt to decode for non-accepted protocols
+		if($this->protocol !== ProtocolInfo::CURRENT_PROTOCOL) {
+			try{
+				$this->offset = 0;
+				$this->getUnsignedVarInt(); //PID
+				$this->getByte(); //2 split-screen bytes
+				$this->getByte();
+				$this->protocol = $this->getInt();
+				if ($this->protocol !== ProtocolInfo::MULTIVERSION_PROTOCOL) {
+					$this->buffer = null;
+					return; //Do not attempt to decode for non-accepted protocols
+				}
+			}catch(\Throwable $e){
+				return;
+			}
 		}
 
-		$this->gameEdition = $this->getByte();
+		if($this->protocol < ProtocolInfo::MULTIVERSION_PROTOCOL){
+			$this->gameEdition = $this->getByte();
+		}
 
 		$this->setBuffer($this->getString(), 0);
 
