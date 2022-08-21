@@ -28,8 +28,8 @@ namespace pocketmine\network\mcpe\protocol;
 use pocketmine\entity\Attribute;
 use pocketmine\entity\Entity;
 use pocketmine\item\Item;
-use pocketmine\network\mcpe\NetworkSession;
 use pocketmine\network\mcpe\multiversion\Multiversion;
+use pocketmine\network\mcpe\NetworkSession;
 use pocketmine\utils\BinaryStream;
 use pocketmine\utils\Utils;
 
@@ -38,10 +38,12 @@ abstract class DataPacket extends BinaryStream{
 
 	const NETWORK_ID = 0;
 
-	public bool $isEncoded = false;
+	public $isEncoded = false;
+
+	public $extraByte1 = 0;
+	public $extraByte2 = 0;
+
 	public $protocol = ProtocolInfo::CURRENT_PROTOCOL;
-	public int $extraByte1 = 0;
-	public int $extraByte2 = 0;
 
 	public function pid(){
 		return $this::NETWORK_ID;
@@ -312,7 +314,7 @@ abstract class DataPacket extends BinaryStream{
 	 * Reads and returns an EntityUniqueID
 	 * @return int
 	 */
-	public function getEntityUniqueId() : int{
+	public function getEntityUniqueId(){
 		return $this->getVarLong();
 	}
 
@@ -320,7 +322,7 @@ abstract class DataPacket extends BinaryStream{
 	 * Writes an EntityUniqueID
 	 * @param int $eid
 	 */
-	public function putEntityUniqueId(int $eid){
+	public function putEntityUniqueId($eid){
 		$this->putVarLong($eid);
 	}
 
@@ -328,7 +330,7 @@ abstract class DataPacket extends BinaryStream{
 	 * Reads and returns an EntityRuntimeID
 	 * @return int
 	 */
-	public function getEntityRuntimeId() : int{
+	public function getEntityRuntimeId(){
 		return $this->getUnsignedVarLong();
 	}
 
@@ -336,7 +338,7 @@ abstract class DataPacket extends BinaryStream{
 	 * Writes an EntityUniqueID
 	 * @param int $eid
 	 */
-	public function putEntityRuntimeId(int $eid){
+	public function putEntityRuntimeId($eid){
 		$this->putUnsignedVarLong($eid);
 	}
 

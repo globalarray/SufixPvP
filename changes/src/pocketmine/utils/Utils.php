@@ -27,7 +27,6 @@ declare(strict_types=1);
 
 namespace pocketmine\utils;
 
-use DaveRandom\CallbackValidator\CallbackType;
 use pocketmine\ThreadManager;
 
 /**
@@ -121,60 +120,6 @@ class Utils{
 		}
 
 		return $uuid;
-	}
-
-	/**
-	 * Returns a readable identifier for the class of the given object. Sanitizes class names for anonymous classes.
-	 *
-	 * @throws \ReflectionException
-	 */
-	public static function getNiceClassName(object $obj) : string{
-		$reflect = new \ReflectionClass($obj);
-		if($reflect->isAnonymous()){
-			$filename = $reflect->getFileName();
-
-			return "anonymous@" . ($filename !== false ?
-					self::cleanPath($filename) . "#L" . $reflect->getStartLine() :
-					"internal"
-				);
-		}
-
-		return $reflect->getName();
-	}
-
-	/**
-	 * @param mixed[][] $trace
-	 * @phpstan-param list<array<string, mixed>> $trace
-	 *
-	 * @return string[]
-	 */
-	public static function printableTrace(array $trace, int $maxStringLength = 80) : array{
-		$messages = [];
-		for($i = 0; isset($trace[$i]); ++$i){
-			$params = "";
-			if(isset($trace[$i]["args"]) or isset($trace[$i]["params"])){
-				if(isset($trace[$i]["args"])){
-					$args = $trace[$i]["args"];
-				}else{
-					$args = $trace[$i]["params"];
-				}
-
-				$params = implode(", ", array_map(function($value) use($maxStringLength) : string{
-					if(is_object($value)){
-						return "object " . self::getNiceClassName($value);
-					}
-					if(is_array($value)){
-						return "array[" . count($value) . "]";
-					}
-					if(is_string($value)){
-						return "string[" . strlen($value) . "] " . substr(Utils::printable($value), 0, $maxStringLength);
-					}
-					return gettype($value) . " " . Utils::printable((string) $value);
-				}, $args));
-			}
-			$messages[] = "#$i " . (isset($trace[$i]["file"]) ? self::cleanPath($trace[$i]["file"]) : "") . "(" . (isset($trace[$i]["line"]) ? $trace[$i]["line"] : "") . "): " . (isset($trace[$i]["class"]) ? $trace[$i]["class"] . (($trace[$i]["type"] === "dynamic" or $trace[$i]["type"] === "->") ? "->" : "::") : "") . $trace[$i]["function"] . "(" . Utils::printable($params) . ")";
-		}
-		return $messages;
 	}
 
 	/**
@@ -442,7 +387,7 @@ class Utils{
 	 */
 	public static function getURL(string $page, int $timeout = 10, array $extraHeaders = [], &$err = null, &$headers = null, &$httpCode = null){
 		try{
-			[$ret, $headers, $httpCode] = self::simpleCurl($page, $timeout, $extraHeaders);
+			list($ret, $headers, $httpCode) = self::simpleCurl($page, $timeout, $extraHeaders);
 			return $ret;
 		}catch(\RuntimeException $ex){
 			$err = $ex->getMessage();
@@ -466,7 +411,7 @@ class Utils{
 	 */
 	public static function postURL(string $page, $args, int $timeout = 10, array $extraHeaders = [], &$err = null, &$headers = null, &$httpCode = null){
 		try{
-			[$ret, $headers, $httpCode] = self::simpleCurl($page, $timeout, $extraHeaders, [
+			list($ret, $headers, $httpCode) = self::simpleCurl($page, $timeout, $extraHeaders, [
 				CURLOPT_POST => 1,
 				CURLOPT_POSTFIELDS => $args
 			]);
@@ -545,7 +490,7 @@ class Utils{
 	public static function javaStringHash(string $string) : int{
 		$hash = 0;
 		for($i = 0, $len = strlen($string); $i < $len; $i++){
-			$ord = ord($string[$i]);
+			$ord = ord($string{$i});
 			if($ord & 0x80){
 				$ord -= 0x100;
 			}
@@ -561,11 +506,6 @@ class Utils{
 		return $hash;
 	}
 
-	public static function stringifyKeys(array $array) : \Generator{
-		foreach($array as $key => $value){ // @phpstan-ignore-line - this is where we fix the stupid bullshit with array keys :)
-			yield (string) $key => $value;
-		}
-	}
 
 	/**
 	 * @param string      $command Command to execute
@@ -596,72 +536,5 @@ class Utils{
 		}
 
 		return proc_close($process);
-	}
-
-	/**
-	 * @param string $path
-	 *
-	 * @return string
-	 */
-	public static function cleanPath($path): string{
-		$result = str_replace(["\\", ".php", "phar://"], ["/", "", ""], $path);
-
-		//remove relative paths
-		//TODO: make these paths dynamic so they can be unit-tested against
-		static $cleanPaths = [
-			\pocketmine\PLUGIN_PATH => "plugins", //this has to come BEFORE \pocketmine\PATH because it's inside that by default on src installations
-			\pocketmine\PATH => ""
-		];
-		foreach($cleanPaths as $cleanPath => $replacement){
-			$cleanPath = rtrim(str_replace(["\\", "phar://"], ["/", ""], $cleanPath), "/");
-			if(strpos($result, $cleanPath) === 0){
-				$result = ltrim(str_replace($cleanPath, $replacement, $result), "/");
-			}
-		}
-		return $result;
-	}
-
-	/**
-	 * Returns a readable identifier for the given Closure, including file and line.
-	 *
-	 * @param \Closure $closure
-	 *
-	 * @return string
-	 * @throws \ReflectionException
-	 */
-	public static function getNiceClosureName(\Closure $closure) : string{
-		$func = new \ReflectionFunction($closure);
-		if(substr($func->getName(), -strlen('{closure}')) !== '{closure}'){
-			//closure wraps a named function, can be done with reflection or fromCallable()
-			//isClosure() is useless here because it just tells us if $func is reflecting a Closure object
-
-			$scope = $func->getClosureScopeClass();
-			if($scope !== null){ //class method
-				return
-					$scope->getName() .
-					($func->getClosureThis() !== null ? "->" : "::") .
-					$func->getName(); //name doesn't include class in this case
-			}
-
-			//non-class function
-			return $func->getName();
-		}
-		return "closure@" . self::cleanPath($func->getFileName()) . "#L" . $func->getStartLine();
-	}
-
-	/**
-	 * Verifies that the given callable is compatible with the desired signature. Throws a TypeError if they are
-	 * incompatible.
-	 *
-	 * @param callable $signature Dummy callable with the required parameters and return type
-	 * @param callable $subject Callable to check the signature of
-	 *
-	 * @throws \DaveRandom\CallbackValidator\InvalidCallbackException
-	 * @throws \TypeError
-	 */
-	public static function validateCallableSignature(callable $signature, callable $subject) : void{
-		if(!($sigType = CallbackType::createFromCallable($signature))->isSatisfiedBy($subject)){
-			throw new \TypeError("Declaration of callable `" . CallbackType::createFromCallable($subject) . "` must be compatible with `" . $sigType . "`");
-		}
 	}
 }

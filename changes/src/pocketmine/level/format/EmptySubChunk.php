@@ -116,9 +116,9 @@ class EmptySubChunk implements SubChunkInterface{
 	}
 
 	public function networkSerialize(int $protocol) : string{
-		if ($protocol < ProtocolInfo::MULTIVERSION_PROTOCOL) {
+		if($protocol < ProtocolInfo::MULTIVERSION_PROTOCOL){
 			return "\x00" . str_repeat("\x00", 10240);
-		} else {
+		}else{
 			return "\x00" . str_repeat("\x00", 6144);
 		}
 	}

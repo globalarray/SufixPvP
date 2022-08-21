@@ -19,19 +19,19 @@
  *
 */
 
+declare(strict_types=1);
+
 namespace pocketmine\event;
 
 use pocketmine\entity\Entity;
 use pocketmine\network\mcpe\protocol\DataPacket;
 use pocketmine\Player;
+use pocketmine\plugin\PluginManager;
 use pocketmine\scheduler\PluginTask;
 use pocketmine\scheduler\TaskHandler;
 use pocketmine\tile\Tile;
-use function dechex;
 
 abstract class Timings{
-	/** @var bool */
-	private static $initialized = false;
 
 	/** @var TimingsHandler */
 	public static $fullTickTimer;
@@ -43,8 +43,6 @@ abstract class Timings{
 	public static $garbageCollectorTimer;
 	/** @var TimingsHandler */
 	public static $titleTickTimer;
-	/** @var TimingsHandler */
-	public static $serverRawPacketTimer;
 	/** @var TimingsHandler */
 	public static $playerListTimer;
 	/** @var TimingsHandler */
@@ -68,8 +66,6 @@ abstract class Timings{
 	/** @var TimingsHandler */
 	public static $serverCommandTimer;
 	/** @var TimingsHandler */
-	public static $worldLoadTimer;
-	/** @var TimingsHandler */
 	public static $worldSaveTimer;
 	/** @var TimingsHandler */
 	public static $generationTimer;
@@ -84,8 +80,6 @@ abstract class Timings{
 
 	/** @var TimingsHandler */
 	public static $entityMoveTimer;
-	/** @var TimingsHandler */
-	public static $playerCheckNearEntitiesTimer;
 	/** @var TimingsHandler */
 	public static $tickEntityTimer;
 	/** @var TimingsHandler */
@@ -129,17 +123,15 @@ abstract class Timings{
 	public static $pluginTaskTimingMap = [];
 
 	public static function init(){
-		if(self::$initialized){
+		if(self::$serverTickTimer instanceof TimingsHandler){
 			return;
 		}
-		self::$initialized = true;
 
 		self::$fullTickTimer = new TimingsHandler("Full Server Tick");
 		self::$serverTickTimer = new TimingsHandler("** Full Server Tick", self::$fullTickTimer);
 		self::$memoryManagerTimer = new TimingsHandler("Memory Manager");
 		self::$garbageCollectorTimer = new TimingsHandler("Garbage Collector", self::$memoryManagerTimer);
 		self::$titleTickTimer = new TimingsHandler("Console Title Tick");
-		self::$serverRawPacketTimer = new TimingsHandler("Raw packets (Query)");
 		self::$playerListTimer = new TimingsHandler("Player List");
 		self::$playerNetworkTimer = new TimingsHandler("Player Network Send");
 		self::$playerNetworkReceiveTimer = new TimingsHandler("Player Network Receive");
@@ -151,7 +143,6 @@ abstract class Timings{
 		self::$chunkIOTickTimer = new TimingsHandler("ChunkIOTick");
 		self::$timeUpdateTimer = new TimingsHandler("Time Update");
 		self::$serverCommandTimer = new TimingsHandler("Server Command");
-		self::$worldLoadTimer = new TimingsHandler("World Load");
 		self::$worldSaveTimer = new TimingsHandler("World Save");
 		self::$generationTimer = new TimingsHandler("World Generation");
 		self::$populationTimer = new TimingsHandler("World Population");
@@ -160,7 +151,6 @@ abstract class Timings{
 		self::$permissionDefaultTimer = new TimingsHandler("Default Permission Calculation");
 
 		self::$entityMoveTimer = new TimingsHandler("** entityMove");
-		self::$playerCheckNearEntitiesTimer = new TimingsHandler("** checkNearEntities");
 		self::$tickEntityTimer = new TimingsHandler("** tickEntity");
 		self::$activatedEntityTimer = new TimingsHandler("** activatedTickEntity");
 		self::$tickTileEntityTimer = new TimingsHandler("** tickTileEntity");
@@ -172,7 +162,7 @@ abstract class Timings{
 		self::$timerEntityAIMove = new TimingsHandler("** livingEntityAIMove");
 		self::$timerEntityTickRest = new TimingsHandler("** livingEntityTickRest");
 
-		self::$schedulerSyncTimer = new TimingsHandler("** Scheduler - Sync Tasks");
+		self::$schedulerSyncTimer = new TimingsHandler("** Scheduler - Sync Tasks", PluginManager::$pluginParentTimer);
 		self::$schedulerAsyncTimer = new TimingsHandler("** Scheduler - Async Tasks");
 
 		self::$playerCommandTimer = new TimingsHandler("** playerCommand");
@@ -182,11 +172,11 @@ abstract class Timings{
 
 	/**
 	 * @param TaskHandler $task
-	 * @param             $period
+	 * @param int         $period
 	 *
 	 * @return TimingsHandler
 	 */
-	public static function getPluginTaskTimings(TaskHandler $task, $period){
+	public static function getPluginTaskTimings(TaskHandler $task, int $period) : TimingsHandler{
 		$ftask = $task->getTask();
 		if($ftask instanceof PluginTask and $ftask->getOwner() !== null){
 			$plugin = $ftask->getOwner()->getDescription()->getFullName();
@@ -218,7 +208,7 @@ abstract class Timings{
 	 *
 	 * @return TimingsHandler
 	 */
-	public static function getEntityTimings(Entity $entity){
+	public static function getEntityTimings(Entity $entity) : TimingsHandler{
 		$entityType = (new \ReflectionClass($entity))->getShortName();
 		if(!isset(self::$entityTypeTimingMap[$entityType])){
 			if($entity instanceof Player){
@@ -236,7 +226,7 @@ abstract class Timings{
 	 *
 	 * @return TimingsHandler
 	 */
-	public static function getTileEntityTimings(Tile $tile){
+	public static function getTileEntityTimings(Tile $tile) : TimingsHandler{
 		$tileType = (new \ReflectionClass($tile))->getShortName();
 		if(!isset(self::$tileEntityTypeTimingMap[$tileType])){
 			self::$tileEntityTypeTimingMap[$tileType] = new TimingsHandler("** tickTileEntity - " . $tileType, self::$tickTileEntityTimer);
@@ -250,7 +240,7 @@ abstract class Timings{
 	 *
 	 * @return TimingsHandler
 	 */
-	public static function getReceiveDataPacketTimings(DataPacket $pk){
+	public static function getReceiveDataPacketTimings(DataPacket $pk) : TimingsHandler{
 		if(!isset(self::$packetReceiveTimingMap[$pk::NETWORK_ID])){
 			$pkName = (new \ReflectionClass($pk))->getShortName();
 			self::$packetReceiveTimingMap[$pk::NETWORK_ID] = new TimingsHandler("** receivePacket - " . $pkName . " [0x" . dechex($pk::NETWORK_ID) . "]", self::$playerNetworkReceiveTimer);
@@ -265,7 +255,7 @@ abstract class Timings{
 	 *
 	 * @return TimingsHandler
 	 */
-	public static function getSendDataPacketTimings(DataPacket $pk){
+	public static function getSendDataPacketTimings(DataPacket $pk) : TimingsHandler{
 		if(!isset(self::$packetSendTimingMap[$pk::NETWORK_ID])){
 			$pkName = (new \ReflectionClass($pk))->getShortName();
 			self::$packetSendTimingMap[$pk::NETWORK_ID] = new TimingsHandler("** sendPacket - " . $pkName . " [0x" . dechex($pk::NETWORK_ID) . "]", self::$playerNetworkTimer);

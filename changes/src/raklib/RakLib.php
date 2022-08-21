@@ -131,7 +131,7 @@ abstract class RakLib{
 	 * byte[] (payload)
 	 */
 	const PACKET_RAW = 0x08;
-    const PACKET_PING = 0x0a;
+
 	/*
 	 * RAW payload:
 	 * byte (address length)

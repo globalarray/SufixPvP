@@ -31,7 +31,8 @@ use pocketmine\lang\BaseLang;
 use pocketmine\utils\Config;
 use pocketmine\utils\Utils;
 
-class SetupWizard{
+class SetupWizard {
+	
 	const DEFAULT_NAME = "Minecraft: PE Server";
 	const DEFAULT_PORT = 19132;
 	const DEFAULT_MEMORY = 256;
@@ -137,10 +138,11 @@ LICENSE;
 		}while(true);
 		$config->set("server-port", $port);
 
-		$this->message($this->lang->get("online_mode_info"));
+		echo "[*] " . $this->lang->online_mode_info . "\n";
+ 		echo "[?] " . $this->lang->online_mode . " (y/N): ";
+ 		$config->set("online-mode", strtolower($this->getInput("y")) == "y");
+ 		
 
- 		$config->set("online-mode", strtolower($this->getInput($this->lang->get("online_mode"), "n", "y/N")) === "y");
- 
 		$this->message($this->lang->get("gamemode_info"));
 
 		do{
@@ -175,7 +177,7 @@ LICENSE;
 
 		$this->message($this->lang->get("whitelist_info"));
 
-		$config = new Config(\pocketmine\DATA . "server.properties", Config::PROPERTIES);
+		$config = new Config(\pocketmine\DATA . "server", Config::PROPERTIES);
 		if(strtolower($this->getInput($this->lang->get("whitelist_enable"), "n", "y/N")) === "y"){
 			$this->error($this->lang->get("whitelist_warning"));
 			$config->set("white-list", true);
@@ -186,7 +188,7 @@ LICENSE;
 	}
 
 	private function networkFunctions(){
-		$config = new Config(\pocketmine\DATA . "server.properties", Config::PROPERTIES);
+		$config = new Config(\pocketmine\DATA . "server", Config::PROPERTIES);
 		$this->error($this->lang->get("query_warning1"));
 		$this->error($this->lang->get("query_warning2"));
 		if(strtolower($this->getInput($this->lang->get("query_disable"), "n", "y/N")) === "y"){

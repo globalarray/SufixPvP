@@ -57,8 +57,6 @@ class Block extends Position implements BlockIds, Metadatable{
 	public static $hardness = null;
 	/** @var \SplFixedArray<bool> */
 	public static $transparent = null;
-	/** @var AxisAlignedBB[]|null */
-	protected $collisionBoxes = null;
 	/** @var \SplFixedArray<bool> */
 	public static $diffusesSkyLight = null;
 
@@ -293,14 +291,6 @@ class Block extends Position implements BlockIds, Metadatable{
 				}
 			}
 		}
-	}
-
-	public function getCollisionBoxes() : array{
-		if($this->collisionBoxes === null){
-			$this->collisionBoxes = $this->recalculateCollisionBoxes();
-		}
-
-		return $this->collisionBoxes;
 	}
 
 	/**
@@ -622,19 +612,6 @@ class Block extends Position implements BlockIds, Metadatable{
 		$this->boundingBox = null;
 	}
 
-	public function clearCaches() : void{
-		$this->boundingBox = null;
-		$this->collisionBoxes = null;
-	}
-
-	protected function recalculateCollisionBoxes() : array{
-		if(($bb = $this->recalculateBoundingBox()) !== null){
-			return [$bb];
-		}
-
-		return [];
-	}
-
 	/**
 	 * Returns an array of Item objects to be dropped
 	 *
@@ -762,6 +739,9 @@ class Block extends Position implements BlockIds, Metadatable{
 	 * @return AxisAlignedBB|null
 	 */
 	protected function recalculateBoundingBox(){
+		if($this->x === null || $this->y === null || $this->z === null){
+			return null;
+		}
 		return new AxisAlignedBB(
 			$this->x,
 			$this->y,

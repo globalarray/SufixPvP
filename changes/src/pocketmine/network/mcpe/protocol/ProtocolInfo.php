@@ -44,14 +44,15 @@ interface ProtocolInfo{
 	 * Minecraft: BE protocol version, supported by multiversion system
 	 */
 	const MULTIVERSION_PROTOCOL = 160;
+
 	/**
 	 * Current Minecraft PE version reported by the server. This is usually the earliest currently supported version.
 	 */
 	const MINECRAFT_VERSION = 'v1.1.0 - v1.2.9';
 	/**
-	 * Version number sent to clients in ping responses.
+	 * Version numbers sent to clients in ping responses.
 	 */
-	const MINECRAFT_VERSION_NETWORK = '1.1.3';
+	const MINECRAFT_VERSION_NETWORK = '1.1.0';
 	const MULTIVERSION_VERSION_NETWORK = '1.2.9';
 	const VERSION = '1.1';
 

@@ -50,8 +50,8 @@ class Network{
 	private $name;
 
 	public function __construct(Server $server){
-		PacketPool::init(); // 1.1
-		PacketPool120::init(); // 1.2
+		PacketPool::init();
+		PacketPool120::init();
 
 		$this->server = $server;
 

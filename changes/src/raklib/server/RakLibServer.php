@@ -15,16 +15,13 @@
 
 namespace raklib\server;
 
-use raklib\utils\InternetAddress;
-use raklib\generic\Socket;
 
 class RakLibServer extends \Thread{
+	protected $port;
+	protected $interface;
 	/** @var \ThreadedLogger */
 	protected $logger;
 	protected $loader;
-
-	/** @var InternetAddress */
-	public InternetAddress $bindAddress;
 
 	public $loadPaths;
 
@@ -48,8 +45,13 @@ class RakLibServer extends \Thread{
 	 *
 	 * @throws \Exception
 	 */
-	public function __construct(\ThreadedLogger $logger, \ClassLoader $loader, InternetAddress $bindAddress){
-		$this->bindAddress = $bindAddress;
+	public function __construct(\ThreadedLogger $logger, \ClassLoader $loader, $port, $interface = "0.0.0.0"){
+		$this->port = (int) $port;
+		if($port < 1 or $port > 65536){
+			throw new \Exception("Invalid port range");
+		}
+
+		$this->interface = $interface;
 		$this->logger = $logger;
 		$this->loader = $loader;
 		$loadPaths = [];
@@ -89,6 +91,14 @@ class RakLibServer extends \Thread{
 
 	public function shutdown(){
 		$this->shutdown = true;
+	}
+
+	public function getPort(){
+		return $this->port;
+	}
+
+	public function getInterface(){
+		return $this->interface;
 	}
 
 	/**
@@ -143,11 +153,10 @@ class RakLibServer extends \Thread{
 		}
 	}
 
-	public function errorHandler($errno, $errstr, $errfile, $errline){
-		if((error_reporting() & $errno) === 0){
+	public function errorHandler($errno, $errstr, $errfile, $errline, $context, $trace = null){
+		if(error_reporting() === 0){
 			return false;
 		}
-
 		$errorConversion = [
 			E_ERROR => "E_ERROR",
 			E_WARNING => "E_WARNING",
@@ -163,23 +172,23 @@ class RakLibServer extends \Thread{
 			E_STRICT => "E_STRICT",
 			E_RECOVERABLE_ERROR => "E_RECOVERABLE_ERROR",
 			E_DEPRECATED => "E_DEPRECATED",
-			E_USER_DEPRECATED => "E_USER_DEPRECATED"
+			E_USER_DEPRECATED => "E_USER_DEPRECATED",
 		];
+		$errno = isset($errorConversion[$errno]) ? $errorConversion[$errno] : $errno;
+		if(($pos = strpos($errstr, "\n")) !== false){
+			$errstr = substr($errstr, 0, $pos);
+		}
 
-		$errno = $errorConversion[$errno] ?? $errno;
-
-		$errstr = preg_replace('/\s+/', ' ', trim($errstr));
 		$errfile = $this->cleanPath($errfile);
 
 		$this->getLogger()->debug("An $errno error happened: \"$errstr\" in \"$errfile\" at line $errline");
 
-		foreach($this->getTrace(2) as $i => $line){
+		foreach(($trace = $this->getTrace($trace === null ? 3 : 0, $trace)) as $i => $line){
 			$this->getLogger()->debug($line);
 		}
 
 		return true;
 	}
-
 
 	public function getTrace($start = 1, $trace = null){
 		if($trace === null){
@@ -234,7 +243,7 @@ class RakLibServer extends \Thread{
 			register_shutdown_function([$this, "shutdownHandler"]);
 
 
-			$socket = new Socket($this->bindAddress);
+			$socket = new UDPServerSocket($this->getLogger(), $this->port, $this->interface);
 			$manager = new SessionManager($this, $socket);
 			$this->serverId = $manager->getID();
 			$manager->run();

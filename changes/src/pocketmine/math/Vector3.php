@@ -23,16 +23,6 @@ declare(strict_types=1);
 
 namespace pocketmine\math;
 
-use function abs;
-use function ceil;
-use function floor;
-use function iterator_to_array;
-use function max;
-use function min;
-use function round;
-use function sqrt;
-use const PHP_ROUND_HALF_UP;
-
 class Vector3{
 
 	const SIDE_DOWN = 0;
@@ -41,110 +31,130 @@ class Vector3{
 	const SIDE_SOUTH = 3;
 	const SIDE_WEST = 4;
 	const SIDE_EAST = 5;
-	
-	public float|int $x;
-	public float|int $y;
-	public float|int $z;
 
-	public function __construct(float|int $x = 0, float|int $y = 0, float|int $z = 0){
+	public $x;
+	public $y;
+	public $z;
+
+	public function __construct($x = 0, $y = 0, $z = 0){
 		$this->x = $x;
 		$this->y = $y;
 		$this->z = $z;
 	}
 
-	public static function zero() : Vector3{
-		//TODO: make this reuse a single object, once Vector3 becomes immutable
-		return new self(0, 0, 0);
-	}
-
-	public function getX() : float|int{
+	public function getX(){
 		return $this->x;
 	}
 
-	public function getY() : float|int{
+	public function getY(){
 		return $this->y;
 	}
 
-	public function getZ() : float|int{
+	public function getZ(){
 		return $this->z;
 	}
 
-	public function getFloorX() : int{
+	public function getFloorX(){
 		return (int) floor($this->x);
 	}
 
-	public function getFloorY() : int{
+	public function getFloorY(){
 		return (int) floor($this->y);
 	}
 
-	public function getFloorZ() : int{
+	public function getFloorZ(){
 		return (int) floor($this->z);
 	}
 
-	public function add(float|int $x = 0, float|int $y = 0, float|int $z = 0) : Vector3{
-		return new Vector3($this->x + $x, $this->y + $y, $this->z + $z);
+	public function getRight(){
+		return $this->x;
 	}
 
-	public function addVector(Vector3 $v) : Vector3{
-		return $this->add($v->x, $v->y, $v->z);
+	public function getUp(){
+		return $this->y;
 	}
 
-	public function subtract($x, $y = 0, $z = 0) : Vector3{
-	    if($x instanceof Vector3)
-			return $this->add(-$x->x, -$x->y, -$x->z);
-		else
-			return $this->add(-$x, -$y, -$z);
+	public function getForward(){
+		return $this->z;
 	}
 
-	public function subtractVector(Vector3 $v) : Vector3{
-		return $this->add(-$v->x, -$v->y, -$v->z);
+	public function getSouth(){
+		return $this->x;
 	}
 
-	public function multiply(float $number) : Vector3{
-		return new Vector3($this->x * $number, $this->y * $number, $this->z * $number);
-	}
-
-	public function divide(float $number) : Vector3{
-		return new Vector3($this->x / $number, $this->y / $number, $this->z / $number);
-	}
-
-	public function ceil() : Vector3{
-		return new Vector3((int) ceil($this->x), (int) ceil($this->y), (int) ceil($this->z));
-	}
-
-	public function floor() : Vector3{
-		return new Vector3((int) floor($this->x), (int) floor($this->y), (int) floor($this->z));
+	public function getWest(){
+		return $this->z;
 	}
 
 	/**
-	 * @phpstan-param 1|2|3|4 $mode
+	 * @param Vector3|int $x
+	 * @param int         $y
+	 * @param int         $z
+	 *
+	 * @return Vector3
 	 */
-	public function round(int $precision = 0, int $mode = PHP_ROUND_HALF_UP) : Vector3{
+	public function add($x, $y = 0, $z = 0){
+		if($x instanceof Vector3){
+			return new Vector3($this->x + $x->x, $this->y + $x->y, $this->z + $x->z);
+		}else{
+			return new Vector3($this->x + $x, $this->y + $y, $this->z + $z);
+		}
+	}
+
+	/**
+	 * @param Vector3|int $x
+	 * @param int         $y
+	 * @param int         $z
+	 *
+	 * @return Vector3
+	 */
+	public function subtract($x = 0, $y = 0, $z = 0){
+		if($x instanceof Vector3){
+			return $this->add(-$x->x, -$x->y, -$x->z);
+		}else{
+			return $this->add(-$x, -$y, -$z);
+		}
+	}
+
+	public function multiply($number){
+		return new Vector3($this->x * $number, $this->y * $number, $this->z * $number);
+	}
+
+	public function divide($number){
+		return new Vector3($this->x / $number, $this->y / $number, $this->z / $number);
+	}
+
+	public function ceil(){
+		return new Vector3((int) ceil($this->x), (int) ceil($this->y), (int) ceil($this->z));
+	}
+
+	public function floor(){
+		return new Vector3((int) floor($this->x), (int) floor($this->y), (int) floor($this->z));
+	}
+
+	public function round(int $precision = 0, int $mode = PHP_ROUND_HALF_UP){
 		return $precision > 0 ?
 			new Vector3(round($this->x, $precision, $mode), round($this->y, $precision, $mode), round($this->z, $precision, $mode)) :
 			new Vector3((int) round($this->x, $precision, $mode), (int) round($this->y, $precision, $mode), (int) round($this->z, $precision, $mode));
 	}
 
-	public function abs() : Vector3{
+	public function abs(){
 		return new Vector3(abs($this->x), abs($this->y), abs($this->z));
 	}
 
-	/**
-	 * @return Vector3
-	 */
-	public function getSide(int $side, int $step = 1){
-		switch($side){
-			case Facing::DOWN:
+	public function getSide($side, $step = 1){
+		switch((int) $side){
+			case Vector3::SIDE_DOWN:
 				return new Vector3($this->x, $this->y - $step, $this->z);
-			case Facing::UP:
+			case Vector3::SIDE_UP:
 				return new Vector3($this->x, $this->y + $step, $this->z);
-			case Facing::NORTH:
+			case Vector3::SIDE_NORTH:
 				return new Vector3($this->x, $this->y, $this->z - $step);
-			case Facing::SOUTH:
+			case Vector3::SIDE_SOUTH:
 				return new Vector3($this->x, $this->y, $this->z + $step);
-			case Facing::WEST:
+			case Vector3::SIDE_WEST:
 				return new Vector3($this->x - $step, $this->y, $this->z);
-			case Facing::EAST:
+			case Vector3::SIDE_EAST:
 				return new Vector3($this->x + $step, $this->y, $this->z);
 			default:
 				return $this;
@@ -152,102 +162,39 @@ class Vector3{
 	}
 
 	/**
-	 * @return Vector3
-	 */
-	public function down(int $step = 1){
-		return $this->getSide(Facing::DOWN, $step);
-	}
-
-	/**
-	 * @return Vector3
-	 */
-	public function up(int $step = 1){
-		return $this->getSide(Facing::UP, $step);
-	}
-
-	/**
-	 * @return Vector3
-	 */
-	public function north(int $step = 1){
-		return $this->getSide(Facing::NORTH, $step);
-	}
-
-	/**
-	 * @return Vector3
-	 */
-	public function south(int $step = 1){
-		return $this->getSide(Facing::SOUTH, $step);
-	}
-
-	/**
-	 * @return Vector3
-	 */
-	public function west(int $step = 1){
-		return $this->getSide(Facing::WEST, $step);
-	}
-
-	/**
-	 * @return Vector3
-	 */
-	public function east(int $step = 1){
-		return $this->getSide(Facing::EAST, $step);
-	}
-
-	/**
-	 * Yields vectors stepped out from this one in all directions.
-	 *
-	 * @param int $step Distance in each direction to shift the vector
-	 *
-	 * @return \Generator|Vector3[]
-	 * @phpstan-return \Generator<int, Vector3, void, void>
-	 */
-	public function sides(int $step = 1) : \Generator{
-		foreach(Facing::ALL as $facing){
-			yield $facing => $this->getSide($facing, $step);
-		}
-	}
-
-	/**
-	 * Same as sides() but returns a pre-populated array instead of Generator.
-	 *
-	 * @return Vector3[]
-	 */
-	public function sidesArray(bool $keys = false, int $step = 1) : array{
-		return iterator_to_array($this->sides($step), $keys);
-	}
-
-	/**
-	 * Yields vectors stepped out from this one in directions except those on the given axis.
-	 *
-	 * @param int $axis Facing directions on this axis will be excluded
-	 *
-	 * @return \Generator|Vector3[]
-	 * @phpstan-return \Generator<int, Vector3, void, void>
-	 */
-	public function sidesAroundAxis(int $axis, int $step = 1) : \Generator{
-		foreach(Facing::ALL as $facing){
-			if(Facing::axis($facing) !== $axis){
-				yield $facing => $this->getSide($facing, $step);
-			}
-		}
-	}
-
-	/**
 	 * Return a Vector3 instance
+	 *
+	 * @return Vector3
 	 */
 	public function asVector3() : Vector3{
 		return new Vector3($this->x, $this->y, $this->z);
 	}
 
-	public function distance(Vector3 $pos) : float{
+	/**
+	 * Returns the Vector3 side number opposite the specified one
+	 *
+	 * @param int $side 0-5 one of the Vector3::SIDE_* constants
+	 * @return int
+	 *
+	 * @throws \InvalidArgumentException if an invalid side is supplied
+	 */
+	public static function getOppositeSide(int $side) : int{
+		if($side >= 0 and $side <= 5){
+			return $side ^ 0x01;
+		}
+
+		throw new \InvalidArgumentException("Invalid side $side given to getOppositeSide");
+	}
+
+	public function distance(Vector3 $pos){
 		return sqrt($this->distanceSquared($pos));
 	}
 
-	public function distanceSquared(Vector3 $pos) : float{
+	public function distanceSquared(Vector3 $pos){
 		return (($this->x - $pos->x) ** 2) + (($this->y - $pos->y) ** 2) + (($this->z - $pos->z) ** 2);
 	}
 
-	public function maxPlainDistance(Vector3|Vector2|float $x, float $z = 0) : float{
+	public function maxPlainDistance($x = 0, $z = 0){
 		if($x instanceof Vector3){
 			return $this->maxPlainDistance($x->x, $x->z);
 		}elseif($x instanceof Vector2){
@@ -257,15 +204,18 @@ class Vector3{
 		}
 	}
 
-	public function length() : float{
+	public function length(){
 		return sqrt($this->lengthSquared());
 	}
 
-	public function lengthSquared() : float{
+	public function lengthSquared(){
 		return $this->x * $this->x + $this->y * $this->y + $this->z * $this->z;
 	}
 
-	public function normalize() : Vector3{
+	/**
+	 * @return Vector3
+	 */
+	public function normalize(){
 		$len = $this->lengthSquared();
 		if($len > 0){
 			return $this->divide(sqrt($len));
@@ -274,11 +224,11 @@ class Vector3{
 		return new Vector3(0, 0, 0);
 	}
 
-	public function dot(Vector3 $v) : float{
+	public function dot(Vector3 $v){
 		return $this->x * $v->x + $this->y * $v->y + $this->z * $v->z;
 	}
 
-	public function cross(Vector3 $v) : Vector3{
+	public function cross(Vector3 $v){
 		return new Vector3(
 			$this->y * $v->z - $this->z * $v->y,
 			$this->z * $v->x - $this->x * $v->z,
@@ -293,9 +243,17 @@ class Vector3{
 	/**
 	 * Returns a new vector with x value equal to the second parameter, along the line between this vector and the
 	 * passed in vector, or null if not possible.
+	 *
+	 * @param Vector3 $v
+	 * @param float   $x
+	 *
+	 * @return Vector3|null
 	 */
-	public function getIntermediateWithXValue(Vector3 $v, float $x) : ?Vector3{
+	public function getIntermediateWithXValue(Vector3 $v, $x){
 		$xDiff = $v->x - $this->x;
+		$yDiff = $v->y - $this->y;
+		$zDiff = $v->z - $this->z;
+
 		if(($xDiff * $xDiff) < 0.0000001){
 			return null;
 		}
@@ -305,16 +263,24 @@ class Vector3{
 		if($f < 0 or $f > 1){
 			return null;
 		}else{
-			return new Vector3($x, $this->y + ($v->y - $this->y) * $f, $this->z + ($v->z - $this->z) * $f);
+			return new Vector3($x, $this->y + $yDiff * $f, $this->z + $zDiff * $f);
 		}
 	}
 
 	/**
 	 * Returns a new vector with y value equal to the second parameter, along the line between this vector and the
 	 * passed in vector, or null if not possible.
+	 *
+	 * @param Vector3 $v
+	 * @param float   $y
+	 *
+	 * @return Vector3|null
 	 */
-	public function getIntermediateWithYValue(Vector3 $v, float $y) : ?Vector3{
+	public function getIntermediateWithYValue(Vector3 $v, $y){
+		$xDiff = $v->x - $this->x;
 		$yDiff = $v->y - $this->y;
+		$zDiff = $v->z - $this->z;
+
 		if(($yDiff * $yDiff) < 0.0000001){
 			return null;
 		}
@@ -324,16 +290,24 @@ class Vector3{
 		if($f < 0 or $f > 1){
 			return null;
 		}else{
-			return new Vector3($this->x + ($v->x - $this->x) * $f, $y, $this->z + ($v->z - $this->z) * $f);
+			return new Vector3($this->x + $xDiff * $f, $y, $this->z + $zDiff * $f);
 		}
 	}
 
 	/**
 	 * Returns a new vector with z value equal to the second parameter, along the line between this vector and the
 	 * passed in vector, or null if not possible.
+	 *
+	 * @param Vector3 $v
+	 * @param float   $z
+	 *
+	 * @return Vector3|null
 	 */
-	public function getIntermediateWithZValue(Vector3 $v, float $z) : ?Vector3{
+	public function getIntermediateWithZValue(Vector3 $v, $z){
+		$xDiff = $v->x - $this->x;
+		$yDiff = $v->y - $this->y;
 		$zDiff = $v->z - $this->z;
+
 		if(($zDiff * $zDiff) < 0.0000001){
 			return null;
 		}
@@ -343,32 +317,16 @@ class Vector3{
 		if($f < 0 or $f > 1){
 			return null;
 		}else{
-			return new Vector3($this->x + ($v->x - $this->x) * $f, $this->y + ($v->y - $this->y) * $f, $z);
+			return new Vector3($this->x + $xDiff * $f, $this->y + $yDiff * $f, $z);
 		}
-	}
-
-	public function __toString(){
-		return "Vector3(x=" . $this->x . ",y=" . $this->y . ",z=" . $this->z . ")";
 	}
 
 	/**
-	 * Returns a Vector3 with the provided components. If any of the components are null, the values from this
-	 * Vector3 will be filled in instead.
-	 * If no components are overridden (all components are null), the original vector will be returned unchanged.
-	 */
-	public function withComponents(float|int|null $x, float|int|null $y, float|int|null $z) : Vector3{
-		if($x !== null || $y !== null || $z !== null){
-			return new self($x ?? $this->x, $y ?? $this->y, $z ?? $this->z);
-		}
-		return $this;
-	}
-
-    /**
-	 * @param float $x
-	 * @param float $y
-	 * @param float $z
+	 * @param $x
+	 * @param $y
+	 * @param $z
 	 *
-	 * @return $this
+	 * @return Vector3
 	 */
 	public function setComponents($x, $y, $z){
 		$this->x = $x;
@@ -377,48 +335,8 @@ class Vector3{
 		return $this;
 	}
 
-	/**
-	 * Returns a new Vector3 taking the maximum of each component in the input vectors.
-	 *
-	 * @param Vector3 ...$vectors
-	 */
-	public static function maxComponents(Vector3 $vector, Vector3 ...$vectors) : Vector3{
-		$x = $vector->x;
-		$y = $vector->y;
-		$z = $vector->z;
-		foreach($vectors as $position){
-			$x = max($x, $position->x);
-			$y = max($y, $position->y);
-			$z = max($z, $position->z);
-		}
-		return new Vector3($x, $y, $z);
+	public function __toString(){
+		return "Vector3(x=" . $this->x . ",y=" . $this->y . ",z=" . $this->z . ")";
 	}
 
-	/**
-	 * Returns a new Vector3 taking the minimum of each component in the input vectors.
-	 *
-	 * @param Vector3 ...$vectors
-	 */
-	public static function minComponents(Vector3 $vector, Vector3 ...$vectors) : Vector3{
-		$x = $vector->x;
-		$y = $vector->y;
-		$z = $vector->z;
-		foreach($vectors as $position){
-			$x = min($x, $position->x);
-			$y = min($y, $position->y);
-			$z = min($z, $position->z);
-		}
-		return new Vector3($x, $y, $z);
-	}
-
-	public static function sum(Vector3 ...$vector3s) : Vector3{
-		$x = $y = $z = 0;
-		foreach($vector3s as $vector3){
-			$x += $vector3->x;
-			$y += $vector3->y;
-			$z += $vector3->z;
-		}
-		return new Vector3($x, $y, $z);
-	}
 }
-

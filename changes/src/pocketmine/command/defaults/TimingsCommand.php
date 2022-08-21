@@ -31,8 +31,6 @@ use pocketmine\Player;
 use pocketmine\scheduler\BulkCurlTask;
 use pocketmine\Server;
 
-use RuntimeException;
-
 class TimingsCommand extends VanillaCommand{
 
 	public static $timingStart = 0;
@@ -81,84 +79,68 @@ class TimingsCommand extends VanillaCommand{
 			TimingsHandler::reload();
 			$sender->sendMessage(new TranslationContainer("pocketmine.command.timings.reset"));
 		}elseif($mode === "merged" or $mode === "report" or $paste){
-			$timings = "";
-			if($paste){
-				$fileTimings = fopen("php://temp", "r+b");
-			}else{
-				$index = 0;
-				$timingFolder = $sender->getServer()->getDataPath() . "timings/";
 
-				if(!file_exists($timingFolder)){
-					mkdir($timingFolder, 0777);
-				}
-				$timings = $timingFolder . "timings.txt";
-				while(file_exists($timings)){
-					$timings = $timingFolder . "timings" . (++$index) . ".txt";
-				}
+			$sampleTime = microtime(true) - self::$timingStart;
+			$index = 0;
+			$timingFolder = $sender->getServer()->getDataPath() . "timings/";
 
-				$fileTimings = fopen($timings, "a+b");
+			if(!file_exists($timingFolder)){
+				mkdir($timingFolder, 0777);
 			}
+			$timings = $timingFolder . "timings.txt";
+			while(file_exists($timings)){
+				$timings = $timingFolder . "timings" . (++$index) . ".txt";
+			}
+
+			$fileTimings = $paste ? fopen("php://temp", "r+b") : fopen($timings, "a+b");
+
 			TimingsHandler::printTimings($fileTimings);
+
+			fwrite($fileTimings, "Sample time " . round($sampleTime * 1000000000) . " (" . $sampleTime . "s)" . PHP_EOL);
 
 			if($paste){
 				fseek($fileTimings, 0);
 				$data = [
-					"browser" => $agent = $sender->getServer()->getName() . " " . $sender->getServer()->getPocketMineVersion(),
-					"data" => $content = stream_get_contents($fileTimings)
+					"syntax" => "text",
+					"poster" => $sender->getServer()->getName(),
+					"content" => stream_get_contents($fileTimings)
 				];
 				fclose($fileTimings);
 
-				$host = $sender->getServer()->getProperty("timings.host", "timings.pmmp.io");
-
-				$sender->getServer()->getScheduler()->scheduleAsyncTask(new class($sender, $host, $agent, $data) extends BulkCurlTask{
-					/** @var string */
-					private $host;
-
-					/**
-					 * @param CommandSender $sender
-					 * @param string                            $host
-					 * @param string                            $agent
-					 * @param string[]                          $data
-					 *
-					 * @phpstan-param array<string, string> $data
-					 */
-					public function __construct(CommandSender $sender, string $host, string $agent, array $data){
-						parent::__construct([
-							[
-								"page" => "https://$host?upload=true",
-								"extraOpts" => [
-									CURLOPT_HTTPHEADER => [
-										"User-Agent: $agent",
-										"Content-Type: application/x-www-form-urlencoded"
-									],
-									CURLOPT_POST => true,
-									CURLOPT_POSTFIELDS => http_build_query($data),
-									CURLOPT_AUTOREFERER => false,
-									CURLOPT_FOLLOWLOCATION => false
-								]
-							]
-						], $sender);
-						$this->host = $host;
-					}
-
+				$sender->getServer()->getScheduler()->scheduleAsyncTask(new class([
+					["page" => "http://paste.ubuntu.com", "extraOpts" => [
+						CURLOPT_HTTPHEADER => ["User-Agent: " . $sender->getServer()->getName() . " " . $sender->getServer()->getPocketMineVersion()],
+						CURLOPT_POST => 1,
+						CURLOPT_POSTFIELDS => $data
+					]]
+				], $sender) extends BulkCurlTask{
 					public function onCompletion(Server $server){
-						$sender = $this->fetchLocal();
+						$sender = $this->fetchLocal($server);
 						if($sender instanceof Player and !$sender->isOnline()){ // TODO replace with a more generic API method for checking availability of CommandSender
 							return;
 						}
 						$result = $this->getResult()[0];
-						if($result instanceof RuntimeException){
+						if($result instanceof \RuntimeException){
 							$server->getLogger()->logException($result);
 							return;
 						}
-						if(isset($result[0]) && is_array($response = json_decode($result[0], true)) && isset($response["id"])){
+						list(, $headers) = $result;
+						foreach($headers as $headerGroup){
+							if(isset($headerGroup["location"]) and preg_match('#^http://paste\\.ubuntu\\.com/([0-9]{1,})/#', trim($headerGroup["location"]), $match)){
+								$pasteId = $match[1];
+								break;
+							}
+						}
+						if(isset($pasteId)){
+							$sender->sendMessage(new TranslationContainer("pocketmine.command.timings.timingsUpload", ["http://paste.ubuntu.com/" . $pasteId . "/"]));
 							$sender->sendMessage(new TranslationContainer("pocketmine.command.timings.timingsRead",
-								["https://" . $this->host . "/?id=" . $response["id"]]));
+								["http://" . $sender->getServer()->getProperty("timings.host", "timings.pmmp.io") . "/?url=$pasteId"]));
 						}else{
 							$sender->sendMessage(new TranslationContainer("pocketmine.command.timings.pasteError"));
 						}
 					}
 				});
+
 			}else{
 				fclose($fileTimings);
 				$sender->sendMessage(new TranslationContainer("pocketmine.command.timings.timingsWrite", [$timings]));

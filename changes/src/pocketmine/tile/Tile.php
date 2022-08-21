@@ -111,11 +111,6 @@ abstract class Tile extends Position{
 		return false;
 	}
 
-
-	public function isClosed() : bool{
-		return $this->closed;
-	}
-
 	/**
 	 * Returns the short save name
 	 * @return string

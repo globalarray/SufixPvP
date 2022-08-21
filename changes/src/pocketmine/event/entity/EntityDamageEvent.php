@@ -63,7 +63,6 @@ class EntityDamageEvent extends EntityEvent implements Cancellable{
 	/** @var array */
 	private $modifiers;
 	private $originals;
-	private $gamemode = 'undefined';
 
 
 	/**
@@ -90,14 +89,6 @@ class EntityDamageEvent extends EntityEvent implements Cancellable{
 			throw new \InvalidArgumentException("BASE Damage modifier missing");
 		}
 	}
-
-    public function setGamemode(string $gamemode) : void{
-        $this->gamemode = $gamemode;
-    }
-
-    public function getGamemode() : string{
-       return $this->gamemode;
-    }
 
 	/**
 	 * @return int

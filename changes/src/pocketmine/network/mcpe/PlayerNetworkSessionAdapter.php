@@ -60,13 +60,11 @@ use pocketmine\network\mcpe\protocol\ShowCreditsPacket;
 use pocketmine\network\mcpe\protocol\SpawnExperienceOrbPacket;
 use pocketmine\network\mcpe\protocol\TextPacket;
 use pocketmine\network\mcpe\protocol\UseItemPacket;
-use pocketmine\Player;
-use pocketmine\Server;
-/* Added 120 protocol (Minecraft Bedrock) */
 use pocketmine\network\mcpe\protocol\v120\InventoryContentPacket;
 use pocketmine\network\mcpe\protocol\v120\InventorySlotPacket;
 use pocketmine\network\mcpe\protocol\v120\PlayerHotbarPacket;
-
+use pocketmine\Player;
+use pocketmine\Server;
 
 class PlayerNetworkSessionAdapter extends NetworkSession{
 
@@ -98,7 +96,7 @@ class PlayerNetworkSessionAdapter extends NetworkSession{
 		}
 
 		$this->server->getPluginManager()->callEvent($ev = new DataPacketReceiveEvent($this->player, $packet));
-		if(!$ev->isCancelled() and $packet->mustBeDecoded() and !$packet->handle($this) && !empty($packet->buffer)){
+		if(!$ev->isCancelled() and $packet->mustBeDecoded() and !$packet->handle($this)){
 			$this->server->getLogger()->debug("Unhandled " . $packet->getName() . " received from " . $this->player->getName() . ": 0x" . bin2hex($packet->buffer));
 		}
 
@@ -119,18 +117,6 @@ class PlayerNetworkSessionAdapter extends NetworkSession{
 
 	public function handleText(TextPacket $packet) : bool{
 		return $this->player->handleText($packet);
-	}
-
-    public function handleInventoryContent(InventoryContentPacket $packet) : bool{
-		return true; //Not used
-	}
-
-	public function handleInventorySlot(InventorySlotPacket $packet) : bool{
-		return true; //Not used
-	}
-
-	public function handlePlayerHotbar(PlayerHotbarPacket $packet) : bool{
-		return true; //TODO
 	}
 
 	public function handleMovePlayer(MovePlayerPacket $packet) : bool{
@@ -247,5 +233,17 @@ class PlayerNetworkSessionAdapter extends NetworkSession{
 
 	public function handleResourcePackChunkRequest(ResourcePackChunkRequestPacket $packet) : bool{
 		return $this->player->handleResourcePackChunkRequest($packet);
+	}
+
+	public function handleInventoryContent(InventoryContentPacket $packet) : bool{
+		return true; //Not used
+	}
+
+	public function handleInventorySlot(InventorySlotPacket $packet) : bool{
+		return true; //Not used
+	}
+
+	public function handlePlayerHotbar(PlayerHotbarPacket $packet) : bool{
+		return true; //TODO
 	}
 }

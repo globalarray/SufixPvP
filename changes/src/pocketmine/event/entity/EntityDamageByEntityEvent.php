@@ -44,7 +44,7 @@ class EntityDamageByEntityEvent extends EntityDamageEvent{
 	 * @param int|int[] $damage
 	 * @param float     $knockBack
 	 */
-	public function __construct(Entity $damager, Entity $entity, $cause, $damage, $knockBack = 0.4){
+	public function __construct(Entity $damager, Entity $entity, $cause, $damage, $knockBack = 0.3){
 		$this->damagerEid = $damager->getId();
 		$this->knockBack = $knockBack;
 		parent::__construct($entity, $cause, $damage);

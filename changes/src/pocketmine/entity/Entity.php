@@ -578,13 +578,6 @@ abstract class Entity extends Location implements Metadatable{
 	}
 
 	/**
-	 * Returns whether the entity has been "closed".
-	 */
-	public function isClosed() : bool{
-		return $this->closed;
-	}
-
-	/**
 	 * Sets the owner of the entity.
 	 *
 	 * @param Entity $owner
@@ -1002,7 +995,7 @@ abstract class Entity extends Location implements Metadatable{
 	}
 
 	public function canCollideWith(Entity $entity){
-		return !$this->justCreated and $entity !== $this and !($entity instanceof Player and $entity->isSpectator());
+		return !$this->justCreated and $entity !== $this;
 	}
 
 	protected function checkObstruction($x, $y, $z){
@@ -1259,11 +1252,7 @@ abstract class Entity extends Location implements Metadatable{
 		//return !($this instanceof Player);
 	}
 
-	final public function scheduleUpdate() {
-		if ($this->closed) {
-			return;
-		}
-
+	final public function scheduleUpdate(){
 		$this->level->updateEntities[$this->id] = $this;
 	}
 
@@ -1412,16 +1401,7 @@ abstract class Entity extends Location implements Metadatable{
 		return false;
 	}
 
-	/**
-	 * @param $dx
-	 * @param $dy
-	 * @param $dz
-	 *
-	 * @return bool
-	 */
 	public function fastMove($dx, $dy, $dz){
-		$this->blocksAround = null;
-
 		if($dx == 0 and $dz == 0 and $dy == 0){
 			return true;
 		}
@@ -1453,6 +1433,7 @@ abstract class Entity extends Location implements Metadatable{
 		}
 		$this->isCollided = $this->onGround;
 		$this->updateFallState($dy, $this->onGround);
+
 
 		Timings::$entityMoveTimer->stopTiming();
 
@@ -1522,7 +1503,7 @@ abstract class Entity extends Location implements Metadatable{
 				//TODO: big messy loop
 			}*/
 
-			//assert(abs($dx) <= 20 and abs($dy) <= 20 and abs($dz) <= 20, "Movement distance is excessive: dx=$dx, dy=$dy, dz=$dz");
+			assert(abs($dx) <= 20 and abs($dy) <= 20 and abs($dz) <= 20, "Movement distance is excessive: dx=$dx, dy=$dy, dz=$dz");
 
 			$list = $this->level->getCollisionCubes($this, $this->level->getTickRate() > 1 ? $this->boundingBox->getOffsetBoundingBox($dx, $dy, $dz) : $this->boundingBox->addCoord($dx, $dy, $dz), false);
 

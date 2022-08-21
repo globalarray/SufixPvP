@@ -16,7 +16,7 @@
 namespace raklib\protocol;
 
 #ifndef COMPILE
-use pocketmine\utils\Binary;
+use raklib\Binary;
 
 #endif
 

@@ -46,23 +46,21 @@ use pocketmine\utils\BlockIterator;
 
 abstract class Living extends Entity implements Damageable{
 
-    protected $gravity = 0.00000001;
-    protected $drag = 0.00000001;
+	protected $gravity = 0.08;
+	protected $drag = 0.02;
 
 	protected $attackTime = 0;
 
 	protected $invisible = false;
 
 	protected $jumpVelocity = 0.42;
-	protected $timeLastDamage = null;
 
 	/** @var Effect[] */
 	protected $effects = [];
-	public $moveAnimation = 0;
 
 	abstract public function getName();
 
-	protected function initEntity(){
+	protected function initEntity(){ // KnockBack
 		parent::initEntity();
 
 		if(isset($this->namedtag->HealF)){
@@ -321,7 +319,6 @@ abstract class Living extends Entity implements Damageable{
 	}
 
 	public function fall(float $fallDistance){
-      return;
 		$damage = floor($fallDistance - 3 - ($this->hasEffect(Effect::JUMP) ? $this->getEffect(Effect::JUMP)->getEffectLevel() : 0));
 		if($damage > 0){
 			$ev = new EntityDamageEvent($this, EntityDamageEvent::CAUSE_FALL, $damage);
@@ -355,7 +352,6 @@ abstract class Living extends Entity implements Damageable{
 			return;
 		}
 
-		if($this->level->getFolderName() !== 'rarena' or $this->level->getFolderName() !== 'rarena2')
 		parent::attack($damage, $source);
 
 		if($source->isCancelled()){
@@ -364,22 +360,18 @@ abstract class Living extends Entity implements Damageable{
 
 		if($source instanceof EntityDamageByEntityEvent){
 			$e = $source->getDamager();
-       
-        if ($e instanceof Player) {
-            
-        }
 			if($source instanceof EntityDamageByChildEntityEvent){
 				$e = $source->getChild();
 			}
 
 			if($e !== null){
 				if($e->isOnFire() > 0){
-					$this->setOnFire(2 * $this->server->getDifficulty());
+					//$this->setOnFire(2 * $this->server->getDifficulty());
 				}
 
 				$deltaX = $this->x - $e->x;
 				$deltaZ = $this->z - $e->z;
-				$this->knockBack($e, $damage, $deltaX, $deltaZ, $source->getGamemode());
+				$this->knockBack($e, $damage, $deltaX, $deltaZ, $source->getKnockBack());
 			}
 		}
 
@@ -387,53 +379,33 @@ abstract class Living extends Entity implements Damageable{
 		$pk->entityRuntimeId = $this->getId();
 		$pk->event = $this->getHealth() <= 0 ? EntityEventPacket::DEATH_ANIMATION : EntityEventPacket::HURT_ANIMATION; //Ouch!
 		$this->server->broadcastPacket($this->hasSpawned, $pk);
-		if ($source->getGamemode() == 'combo') {
-			$this->attackTime = 3;
-		} else {
-			$this->attackTime = 7;
-		}
+
+		$this->attackTime = 10; //0.5 seconds cooldown
 	}
 
-	public function knockBack(Entity $attacker, $damage, $x, $z, string $gamemode) {
-		$base = 0.387;
-		$baseY = 0.386;
-		$floor = $this->y - $attacker->y;
-		if($attacker instanceof Player){
-		    if($attacker->isSprinting()){
-		        $attacker->setSprinting(false);
-		        $attacker->setSprinting(true);
-            }
-        }
-		if($gamemode === 'combo'){
-			$base = 0.23;
-			$baseY = 0.25;
-			if($floor >= 2.1){
-				$baseY = 0.0;
-			}
-		}elseif($gamemode === 'sumo'){
-            $base = 0.365;
-            $baseY = 0.365;
-        }elseif($gamemode === 'mlgrush'){
-		    if($attacker instanceof Player and $attacker->getInventory()->getItemInHand()->getId() === 280){
-		        $base = 0.8;
-		        $baseY = 0.4;
-            }
-		}
+	public function knockBack(Entity $attacker, $damage, $x, $z, $base = 0.3){
 		$f = sqrt($x * $x + $z * $z);
 		if($f <= 0){
 			return;
 		}
+
 		$f = 1 / $f;
-		if($floor >= 1.7){
-			$this->motionY = 0;
-		}
+		
+		$baseY = max(0.4, $base / 1.5);
+
 		$motion = new Vector3($this->motionX, $this->motionY, $this->motionZ);
+
 		$motion->x /= 2;
 		$motion->y /= 2;
 		$motion->z /= 2;
 		$motion->x += $x * $f * $base;
 		$motion->y += $baseY;
 		$motion->z += $z * $f * $base;
+
+		if($motion->y > $baseY){
+			$motion->y = $baseY;
+		}
+
 		$this->setMotion($motion);
 	}
 

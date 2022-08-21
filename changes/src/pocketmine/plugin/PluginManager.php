@@ -707,17 +707,6 @@ class PluginManager{
 	}
 
 	/**
-	 * Extracts one-line tags from the doc-comment
-	 *
-	 * @param string $docComment
-	 * @return string[] an array of tagName => tag value. If the tag has no value, an empty string is used as the value.
-	 */
-	public static function parseDocComment(string $docComment) : array{
-		preg_match_all('/^[\t ]*\* @([a-zA-Z]+)(?:[\t ]+(.+))?[\t ]*$/m', $docComment, $matches);
-		return array_combine($matches[1], array_map("trim", $matches[2]));
-	}
-
-	/**
 	 * Registers all the events in the given Listener class
 	 *
 	 * @param Listener $listener
@@ -732,63 +721,41 @@ class PluginManager{
 
 		$reflection = new \ReflectionClass(get_class($listener));
 		foreach($reflection->getMethods(\ReflectionMethod::IS_PUBLIC) as $method){
-			if(!$method->isStatic() and $method->getDeclaringClass()->implementsInterface(Listener::class)){
-				$tags = self::parseDocComment((string) $method->getDocComment());
-				if(isset($tags["notHandler"])){
-					continue;
+			if(!$method->isStatic()){
+				$priority = EventPriority::NORMAL;
+				$ignoreCancelled = false;
+				if(preg_match("/^[\t ]*\\* @priority[\t ]{1,}([a-zA-Z]{1,})/m", (string) $method->getDocComment(), $matches) > 0){
+					$matches[1] = strtoupper($matches[1]);
+					if(defined(EventPriority::class . "::" . $matches[1])){
+						$priority = constant(EventPriority::class . "::" . $matches[1]);
+					}
+				}
+				if(preg_match("/^[\t ]*\\* @ignoreCancelled[\t ]{1,}([a-zA-Z]{1,})/m", (string) $method->getDocComment(), $matches) > 0){
+					$matches[1] = strtolower($matches[1]);
+					if($matches[1] === "false"){
+						$ignoreCancelled = false;
+					}elseif($matches[1] === "true"){
+						$ignoreCancelled = true;
+					}
 				}
 
 				$parameters = $method->getParameters();
-				if(count($parameters) !== 1){
-					continue;
-				}
-				try{
-					$paramType = $parameters[0]->getType();
-					//isBuiltin() returns false for builtin classes ..................
-					if($paramType instanceof \ReflectionNamedType && !$paramType->isBuiltin()){
-						/** @phpstan-var class-string $paramClass */
-						$paramClass = $paramType->getName();
-						$eventClass = new \ReflectionClass($paramClass);
-					}else{
-						$eventClass = null;
+				if(count($parameters) === 1 and $parameters[0]->getClass() instanceof \ReflectionClass and is_subclass_of($parameters[0]->getClass()->getName(), Event::class)){
+					$class = $parameters[0]->getClass()->getName();
+					$reflection = new \ReflectionClass($class);
+					if(strpos((string) $reflection->getDocComment(), "@deprecated") !== false and $this->server->getProperty("settings.deprecated-verbose", true)){
+						$this->server->getLogger()->warning($this->server->getLanguage()->translateString("pocketmine.plugin.deprecatedEvent", [
+							$plugin->getName(),
+							$class,
+							get_class($listener) . "->" . $method->getName() . "()"
+						]));
 					}
-				}catch(\ReflectionException $e){ //class doesn't exist
-					if(isset($tags["softDepend"]) && !isset($this->plugins[$tags["softDepend"]])){
-						$this->server->getLogger()->debug("Not registering @softDepend listener " . get_class($listener) . "::" . $method->getName() . "(" . $parameters[0]->getType()->getName() . ") because plugin \"" . $tags["softDepend"] . "\" not found");
-						continue;
-					}
-
-					throw $e;
+					$this->registerEvent($class, $listener, $priority, new MethodEventExecutor($method->getName()), $plugin, $ignoreCancelled);
 				}
-				if($eventClass === null or !$eventClass->isSubclassOf(Event::class)){
-					continue;
-				}
-
-				try{
-					$priority = isset($tags["priority"]) ? EventPriority::fromString($tags["priority"]) : EventPriority::NORMAL;
-				}catch(\InvalidArgumentException $e){
-					throw new PluginException("Event handler " . get_class($listener) . "->" . $method->getName() . "() declares invalid/unknown priority \"" . $tags["priority"] . "\"");
-				}
-
-				$ignoreCancelled = false;
-				if(isset($tags["ignoreCancelled"])){
-					switch(strtolower($tags["ignoreCancelled"])){
-						case "true":
-						case "":
-							$ignoreCancelled = true;
-							break;
-						case "false":
-							$ignoreCancelled = false;
-							break;
-						default:
-							throw new PluginException("Event handler " . get_class($listener) . "->" . $method->getName() . "() declares invalid @ignoreCancelled value \"" . $tags["ignoreCancelled"] . "\"");
-					}
-				}
-
-				$this->registerEvent($eventClass->getName(), $listener, $priority, new MethodEventExecutor($method->getName()), $plugin, $ignoreCancelled);
 			}
 		}
 	}
+
 	/**
 	 * @param string        $event Class name that extends Event
 	 * @param Listener      $listener

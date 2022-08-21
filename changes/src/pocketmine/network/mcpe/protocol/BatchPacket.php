@@ -62,7 +62,7 @@ class BatchPacket extends DataPacket{
 		}
 	}
 
-    protected function encodeHeader(){
+	protected function encodeHeader(){
 		$this->putByte(static::NETWORK_ID);
 	}
 
@@ -107,20 +107,21 @@ class BatchPacket extends DataPacket{
 			return false;
 		}
 
-		foreach($this->getPackets() as $buf) {
-			if (isset($buf[0])) {
-				if ($this->protocol < ProtocolInfo::MULTIVERSION_PROTOCOL) {
-					$pk = PacketPool::getPacketById(ord($buf[0]));
-				} else {
-					$pk = PacketPool120::getPacketById(ord($buf[0]));
-				}
-				if(!$pk->canBeBatched()) {
-					throw new \InvalidArgumentException("Received invalid " . get_class($pk) . " inside BatchPacket");
-				}
-				$pk->setBuffer($buf, 1);
-				$session->handleDataPacket($pk);
+		foreach($this->getPackets() as $buf){
+			if($this->protocol < ProtocolInfo::MULTIVERSION_PROTOCOL){
+				$pk = PacketPool::getPacketById(ord($buf{0}));
+			}else{
+				$pk = PacketPool120::getPacketById(ord($buf{0}));
 			}
+
+			if(!$pk->canBeBatched()){
+				throw new \InvalidArgumentException("Received invalid " . get_class($pk) . " inside BatchPacket");
+			}
+
+			$pk->setBuffer($buf, 1);
+			$session->handleDataPacket($pk);
 		}
+
 		return true;
 	}
 

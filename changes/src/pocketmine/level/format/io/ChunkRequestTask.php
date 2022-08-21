@@ -28,8 +28,8 @@ use pocketmine\level\Level;
 use pocketmine\nbt\NBT;
 use pocketmine\network\mcpe\protocol\BatchPacket;
 use pocketmine\network\mcpe\protocol\FullChunkDataPacket;
-use pocketmine\scheduler\AsyncTask;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
+use pocketmine\scheduler\AsyncTask;
 use pocketmine\Server;
 use pocketmine\tile\Spawnable;
 
@@ -66,13 +66,12 @@ class ChunkRequestTask extends AsyncTask{
 		$this->tiles = $tiles;
 	}
 
-	public function onRun() {
+	public function onRun(){
 		$chunk = Chunk::fastDeserialize($this->chunk);
 
 		$result = [];
 
 		$protocols = [ProtocolInfo::CURRENT_PROTOCOL, ProtocolInfo::MULTIVERSION_PROTOCOL];
-
 		foreach($protocols as $protocol){
 			$pk = new FullChunkDataPacket();
 			$pk->chunkX = $this->chunkX;
@@ -90,13 +89,12 @@ class ChunkRequestTask extends AsyncTask{
 		$this->setResult($result);
 	}
 
-	public function onCompletion(Server $server) {
+	public function onCompletion(Server $server){
 		$level = $server->getLevel($this->levelId);
-		if ($level instanceof Level) {
-			if ($this->hasResult()) {
+		if($level instanceof Level){
+			if($this->hasResult()){
 				$packets = [];
-
-				foreach ($this->getResult() as $protocol => $buffer) {
+				foreach($this->getResult() as $protocol => $buffer){
 					$batch = new BatchPacket($buffer);
 					assert(strlen($batch->buffer) > 0);
 					$batch->isEncoded = true;
