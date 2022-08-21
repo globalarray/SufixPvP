@@ -218,6 +218,11 @@ class ServerScheduler{
 	public function scheduleDelayedRepeatingTask(Task $task, int $delay, int $period){
 		return $this->addTask($task, $delay, $period);
 	}
+	
+	public function shutdown() : void{
+	    $this->cancelAllTasks();
+	    $this->asyncPool->shutdown();
+	}
 
 	/**
 	 * @param int $taskId
@@ -242,7 +247,7 @@ class ServerScheduler{
 		}
 	}
 
-	public function cancelAllTasks(){
+	public function cancelAllTasks() : void{
 		foreach($this->tasks as $task){
 			$task->cancel();
 		}

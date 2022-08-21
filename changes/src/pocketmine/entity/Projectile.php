@@ -79,7 +79,7 @@ abstract class Projectile extends Entity{
 	}
 
 	public function canCollideWith(Entity $entity){
-		return $entity instanceof Living and !$this->onGround;
+		return $entity instanceof Living and !$this->onGround and !($entity instanceof Player and $entity->isSpectator());
 	}
 
 	/**

@@ -58,4 +58,4 @@ class InventorySlotPacket extends DataPacket{
 	public function isMultiversionNative() : bool{
 		return true;
 	}
-}
+} 

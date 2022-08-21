@@ -14,12 +14,10 @@
  * (at your option) any later version.
  *
  * @author PocketMine Team
- * @link http://www.pocketmine.net/
+ * @link   http://www.pocketmine.net/
  *
  *
-*/
-
-declare(strict_types=1);
+ */
 
 namespace pocketmine\event\block;
 
@@ -28,38 +26,67 @@ use pocketmine\event\Cancellable;
 use pocketmine\item\Item;
 use pocketmine\Player;
 
-class BlockBreakEvent extends BlockEvent implements Cancellable{
+class BlockBreakEvent extends BlockEvent implements Cancellable {
 	public static $handlerList = null;
 
-	/** @var Player */
+	/** @var \pocketmine\Player */
 	protected $player;
 
-	/** @var Item */
+	/** @var \pocketmine\item\Item */
 	protected $item;
 
 	/** @var bool */
 	protected $instaBreak = false;
+	protected $cancel = false;
 	protected $blockDrops = [];
 
+	/**
+	 * BlockBreakEvent constructor.
+	 *
+	 * @param Player $player
+	 * @param Block  $block
+	 * @param Item   $item
+	 * @param bool   $instaBreak
+	 */
 	public function __construct(Player $player, Block $block, Item $item, $instaBreak = false){
 		$this->block = $block;
 		$this->item = $item;
 		$this->player = $player;
 		$this->instaBreak = (bool) $instaBreak;
 		$drops = $player->isSurvival() ? $block->getDrops($item) : [];
-		foreach($drops as $i){
-			$this->blockDrops[] = Item::get($i[0], $i[1], $i[2]);
-		}
+		if($drops != null && is_numeric($drops[0]))
+			$this->blockDrops[] = Item::get($drops[0], $drops[1], $drops[2]);
+		else
+			foreach($drops as $i){
+				$this->blockDrops[] = Item::get($i[0], $i[1], $i[2]);
+			}
 	}
 
+	/**
+	 * @return Player
+	 */
 	public function getPlayer(){
 		return $this->player;
 	}
 
+	/**
+	 * @return Item
+	 */
 	public function getItem(){
 		return $this->item;
 	}
 
+	public function setCancel(bool $value = true) : void{
+		$this->cancel = $value;
+	}
+
+	public function isCancel() : bool{
+		return $this->cancel;
+	}
+
+	/**
+	 * @return bool
+	 */
 	public function getInstaBreak(){
 		return $this->instaBreak;
 	}

@@ -60,4 +60,4 @@ class InventoryContentPacket extends DataPacket{
 	public function isMultiversionNative() : bool{
 		return true;
 	}
-}
+} 

@@ -139,7 +139,7 @@ class Bed extends Transparent{
 		if($player !== null){
 			$other = $this->getOtherHalf();
 			if($other === null){
-				//$player->sendMessage(TextFormat::GRAY . "This bed is incomplete");
+				$player->sendMessage(TextFormat::GRAY . "This bed is incomplete");
 
 				return true;
 			}elseif($player->distanceSquared($this) > 4 and $player->distanceSquared($other) > 4){
@@ -152,7 +152,7 @@ class Bed extends Transparent{
 			$isNight = ($time >= Level::TIME_NIGHT and $time < Level::TIME_SUNRISE);
 
 			if(!$isNight){
-				//$player->sendMessage(new TranslationContainer(TextFormat::GRAY . "%tile.bed.noSleep"));
+				$player->sendMessage(new TranslationContainer(TextFormat::GRAY . "%tile.bed.noSleep"));
 
 				return true;
 			}
@@ -160,12 +160,12 @@ class Bed extends Transparent{
 			$b = ($this->isHeadPart() ? $this : $other);
 
 			if($b->isOccupied()){
-				//$player->sendMessage(new TranslationContainer(TextFormat::GRAY . "%tile.bed.occupied"));
+				$player->sendMessage(new TranslationContainer(TextFormat::GRAY . "%tile.bed.occupied"));
 
 				return true;
 			}
 
-			//$player->sleepOn($b);
+			$player->sleepOn($b);
 		}
 
 		return true;

@@ -24,7 +24,7 @@ namespace pocketmine\network\mcpe\multiversion;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
 
 class MultiversionEnums{
-	
+
 	protected static $textPacket = [
 		ProtocolInfo::CURRENT_PROTOCOL => [
 			0 => "TYPE_RAW",

@@ -51,6 +51,7 @@ class VersionCommand extends VanillaCommand{
 				$sender->getServer()->getName(),
 				$sender->getServer()->getPocketMineVersion(),
 				$sender->getServer()->getCodename(),
+				phpversion(),
 				$sender->getServer()->getApiVersion(),
 				$sender->getServer()->getVersion(),
 				ProtocolInfo::CURRENT_PROTOCOL

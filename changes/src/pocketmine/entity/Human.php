@@ -136,7 +136,7 @@ class Human extends Creature implements ProjectileSource, InventoryHolder{
 		}
 	}
 
-	public function getFood(){
+	public function getFood() : float{
 		return $this->attributeMap->getAttribute(Attribute::HUNGER)->getValue();
 	}
 
@@ -148,7 +148,7 @@ class Human extends Creature implements ProjectileSource, InventoryHolder{
 	 *
 	 * @throws \InvalidArgumentException
 	 */
-	public function setFood($new){
+	public function setFood(float $new){
 		$attr = $this->attributeMap->getAttribute(Attribute::HUNGER);
 		$old = $attr->getValue();
 		$attr->setValue($new);
@@ -167,19 +167,19 @@ class Human extends Creature implements ProjectileSource, InventoryHolder{
 
 	}
 
-	public function getMaxFood(){
+	public function getMaxFood() : float{
 		return $this->attributeMap->getAttribute(Attribute::HUNGER)->getMaxValue();
 	}
 
-	public function addFood($amount){
+	public function addFood(float $amount){
 		$attr = $this->attributeMap->getAttribute(Attribute::HUNGER);
 		$amount += $attr->getValue();
 		$amount = max(min($amount, $attr->getMaxValue()), $attr->getMinValue());
 		$this->setFood($amount);
 	}
 
-	public function getSaturation(){
-		//return $this->attributeMap->getAttribute(Attribute::SATURATION)->getValue();
+	public function getSaturation() : float{
+		return $this->attributeMap->getAttribute(Attribute::SATURATION)->getValue();
 	}
 
 	/**
@@ -190,16 +190,16 @@ class Human extends Creature implements ProjectileSource, InventoryHolder{
 	 *
 	 * @throws \InvalidArgumentException
 	 */
-	public function setSaturation($saturation){
+	public function setSaturation(float $saturation){
 		$this->attributeMap->getAttribute(Attribute::SATURATION)->setValue($saturation);
 	}
 
-	public function addSaturation($amount){
-		//$attr = $this->attributeMap->getAttribute(Attribute::SATURATION);
-		//$attr->setValue($attr->getValue() + $amount, true);
+	public function addSaturation(float $amount){
+		$attr = $this->attributeMap->getAttribute(Attribute::SATURATION);
+		$attr->setValue($attr->getValue() + $amount, true);
 	}
 
-	public function getExhaustion() {
+	public function getExhaustion() : float{
 		return $this->attributeMap->getAttribute(Attribute::EXHAUSTION)->getValue();
 	}
 

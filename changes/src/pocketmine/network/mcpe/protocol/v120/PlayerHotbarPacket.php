@@ -69,4 +69,4 @@ class PlayerHotbarPacket extends DataPacket{
 	public function isMultiversionNative() : bool{
 		return true;
 	}
-}
+} 

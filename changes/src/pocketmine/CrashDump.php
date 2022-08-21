@@ -46,10 +46,10 @@ class CrashDump{
 	public function __construct(Server $server){
 		$this->time = time();
 		$this->server = $server;
-		if(!is_dir($this->server->getDataPath() . "/build/crashdumps")){
-			mkdir($this->server->getDataPath() . "/build/crashdumps");
+		if(!is_dir($this->server->getDataPath() . "crashdumps")){
+			mkdir($this->server->getDataPath() . "crashdumps");
 		}
-		$this->path = $this->server->getDataPath() . "/build/crashdumps/" . date("D_M_j-H.i.s-T_Y", $this->time) . ".log";
+		$this->path = $this->server->getDataPath() . "crashdumps/" . date("D_M_j-H.i.s-T_Y", $this->time) . ".log";
 		$this->fp = @fopen($this->path, "wb");
 		if(!is_resource($this->fp)){
 			throw new \RuntimeException("Could not create Crash Dump");
@@ -61,7 +61,7 @@ class CrashDump{
 		$this->generalData();
 		$this->pluginsData();
 
-		//$this->extraData();
+		$this->extraData();
 
 		$this->encodeData();
 	}
@@ -80,14 +80,14 @@ class CrashDump{
 
 	private function encodeData(){
 		$this->addLine();
-		$this->addLine("---------------------- Ошибка данные ее ----------------------");
+		$this->addLine("----------------------REPORT THE DATA BELOW THIS LINE-----------------------");
 		$this->addLine();
-		$this->addLine("----------------------");
+		$this->addLine("===BEGIN CRASH DUMP===");
 		$this->encodedData = zlib_encode(json_encode($this->data, JSON_UNESCAPED_SLASHES), ZLIB_ENCODING_DEFLATE, 9);
 		foreach(str_split(base64_encode($this->encodedData), 76) as $line){
 			$this->addLine($line);
 		}
-		$this->addLine("----------------------");
+		$this->addLine("===END CRASH DUMP===");
 	}
 
 	private function pluginsData(){
@@ -119,12 +119,12 @@ class CrashDump{
 
 		if($this->server->getProperty("auto-report.send-settings", true) !== false){
 			$this->data["parameters"] = (array) $arguments;
-			$this->data["server"] = @file_get_contents($this->server->getDataPath() . "server");
-			$this->data["server"] = preg_replace("#^rcon\\.password=(.*)$#m", "rcon.password=******", $this->data["server"]);
-			$this->data["pocketmine.yml"] = @file_get_contents($this->server->getDataPath() . "/build/pocketmine.yml");
+			$this->data["server.properties"] = @file_get_contents($this->server->getDataPath() . "server.properties");
+			$this->data["server.properties"] = preg_replace("#^rcon\\.password=(.*)$#m", "rcon.password=******", $this->data["server.properties"]);
+			$this->data["pocketmine.yml"] = @file_get_contents($this->server->getDataPath() . "pocketmine.yml");
 		}else{
 			$this->data["pocketmine.yml"] = "";
-			$this->data["server"] = "";
+			$this->data["server.properties"] = "";
 			$this->data["parameters"] = [];
 		}
 		$extensions = [];
@@ -198,7 +198,7 @@ class CrashDump{
 				$filePath = \pocketmine\cleanPath($file->getValue($plugin));
 				if(strpos($error["file"], $filePath) === 0){
 					$this->data["plugin"] = $plugin->getName();
-					$this->addLine("Плохой плагин: " . $plugin->getDescription()->getFullName());
+					$this->addLine("BAD PLUGIN: " . $plugin->getDescription()->getFullName());
 					break;
 				}
 			}
@@ -256,5 +256,5 @@ class CrashDump{
 	public function add($str){
 		fwrite($this->fp, $str);
 	}
+
 }
-?>

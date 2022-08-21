@@ -35,7 +35,7 @@ class DoubleTag extends NamedTag{
 	 * @param string $name
 	 * @param float  $value
 	 */
-	public function __construct(string $name = "", $value = 0.0){
+	public function __construct(string $name = "", float $value = 0.0){
 		parent::__construct($name, $value);
 	}
 

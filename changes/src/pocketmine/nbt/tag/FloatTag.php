@@ -35,7 +35,7 @@ class FloatTag extends NamedTag{
 	 * @param string $name
 	 * @param float  $value
 	 */
-	public function __construct(string $name = "", $value = 0.0){
+	public function __construct(string $name = "", float $value = 0.0){
 		parent::__construct($name, $value);
 	}
 
@@ -54,7 +54,7 @@ class FloatTag extends NamedTag{
 	/**
 	 * @return float
 	 */
-	public function &getValue(){
+	public function &getValue() : float{
 		return parent::getValue();
 	}
 
@@ -62,6 +62,6 @@ class FloatTag extends NamedTag{
 		if(!is_float($value) and !is_int($value)){
 			throw new \TypeError("FloatTag value must be of type float, " . gettype($value) . " given");
 		}
-		parent::setValue($value);
+		parent::setValue((float) $value);
 	}
 }

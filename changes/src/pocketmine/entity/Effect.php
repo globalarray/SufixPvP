@@ -131,6 +131,8 @@ class Effect{
 	protected $defaultDuration = 300 * 20;
 
 	protected $hasBubbles = true;
+	/** @var float */
+	protected $potency = 1;
 
 	/**
 	 * @param int    $id              Effect ID as per Minecraft PE
@@ -283,6 +285,37 @@ class Effect{
 	public function isBad(){
 		return $this->bad;
 	}
+	
+	
+	/**
+	 * Returns whether this effect is instant.
+	 *
+	 * @return bool
+	 */
+	public function isInstant() : bool{
+		return $this->id === Effect::INSTANT_DAMAGE or $this->id === Effect::INSTANT_HEALTH or $this->id === Effect::SATURATION;
+	}
+	
+	/**
+	 * Returns the potency of the effect.
+	 *
+	 * @return float
+	 */
+	public function getPotency() : float{
+		return $this->potency;
+	}
+	
+	/**
+	 * Sets the potency for instant effect.
+	 *
+	 * @param float $potency
+	 */
+	 public function setPotency(float $potency = 1){
+	 	if(!$this->isInstant()){
+	 		throw new \InvalidStateException("Trying to set potency for non-instant effect!");
+	 	}
+	 	$this->potency = $potency;
+	 }
 
 	/**
 	 * Returns whether the effect will do something on the current tick.
@@ -358,22 +391,23 @@ class Effect{
 				break;
 			case Effect::INSTANT_HEALTH:
 				//TODO: add particles (witch spell)
-				if($entity->getHealth() < $entity->getMaxHealth() and !($entity instanceof Player and $entity->isCreative())){
-					$amount = 2 * (2 ** ($this->getEffectLevel() % 32));
+				$amount = (4 << $this->amplifier) * $this->potency;
+				if($amount > 0 and $entity->getHealth() < $entity->getMaxHealth() and !($entity instanceof Player and $entity->isCreative())){
 					$entity->heal($amount, new EntityRegainHealthEvent($entity, $amount, EntityRegainHealthEvent::CAUSE_MAGIC));
 				}
 				break;
 			case Effect::INSTANT_DAMAGE:
 				//TODO: add particles (witch spell)
-				if(!($entity instanceof Player and $entity->isCreative())){
-					$amount = 2 * (2 ** ($this->getEffectLevel() % 32));
+				$amount = (4 << $this->amplifier) * $this->potency;
+				if($amount > 0 and !($entity instanceof Player and $entity->isCreative())){
 					$entity->attack($amount, new EntityDamageEvent($entity, EntityDamageEvent::CAUSE_MAGIC, $amount));
 				}
 				break;
 			case Effect::SATURATION:
-				if($entity instanceof Human){
-					$entity->addFood($this->getEffectLevel());
-					$entity->addSaturation($this->getEffectLevel() * 2);
+				$food = $this->getEffectLevel() * $this->potency;
+				if($food > 0 and $entity instanceof Human){
+					$entity->addFood($food);
+					$entity->addSaturation($food);
 				}
 				break;
 		}

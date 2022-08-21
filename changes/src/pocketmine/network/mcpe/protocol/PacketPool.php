@@ -148,7 +148,7 @@ class PacketPool{
 	 * @return DataPacket
 	 */
 	public static function getPacket(string $buffer) : DataPacket{
-		$pk = static::getPacketById(ord($buffer{0}));
+		$pk = static::getPacketById(ord($buffer[0]));
 		$pk->setBuffer($buffer);
 
 		return $pk;

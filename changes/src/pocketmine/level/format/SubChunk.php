@@ -59,16 +59,16 @@ class SubChunk implements SubChunkInterface{
 	}
 
 	public function getBlockId(int $x, int $y, int $z) : int{
-		return ord($this->ids{($x << 8) | ($z << 4) | $y});
+		return ord($this->ids[($x << 8) | ($z << 4) | $y]);
 	}
 
 	public function setBlockId(int $x, int $y, int $z, int $id) : bool{
-		$this->ids{($x << 8) | ($z << 4) | $y} = chr($id);
+		$this->ids[($x << 8) | ($z << 4) | $y] = chr($id);
 		return true;
 	}
 
 	public function getBlockData(int $x, int $y, int $z) : int{
-		$m = ord($this->data{($x << 7) + ($z << 3) + ($y >> 1)});
+		$m = ord($this->data[($x << 7) + ($z << 3) + ($y >> 1)]);
 		if(($y & 1) === 0){
 			return $m & 0x0f;
 		}else{
@@ -79,9 +79,9 @@ class SubChunk implements SubChunkInterface{
 	public function setBlockData(int $x, int $y, int $z, int $data) : bool{
 		$i = ($x << 7) | ($z << 3) | ($y >> 1);
 		if(($y & 1) === 0){
-			$this->data{$i} = chr((ord($this->data{$i}) & 0xf0) | ($data & 0x0f));
+			$this->data[$i] = chr((ord($this->data[$i]) & 0xf0) | ($data & 0x0f));
 		}else{
-			$this->data{$i} = chr((($data & 0x0f) << 4) | (ord($this->data{$i}) & 0x0f));
+			$this->data[$i] = chr((($data & 0x0f) << 4) | (ord($this->data[$i]) & 0x0f));
 		}
 		return true;
 	}
@@ -89,9 +89,9 @@ class SubChunk implements SubChunkInterface{
 	public function getFullBlock(int $x, int $y, int $z) : int{
 		$i = ($x << 8) | ($z << 4) | $y;
 		if(($y & 1) === 0){
-			return (ord($this->ids{$i}) << 4) | (ord($this->data{$i >> 1}) & 0x0f);
+			return (ord($this->ids[$i]) << 4) | (ord($this->data[$i >> 1]) & 0x0f);
 		}else{
-			return (ord($this->ids{$i}) << 4) | (ord($this->data{$i >> 1}) >> 4);
+			return (ord($this->ids[$i]) << 4) | (ord($this->data[$i >> 1]) >> 4);
 		}
 	}
 
@@ -100,21 +100,21 @@ class SubChunk implements SubChunkInterface{
 		$changed = false;
 		if($id !== null){
 			$block = chr($id);
-			if($this->ids{$i} !== $block){
-				$this->ids{$i} = $block;
+			if($this->ids[$i] !== $block){
+				$this->ids[$i] = $block;
 				$changed = true;
 			}
 		}
 
 		if($data !== null){
 			$i >>= 1;
-			$byte = ord($this->data{$i});
+			$byte = ord($this->data[$i]);
 			if(($y & 1) === 0){
-				$this->data{$i} = chr(($byte & 0xf0) | ($data & 0x0f));
+				$this->data[$i] = chr(($byte & 0xf0) | ($data & 0x0f));
 			}else{
-				$this->data{$i} = chr((($data & 0x0f) << 4) | ($byte & 0x0f));
+				$this->data[$i] = chr((($data & 0x0f) << 4) | ($byte & 0x0f));
 			}
-			if($this->data{$i} !== $byte){
+			if($this->data[$i] !== $byte){
 				$changed = true;
 			}
 		}
@@ -123,7 +123,7 @@ class SubChunk implements SubChunkInterface{
 	}
 
 	public function getBlockLight(int $x, int $y, int $z) : int{
-		$byte = ord($this->blockLight{($x << 7) + ($z << 3) + ($y >> 1)});
+		$byte = ord($this->blockLight[($x << 7) + ($z << 3) + ($y >> 1)]);
 		if(($y & 1) === 0){
 			return $byte & 0x0f;
 		}else{
@@ -133,17 +133,17 @@ class SubChunk implements SubChunkInterface{
 
 	public function setBlockLight(int $x, int $y, int $z, int $level) : bool{
 		$i = ($x << 7) + ($z << 3) + ($y >> 1);
-		$byte = ord($this->blockLight{$i});
+		$byte = ord($this->blockLight[$i]);
 		if(($y & 1) === 0){
-			$this->blockLight{$i} = chr(($byte & 0xf0) | ($level & 0x0f));
+			$this->blockLight[$i] = chr(($byte & 0xf0) | ($level & 0x0f));
 		}else{
-			$this->blockLight{$i} = chr((($level & 0x0f) << 4) | ($byte & 0x0f));
+			$this->blockLight[$i] = chr((($level & 0x0f) << 4) | ($byte & 0x0f));
 		}
 		return true;
 	}
 
 	public function getBlockSkyLight(int $x, int $y, int $z) : int{
-		$byte = ord($this->skyLight{($x << 7) + ($z << 3) + ($y >> 1)});
+		$byte = ord($this->skyLight[($x << 7) + ($z << 3) + ($y >> 1)]);
 		if(($y & 1) === 0){
 			return $byte & 0x0f;
 		}else{
@@ -153,11 +153,11 @@ class SubChunk implements SubChunkInterface{
 
 	public function setBlockSkyLight(int $x, int $y, int $z, int $level) : bool{
 		$i = ($x << 7) + ($z << 3) + ($y >> 1);
-		$byte = ord($this->skyLight{$i});
+		$byte = ord($this->skyLight[$i]);
 		if(($y & 1) === 0){
-			$this->skyLight{$i} = chr(($byte & 0xf0) | ($level & 0x0f));
+			$this->skyLight[$i] = chr(($byte & 0xf0) | ($level & 0x0f));
 		}else{
-			$this->skyLight{$i} = chr((($level & 0x0f) << 4) | ($byte & 0x0f));
+			$this->skyLight[$i] = chr((($level & 0x0f) << 4) | ($byte & 0x0f));
 		}
 		return true;
 	}
@@ -166,7 +166,7 @@ class SubChunk implements SubChunkInterface{
 		$low = ($x << 8) | ($z << 4);
 		$i = $low | 0x0f;
 		for(; $i >= $low; --$i){
-			if($this->ids{$i} !== "\x00"){
+			if($this->ids[$i] !== "\x00"){
 				return $i & 0x0f;
 			}
 		}
@@ -221,10 +221,10 @@ class SubChunk implements SubChunkInterface{
 	}
 
 	public function networkSerialize(int $protocol) : string{
-		if($protocol < ProtocolInfo::MULTIVERSION_PROTOCOL){
+		if ($protocol < ProtocolInfo::MULTIVERSION_PROTOCOL) {
 			// storage version, ids, data, skylight, blocklight
 			return "\x00" . $this->ids . $this->data . $this->skyLight . $this->blockLight;
-		}else{
+		} else {
 			// storage version, ids, data
 			return "\x00" . $this->ids . $this->data;
 		}

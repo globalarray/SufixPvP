@@ -40,6 +40,7 @@ use raklib\RakLib;
 use raklib\server\RakLibServer;
 use raklib\server\ServerHandler;
 use raklib\server\ServerInstance;
+use raklib\utils\InternetAddress;
 
 class RakLibInterface implements ServerInstance, AdvancedSourceInterface{
 
@@ -69,7 +70,11 @@ class RakLibInterface implements ServerInstance, AdvancedSourceInterface{
 		$this->server = $server;
 		$this->identifiers = [];
 
-		$this->rakLib = new RakLibServer($this->server->getLogger(), $this->server->getLoader(), $this->server->getPort(), $this->server->getIp() === "" ? "0.0.0.0" : $this->server->getIp());
+	    $this->rakLib = new RakLibServer(
+			$this->server->getLogger(),
+			$this->server->getLoader(),
+			new InternetAddress($this->server->getIp(), $this->server->getPort(), 4)
+		);
 		$this->interface = new ServerHandler($this->rakLib, $this);
 	}
 
@@ -144,8 +149,9 @@ class RakLibInterface implements ServerInstance, AdvancedSourceInterface{
 				$logger = $this->server->getLogger();
 				$logger->debug("Packet " . (isset($pk) ? get_class($pk) : "unknown") . " 0x" . bin2hex($packet->buffer));
 				$logger->logException($e);
-
-				$this->interface->blockAddress($this->players[$identifier]->getAddress(), 5);
+				if(isset($this->players[$identifier])){
+					$this->interface->blockAddress($this->players[$identifier]->getAddress(), 5);
+				}
 			}
 		}
 	}
@@ -178,7 +184,7 @@ class RakLibInterface implements ServerInstance, AdvancedSourceInterface{
 				$info->getPlayerCount(),
 				$info->getMaxPlayerCount(),
 				$this->rakLib->getServerId(),
-				$name . " - v" . ProtocolInfo::MINECRAFT_VERSION_NETWORK,
+                $name . " - v" . ProtocolInfo::MINECRAFT_VERSION_NETWORK,
 				Server::getGamemodeName($this->server->getGamemode())
 			]) . ";"
 		);
@@ -192,6 +198,12 @@ class RakLibInterface implements ServerInstance, AdvancedSourceInterface{
 		if($name === "bandwidth"){
 			$v = unserialize($value);
 			$this->network->addStatistics($v["up"], $v["down"]);
+		}
+	}
+	public function handlePing($identifier, $ping){
+		if(isset($this->players[$identifier])){
+			$player = $this->players[$identifier];
+			$player->ping = (int)$ping;
 		}
 	}
 
@@ -238,15 +250,15 @@ class RakLibInterface implements ServerInstance, AdvancedSourceInterface{
 		return null;
 	}
 
-	private function getPacket($buffer, int $protocol = ProtocolInfo::CURRENT_PROTOCOL){
-		$pid = ord($buffer{0});
-		if($protocol < ProtocolInfo::MULTIVERSION_PROTOCOL){
-			if(($data = PacketPool::getPacketById($pid)) === null){
+	private function getPacket($buffer, int $protocol = ProtocolInfo::CURRENT_PROTOCOL) {
+		$pid = ord($buffer[0]);
+		if($protocol < ProtocolInfo::MULTIVERSION_PROTOCOL) {
+			if(($data = PacketPool::getPacketById($pid)) === null) {
 				return null;
 			}
 			$data->setBuffer($buffer, 1);
 		}else{
-			if(($data = PacketPool120::getPacketById($pid)) === null){
+			if(($data = PacketPool120::getPacketById($pid)) === null) {
 				return null;
 			}
 			$data->setBuffer($buffer, 1);

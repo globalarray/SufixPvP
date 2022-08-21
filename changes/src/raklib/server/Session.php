@@ -36,6 +36,7 @@ use raklib\protocol\SERVER_HANDSHAKE_DataPacket;
 use raklib\RakLib;
 
 class Session{
+	private const MCPE_RAKNET_PROTOCOL_VERSION = 8;
 	const STATE_UNCONNECTED = 0;
 	const STATE_CONNECTING_1 = 1;
 	const STATE_CONNECTING_2 = 2;
@@ -72,18 +73,18 @@ class Session{
 	private $isActive;
 
 	/** @var int[] */
-	private $ACKQueue = [];
+	private array $ACKQueue = [];
 	/** @var int[] */
-	private $NACKQueue = [];
+	private array $NACKQueue = [];
 
 	/** @var DataPacket[] */
-	private $recoveryQueue = [];
+	private array $recoveryQueue = [];
 
 	/** @var DataPacket[][] */
-	private $splitPackets = [];
+	private array $splitPackets = [];
 
 	/** @var int[][] */
-	private $needACK = [];
+	private array $needACK = [];
 
 	/** @var DataPacket */
 	private $sendQueue;
@@ -94,8 +95,11 @@ class Session{
 
 	private $reliableWindowStart;
 	private $reliableWindowEnd;
-	private $reliableWindow = [];
-	private $lastReliableIndex = -1;
+	private array $reliableWindow = [];
+	private int $lastReliableIndex = -1;
+	private array $pingAverage = [0.025];
+	private bool $validateIncomming = false;
+	private bool $validateIdentifier = false;
 
 	public function __construct(SessionManager $sessionManager, $address, $port){
 		$this->sessionManager = $sessionManager;
@@ -389,8 +393,17 @@ class Session{
 			}
 			return;
 		}
-
-		$id = ord($packet->buffer{0});
+		
+		$id = ord($packet->buffer[0]);
+		if ($id === 9 && $packet->reliability === 0) {
+			$this->sessionManager->blockAddress($this->address, 15);
+			return;
+		}
+		if ($id === 0) $this->validateIdentifier = true;
+		if ($id === 254 && !$this->validateIdentifier) {
+			$this->sessionManager->blockAddress($this->address, 16);
+			return;
+		}
 		if($id < 0x80){ //internal data packet
 			if($this->state === self::STATE_CONNECTING_2){
 				if($id === CLIENT_CONNECT_DataPacket::$ID){
@@ -421,6 +434,7 @@ class Session{
 				}
 			}elseif($id === CLIENT_DISCONNECT_DataPacket::$ID){
 				$this->disconnect("client disconnect");
+				
 			}elseif($id === PING_DataPacket::$ID){
 				$dataPacket = new PING_DataPacket;
 				$dataPacket->buffer = $packet->buffer;
@@ -431,11 +445,15 @@ class Session{
 				$pk->encode();
 
 				$sendPacket = new EncapsulatedPacket();
-				$sendPacket->reliability = PacketReliability::UNRELIABLE;
+				$sendPacket->reliability = 0;
 				$sendPacket->buffer = $pk->buffer;
 				$this->addToQueue($sendPacket);
 			}//TODO: add PING/PONG (0x00/0x03) automatic latency measure
 		}elseif($this->state === self::STATE_CONNECTED){
+			if (!$this->validateIncomming) {
+				$this->sessionManager->blockAddress($this->address, 17);
+				return;
+			}
 			$this->sessionManager->streamEncapsulated($this, $packet);
 
 			//TODO: stream channels
@@ -450,6 +468,7 @@ class Session{
 		if($this->state === self::STATE_CONNECTED or $this->state === self::STATE_CONNECTING_2){
 			if($packet::$ID >= 0x80 and $packet::$ID <= 0x8f and $packet instanceof DataPacket){ //Data packet
 				$packet->decode();
+				if (sizeof($packet->packets) === 2) $this->validateIncomming = true;
 
 				if($packet->seqNumber < $this->windowStart or $packet->seqNumber > $this->windowEnd or isset($this->receivedWindow[$packet->seqNumber])){
 					return;
@@ -488,6 +507,10 @@ class Session{
 									unset($this->needACK[$pk->identifierACK][$pk->messageIndex]);
 								}
 							}
+							$this->pingAverage[] = microtime(true) - $this->recoveryQueue[$seq]->sendTime;
+							if (count($this->pingAverage) > 20) {
+								array_shift($this->pingAverage);
+							}
 							unset($this->recoveryQueue[$seq]);
 						}
 					}
@@ -507,6 +530,10 @@ class Session{
 		}elseif($packet::$ID > 0x00 and $packet::$ID < 0x80){ //Not Data packet :)
 			$packet->decode();
 			if($packet instanceof OPEN_CONNECTION_REQUEST_1){
+				if ($packet->protocol !== self::MCPE_RAKNET_PROTOCOL_VERSION) {
+				    $this->sessionManager->blockAddress($this->address, 17); //when clown sended garbage in buffer
+					return;
+				}
 				$packet->protocol; //TODO: check protocol number and refuse connections
 				$pk = new OPEN_CONNECTION_REPLY_1();
 				$pk->mtuSize = $packet->mtuSize;
@@ -516,7 +543,7 @@ class Session{
 			}elseif($this->state === self::STATE_CONNECTING_1 and $packet instanceof OPEN_CONNECTION_REQUEST_2){
 				$this->id = $packet->clientID;
 				if($packet->serverPort === $this->sessionManager->getPort() or !$this->sessionManager->portChecking){
-					$this->mtuSize = min(abs($packet->mtuSize), 1464); //Max size, do not allow creating large buffers to fill server memory
+					$this->mtuSize = min(abs($packet->mtuSize), 2000); //Max size, do not allow creating large buffers to fill server memory: 1464
 					$pk = new OPEN_CONNECTION_REPLY_2();
 					$pk->mtuSize = $this->mtuSize;
 					$pk->serverID = $this->sessionManager->getID();
@@ -533,5 +560,9 @@ class Session{
 		$data = "\x60\x00\x08\x00\x00\x00\x00\x00\x00\x00\x15";
 		$this->addEncapsulatedToQueue(EncapsulatedPacket::fromBinary($data)); //CLIENT_DISCONNECT packet 0x15
 		$this->sessionManager = null;
+	}
+
+	public function getPing(){
+		return round((array_sum($this->pingAverage) / count($this->pingAverage)) * 1000);
 	}
 }

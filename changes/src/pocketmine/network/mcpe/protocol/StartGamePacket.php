@@ -51,32 +51,27 @@ class StartGamePacket extends DataPacket{
 	public $hasAchievementsDisabled = true;
 	public $dayCycleStopTime = -1; //-1 = not stopped, any positive value = stopped at that time
 	public $eduMode = false;
-	public $rainLevel;
-	public $lightningLevel;
-
 	public $isMultiplayerGame = true;
 	public $hasLANBroadcast = true;
 	public $hasXboxLiveBroadcast = false;
-
+	public $rainLevel;
+	public $lightningLevel;
 	public $commandsEnabled;
 	public $isTexturePacksRequired = true;
 	public $gameRules = []; //TODO: implement this
-
 	public $hasBonusChestEnabled = false;
 	public $hasStartWithMapEnabled = false;
 	public $hasTrustPlayersEnabled = false;
 	public $defaultPlayerPermission = PlayerPermissions::MEMBER; //TODO
 	public $xboxLiveBroadcastMode = 0; //TODO: find values
-
 	public $levelId = ""; //base64 string, usually the same as world folder name in vanilla
 	public $worldName;
 	public $premiumWorldTemplateId = "";
 	public $unknownBool = false;
 	public $currentTick = 0;
-
 	public $enchantmentSeed = 0;
 
-	public function decodePayload(){
+	public function decodePayload() {
 		$this->entityUniqueId = $this->getEntityUniqueId();
 		$this->entityRuntimeId = $this->getEntityRuntimeId();
 		$this->playerGamemode = $this->getVarInt();
@@ -94,7 +89,7 @@ class StartGamePacket extends DataPacket{
 		$this->eduMode = $this->getBool();
 		$this->rainLevel = $this->getLFloat();
 		$this->lightningLevel = $this->getLFloat();
-		if($this->protocol >= ProtocolInfo::MULTIVERSION_PROTOCOL){
+		if ($this->protocol >= ProtocolInfo::MULTIVERSION_PROTOCOL) {
 			$this->isMultiplayerGame = $this->getBool();
 			$this->hasLANBroadcast = $this->getBool();
 			$this->hasXboxLiveBroadcast = $this->getBool();
@@ -102,7 +97,7 @@ class StartGamePacket extends DataPacket{
 		$this->commandsEnabled = $this->getBool();
 		$this->isTexturePacksRequired = $this->getBool();
 		$this->gameRules = $this->getGameRules();
-		if($this->protocol >= ProtocolInfo::MULTIVERSION_PROTOCOL){
+		if ($this->protocol >= ProtocolInfo::MULTIVERSION_PROTOCOL) {
 			$this->hasBonusChestEnabled = $this->getBool();
 			$this->hasStartWithMapEnabled = $this->getBool();
 			$this->hasTrustPlayersEnabled = $this->getBool();
@@ -114,7 +109,7 @@ class StartGamePacket extends DataPacket{
 		$this->premiumWorldTemplateId = $this->getString();
 		$this->unknownBool = $this->getBool();
 		$this->currentTick = $this->getLLong();
-		if($this->protocol >= ProtocolInfo::MULTIVERSION_PROTOCOL){
+		if ($this->protocol >= ProtocolInfo::MULTIVERSION_PROTOCOL) {
 			$this->enchantmentSeed = $this->getVarInt();
 		}
 	}
@@ -137,7 +132,7 @@ class StartGamePacket extends DataPacket{
 		$this->putBool($this->eduMode);
 		$this->putLFloat($this->rainLevel);
 		$this->putLFloat($this->lightningLevel);
-		if($this->protocol >= ProtocolInfo::MULTIVERSION_PROTOCOL){
+		if ($this->protocol >= ProtocolInfo::MULTIVERSION_PROTOCOL) {
 			$this->putBool($this->isMultiplayerGame);
 			$this->putBool($this->hasLANBroadcast);
 			$this->putBool($this->hasXboxLiveBroadcast);
@@ -145,7 +140,7 @@ class StartGamePacket extends DataPacket{
 		$this->putBool($this->commandsEnabled);
 		$this->putBool($this->isTexturePacksRequired);
 		$this->putGameRules($this->gameRules);
-		if($this->protocol >= ProtocolInfo::MULTIVERSION_PROTOCOL){
+		if ($this->protocol >= ProtocolInfo::MULTIVERSION_PROTOCOL) {
 			$this->putBool($this->hasBonusChestEnabled);
 			$this->putBool($this->hasStartWithMapEnabled);
 			$this->putBool($this->hasTrustPlayersEnabled);
@@ -157,7 +152,7 @@ class StartGamePacket extends DataPacket{
 		$this->putString($this->premiumWorldTemplateId);
 		$this->putBool($this->unknownBool);
 		$this->putLLong($this->currentTick);
-		if($this->protocol >= ProtocolInfo::MULTIVERSION_PROTOCOL){
+		if ($this->protocol >= ProtocolInfo::MULTIVERSION_PROTOCOL) {
 			$this->putVarInt($this->enchantmentSeed);
 		}
 	}

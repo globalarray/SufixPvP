@@ -28,12 +28,12 @@ namespace pocketmine\network\mcpe\protocol;
 
 use pocketmine\network\mcpe\NetworkSession;
 use pocketmine\utils\Binary;
+use pocketmine\Server;
 
 class LoginPacket extends DataPacket{
-	const NETWORK_ID = ProtocolInfo::LOGIN_PACKET;
+	public const NETWORK_ID = ProtocolInfo::LOGIN_PACKET;
 
-	const MOJANG_PUBKEY = "MHYwEAYHKoZIzj0CAQYFK4EEACIDYgAE8ELkixyLcwlZryUQcu1TvPOmI2B7vX83ndnWRUaXm74wFfa5f/lwQNTfrLVHa2PmenpGI6JhIMUJaWZrjmMj90NoKNFSNBuKdm8rYiXsfaz3K36x/1U26HpG0ZxK/V1V";
-
+	public const MOJANG_PUBKEY = "MHYwEAYHKoZIzj0CAQYFK4EEACIDYgAE8ELkixyLcwlZryUQcu1TvPOmI2B7vX83ndnWRUaXm74wFfa5f/lwQNTfrLVHa2PmenpGI6JhIMUJaWZrjmMj90NoKNFSNBuKdm8rYiXsfaz3K36x/1U26HpG0ZxK/V1V";
 	const EDITION_POCKET = 0;
 
 	public $username;
@@ -53,9 +53,10 @@ class LoginPacket extends DataPacket{
 	public $decoded;
 
 	public $languageCode;
-	
-	public $deviceModel;
+
 	public $deviceOS;
+	public $deviceModel;
+	public $clientInput;
 
 	public function canBeSentBeforeLogin() : bool{
 		return true;
@@ -65,7 +66,9 @@ class LoginPacket extends DataPacket{
 		$this->protocol = $this->getInt();
 
 		if($this->protocol !== ProtocolInfo::CURRENT_PROTOCOL){
+			$this->buffer = null;
 			try{
+			return; //Do not attempt to decode for non-accepted protocols
 				$this->offset = 0;
 				$this->getUnsignedVarInt(); //PID
 				$this->getByte(); //2 split-screen bytes
@@ -112,6 +115,9 @@ class LoginPacket extends DataPacket{
 		$this->clientId = $this->clientData["ClientRandomId"] ?? null;
 		$this->serverAddress = $this->clientData["ServerAddress"] ?? null;
 		$this->skinId = $this->clientData["SkinId"] ?? null;
+		$this->deviceOS = $this->clientData['DeviceOS'] ?? null; 
+		$this->deviceModel = $this->clientData['DeviceModel'] ?? null;
+		$this->clientInput = $this->clientData['CurrentInputMode'] ?? null;  
 
 		if(isset($this->clientData["SkinData"])) {
 			$this->skin = base64_decode($this->clientData["SkinData"]);
@@ -119,15 +125,7 @@ class LoginPacket extends DataPacket{
 		if (isset($this->clientData["LanguageCode"])) {
 			$this->languageCode = $this->clientData["LanguageCode"];
 		}
-		
-		if(isset($this->clientData["DeviceModel"])){
-			$this->deviceModel = $this->clientData["DeviceModel"];
-		}
-		
-		if(isset($this->clientData["DeviceOS"])){
-			$this->deviceOS = $this->clientData["DeviceOS"];
-		}
- 	}
+	}
 
 	public function encodePayload(){
 		//TODO

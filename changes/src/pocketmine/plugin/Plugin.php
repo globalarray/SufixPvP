@@ -69,7 +69,7 @@ interface Plugin extends CommandExecutor{
 	 *
 	 * @return string
 	 */
-	public function getDataFolder() : string;
+	public function getDataFolder() : ?string;
 
 	/**
 	 * @return PluginDescription

@@ -72,6 +72,12 @@ class AdventureSettingsPacket extends DataPacket{
 	}
 
 	public function encodePayload(){
+		if ($this->protocol >= ProtocolInfo::MULTIVERSION_PROTOCOL) {
+			$this->putUnsignedVarInt(128); //flags2
+			$this->putUnsignedVarInt(PlayerPermissions::MEMBER); //playerPermission
+			$this->putUnsignedVarInt(0); //customFlags
+			$this->putLLong($this->entityUniqueId);
+		}
 		$this->flags |= ((int) $this->worldImmutable);
 		$this->flags |= ((int) $this->noPvp)        << 1;
 		$this->flags |= ((int) $this->noPvm)        << 2;
@@ -86,12 +92,6 @@ class AdventureSettingsPacket extends DataPacket{
 
 		$this->putUnsignedVarInt($this->flags);
 		$this->putUnsignedVarInt($this->userPermission);
-		if($this->protocol >= ProtocolInfo::MULTIVERSION_PROTOCOL){
-			$this->putUnsignedVarInt(128); //flags2
-			$this->putUnsignedVarInt(PlayerPermissions::MEMBER); //playerPermission
-			$this->putUnsignedVarInt(0); //customFlags
-			$this->putLLong($this->entityUniqueId);
-		}
 	}
 
 	public function handle(NetworkSession $session) : bool{

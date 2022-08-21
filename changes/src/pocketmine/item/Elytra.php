@@ -24,12 +24,8 @@ declare(strict_types=1);
 namespace pocketmine\item;
 
 
-class Elytra extends Armor{
+class Elytra extends Item{
 	public function __construct($meta = 0, $count = 1){
 		parent::__construct(self::ELYTRA, $meta, $count, "Elytra");
-	}
-
-	public function getArmorPoints() : int{
-		return 0;
 	}
 }

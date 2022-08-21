@@ -32,9 +32,9 @@ use pocketmine\nbt\tag\ShortTag;
 use pocketmine\network\mcpe\protocol\AddEntityPacket;
 use pocketmine\network\mcpe\protocol\LevelSoundEventPacket;
 use pocketmine\Player;
+use pocketmine\utils\Color;
 
 class ThrownPotion extends Projectile{
-
 	const NETWORK_ID = 86;
 
 	const DATA_POTION_ID = 37;
@@ -61,8 +61,6 @@ class ThrownPotion extends Projectile{
 		}
 
 		parent::__construct($level, $nbt, $shootingEntity);
-
-		unset($this->dataProperties[self::DATA_SHOOTER_ID]);
 		$this->setDataProperty(self::DATA_POTION_ID, self::DATA_TYPE_SHORT, $this->getPotionId());
 	}
 
@@ -76,18 +74,37 @@ class ThrownPotion extends Projectile{
 	public function splash(){
 		if(!$this->hasSplashed){
 			$this->hasSplashed = true;
+			$color = [0x38, 0x5d, 0xc6];
 			$effect = Potion::getEffectByMeta($this->getPotionId());
-			$color = [0, 0, 255];
-			if($effect !== null)
+			if($effect !== null){
 				$color = $effect->getColor();
+			}
 			$this->getLevel()->addParticle(new SplashPotionParticle($this, $color[0], $color[1], $color[2]));
 			$this->getLevel()->broadcastLevelSoundEvent($this, LevelSoundEventPacket::SOUND_GLASS);
-			$radius = 6;
-			foreach($this->getLevel()->getNearbyEntities($this->getBoundingBox()->grow($radius, $radius, $radius)) as $e){
-				if(!$e instanceof Living)
-					continue;
-				if($effect !== null)
-					$e->addEffect($effect);
+			if($effect !== null){
+				foreach($this->getLevel()->getNearbyEntities($this->getBoundingBox()->grow(4.125, 2.125, 4.125)) as $e){
+					if($e instanceof Living){
+						$distanceSquared = $e->distanceSquared($this);
+						if($distanceSquared > 16){
+							continue;
+						}
+						$modifier = 0.25 * (4 - floor(sqrt($distanceSquared)));
+						if($modifier <= 0){
+							continue;
+						}
+						$eff = clone $effect;
+						if($eff->isInstant()){
+							$eff->setPotency($modifier);
+						}else{
+							$duration = (int) round($effect->getDuration() * 0.75 * $modifier);
+							if($duration < 20){
+								continue;
+							}
+							$eff->setDuration($duration);
+						}
+						$e->addEffect($eff);
+					}
+				}
 			}
 
 			$this->kill();
@@ -116,7 +133,10 @@ class ThrownPotion extends Projectile{
 
 		$hasUpdate = parent::onUpdate($currentTick);
 
-		if($this->age > 1200 or $this->isCollided){
+		if($this->age > 1200){
+			$this->kill();
+			$hasUpdate = true;
+		}elseif($this->isCollided){
 			$this->splash();
 			$hasUpdate = true;
 		}
