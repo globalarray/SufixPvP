@@ -43,8 +43,10 @@ use pocketmine\event\player\PlayerDataSaveEvent;
 use pocketmine\event\server\QueryRegenerateEvent;
 use pocketmine\event\server\ServerCommandEvent;
 use pocketmine\event\TextContainer;
-use pocketmine\event\Timings;
-use pocketmine\event\TimingsHandler;
+use pocketmine\timings\{
+	Timings,
+	TimingsHandler
+};
 use pocketmine\event\TranslationContainer;
 use pocketmine\inventory\CraftingManager;
 use pocketmine\inventory\InventoryType;
@@ -1920,7 +1922,7 @@ class Server{
 	 * @param bool         $immediate
 	 */
 	public function batchPackets(array $players, array $packets, bool $forceSync = false, bool $immediate = false){
-		Timings::$playerNetworkTimer->startTiming();
+		Timings::$playerNetworkSend->startTiming();
 
 		$targets = [];
 		foreach($players as $p){
@@ -1951,7 +1953,7 @@ class Server{
 			}
 		}
 
-		Timings::$playerNetworkTimer->stopTiming();
+		Timings::$playerNetworkSend->stopTiming();
 	}
 
 	public function broadcastPacketsCallback(BatchPacket $pk, array $identifiers, bool $immediate = false){
@@ -2004,14 +2006,14 @@ class Server{
 	}
 
 	public function checkConsole(){
-		Timings::$serverCommandTimer->startTiming();
+		Timings::$serverCommand->startTiming();
 		if(($line = $this->console->getLine()) !== null){
 			$this->pluginManager->callEvent($ev = new ServerCommandEvent($this->consoleSender, $line));
 			if(!$ev->isCancelled()){
 				$this->dispatchCommand($ev->getSender(), $ev->getCommand());
 			}
 		}
-		Timings::$serverCommandTimer->stopTiming();
+		Timings::$serverCommand->stopTiming();
 	}
 
 	/**
@@ -2535,24 +2537,24 @@ class Server{
 			return false;
 		}
 
-		Timings::$serverTickTimer->startTiming();
+		Timings::$serverTick->startTiming();
 
 		++$this->tickCounter;
 
 		$this->checkConsole();
 
-		Timings::$connectionTimer->startTiming();
+		Timings::$connection->startTiming();
 		$this->network->processInterfaces();
 
 		if($this->rcon !== null){
 			$this->rcon->check();
 		}
 
-		Timings::$connectionTimer->stopTiming();
+		Timings::$connection->stopTiming();
 
-		Timings::$schedulerTimer->startTiming();
+		Timings::$scheduler->startTiming();
 		$this->scheduler->mainThreadHeartbeat($this->tickCounter);
-		Timings::$schedulerTimer->stopTiming();
+		Timings::$scheduler->stopTiming();
 
 		$this->checkTickUpdates($this->tickCounter, $tickTime);
 
@@ -2605,7 +2607,7 @@ class Server{
 
 		$this->getMemoryManager()->check();
 
-		Timings::$serverTickTimer->stopTiming();
+		Timings::$serverTick->stopTiming();
 
         $now = microtime(true);
         $this->currentTPS = min(20, 1 / max(0.001, $now - $tickTime));

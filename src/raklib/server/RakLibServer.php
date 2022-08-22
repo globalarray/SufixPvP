@@ -17,28 +17,36 @@ namespace raklib\server;
 
 use raklib\utils\InternetAddress;
 use raklib\generic\Socket;
+use \ByteBuffer;
+use \Threaded;
+use \ThreadedLogger;
+use \ClassLoader;
 
 class RakLibServer extends \Thread{
 	/** @var \ThreadedLogger */
-	protected $logger;
-	protected $loader;
+	protected ThreadedLogger $logger;
+	/** @var \ClassLoader */
+	protected ClassLoader $loader;
 
 	/** @var InternetAddress */
 	public InternetAddress $bindAddress;
+
+	/** @var \ByteBuffer */
+	//public ByteBuffer $binary;
 
 	public $loadPaths;
 
 	protected $shutdown;
 
 	/** @var \Threaded */
-	protected $externalQueue;
+	protected Threaded $externalQueue;
 	/** @var \Threaded */
-	protected $internalQueue;
+	protected Threaded $internalQueue;
 
 	protected $mainPath;
 
 	/** @var int */
-	protected $serverId = 0;
+	protected int $serverId = 0;
 
 	/**
 	 * @param \ThreadedLogger $logger
@@ -48,8 +56,9 @@ class RakLibServer extends \Thread{
 	 *
 	 * @throws \Exception
 	 */
-	public function __construct(\ThreadedLogger $logger, \ClassLoader $loader, InternetAddress $bindAddress){
+	public function __construct(ThreadedLogger $logger, ClassLoader $loader, InternetAddress $bindAddress) {
 		$this->bindAddress = $bindAddress;
+		//$this->binary = new ByteBuffer("\x00");
 		$this->logger = $logger;
 		$this->loader = $loader;
 		$loadPaths = [];
@@ -58,8 +67,8 @@ class RakLibServer extends \Thread{
 		$this->loadPaths = array_reverse($loadPaths);
 		$this->shutdown = false;
 
-		$this->externalQueue = new \Threaded;
-		$this->internalQueue = new \Threaded;
+		$this->externalQueue = new Threaded;
+		$this->internalQueue = new Threaded;
 
 		if(\Phar::running(true) !== ""){
 			$this->mainPath = \Phar::running(true);
@@ -127,6 +136,10 @@ class RakLibServer extends \Thread{
 
 	public function readMainToThreadPacket(){
 		return $this->internalQueue->shift();
+	}
+
+	public function getBinary() : ByteBuffer{
+		return $this->binary;
 	}
 
 	public function pushThreadToMainPacket($str){

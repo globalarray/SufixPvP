@@ -53,8 +53,9 @@ class ServerHandler{
 	}
 
 	public function blockAddress($address, $timeout){
-		$b = new ByteBuffer(0);
-		$buffer = chr(RakLib::PACKET_BLOCK_ADDRESS) . chr(strlen($address)) . $address . $b->writeSignedVarInt($timeout);
+		$buffer = chr(RakLib::PACKET_BLOCK_ADDRESS) . chr(strlen($address)) . $address . Binary::writeInt($timeout);
+		//$buffer = new \ByteBuffer($payload);
+		//$buffer->writeSignedVarInt($timeout);
 		$this->server->pushMainToThreadPacket($buffer);
 	}
 
@@ -81,8 +82,9 @@ class ServerHandler{
 	/**
 	 * @return bool
 	 */
-	public function handlePacket(){
-		if(strlen($packet = $this->server->readThreadToMainPacket()) > 0){
+	public function handlePacket() {
+		if (($packet = $this->server->readThreadToMainPacket()) === NULL) return;
+		if(strlen($packet) > 0){
 			$id = ord($packet[0]);
 			$offset = 1;
 			if($id === RakLib::PACKET_ENCAPSULATED){
@@ -140,7 +142,7 @@ class ServerHandler{
 				$len = ord($packet[$offset++]);
 				$identifier = substr($packet, $offset, $len);
 				$offset += $len;
-				$identifierACK = readSignedInt(substr($packet, $offset, 4));
+				$identifierACK = Binary::readInt(substr($packet, $offset, 4));
 				$this->instance->notifyACK($identifier, $identifierACK);
 			}
 

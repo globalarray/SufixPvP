@@ -24,7 +24,7 @@ declare(strict_types=1);
 namespace pocketmine;
 
 use pocketmine\event\server\LowMemoryEvent;
-use pocketmine\event\Timings;
+use pocketmine\timings\Timings;
 use pocketmine\scheduler\GarbageCollectionTask;
 use pocketmine\utils\Utils;
 
@@ -162,7 +162,7 @@ class MemoryManager{
 	}
 
 	public function check(){
-		Timings::$memoryManagerTimer->startTiming();
+		Timings::$memoryManager->startTiming();
 
 		if(($this->memoryLimit > 0 or $this->globalMemoryLimit > 0) and ++$this->checkTicker >= $this->checkRate){
 			$this->checkTicker = 0;
@@ -195,11 +195,11 @@ class MemoryManager{
 			$this->triggerGarbageCollector();
 		}
 
-		Timings::$memoryManagerTimer->stopTiming();
+		Timings::$memoryManager->stopTiming();
 	}
 
 	public function triggerGarbageCollector(){
-		Timings::$garbageCollectorTimer->startTiming();
+		Timings::$garbageCollector->startTiming();
 
 		if($this->garbageCollectionAsync){
 			$size = $this->server->getScheduler()->getAsyncTaskPoolSize();
@@ -210,7 +210,7 @@ class MemoryManager{
 
 		$cycles = gc_collect_cycles();
 
-		Timings::$garbageCollectorTimer->stopTiming();
+		Timings::$garbageCollector->stopTiming();
 
 		return $cycles;
 	}

@@ -77,6 +77,7 @@ namespace pocketmine {
 	use pocketmine\lang\Translate;
 	use pocketmine\utils\Utils;
 	use pocketmine\wizard\SetupWizard;
+	use pocketmine\thread\ThreadManager;
 	use raklib\RakLib;
 
 	const VERSION = 'v0.4-beta';

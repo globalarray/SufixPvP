@@ -17,41 +17,39 @@
  * @link http://www.pocketmine.net/
  *
  *
-*/
+ */
 
 declare(strict_types=1);
 
 namespace pocketmine\scheduler;
 
-use pocketmine\utils\MainLogger;
-use pocketmine\thread\Worker;
+final class BulkCurlTaskOperation{
+	/**
+	 * @param string[] $extraHeaders
+	 * @param mixed[] $extraOpts
+	 * @phpstan-param list<string> $extraHeaders
+	 * @phpstan-param array<int, mixed> $extraOpts
+	 */
+	public function __construct(
+		private string $page,
+		private float $timeout = 10,
+		private array $extraHeaders = [],
+		private array $extraOpts = []
+	){}
 
-class AsyncWorker extends Worker{
+	public function getPage() : string{ return $this->page; }
 
-	private $logger;
-	private $id;
+	public function getTimeout() : float{ return $this->timeout; }
 
-	public function __construct(MainLogger $logger, int $id){
-		$this->logger = $logger;
-		$this->id = $id;
-	}
+	/**
+	 * @return string[]
+	 * @phpstan-return list<string>
+	 */
+	public function getExtraHeaders() : array{ return $this->extraHeaders; }
 
-	public function onRun() : void{
-		$this->registerClassLoader();
-		$this->logger->registerStatic();
-
-		gc_enable();
-		ini_set("memory_limit", '-1');
-
-		global $store;
-		$store = [];
-	}
-
-	public function handleException(\Throwable $e){
-		$this->logger->logException($e);
-	}
-
-	public function getThreadName() : string{
-		return "Asynchronous Worker #" . $this->id;
-	}
+	/**
+	 * @return mixed[]
+	 * @phpstan-return array<int, mixed>
+	 */
+	public function getExtraOpts() : array{ return $this->extraOpts; }
 }

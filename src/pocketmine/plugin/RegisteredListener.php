@@ -26,7 +26,7 @@ namespace pocketmine\plugin;
 use pocketmine\event\Cancellable;
 use pocketmine\event\Event;
 use pocketmine\event\Listener;
-use pocketmine\event\TimingsHandler;
+use pocketmine\timings\TimingsHandler;
 
 class RegisteredListener{
 
@@ -99,9 +99,9 @@ class RegisteredListener{
 		$this->timings->stopTiming();
 	}
 
-	public function __destruct(){
-		$this->timings->remove();
-	}
+	//public function __destruct(){
+	//	$this->timings->remove();
+	//}
 
 	/**
 	 * @return bool

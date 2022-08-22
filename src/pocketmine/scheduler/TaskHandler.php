@@ -23,8 +23,8 @@ declare(strict_types=1);
 
 namespace pocketmine\scheduler;
 
-use pocketmine\event\Timings;
-use pocketmine\event\TimingsHandler;
+use pocketmine\timings\Timings;
+use pocketmine\timings\TimingsHandler;
 
 class TaskHandler{
 
@@ -47,7 +47,7 @@ class TaskHandler{
 	protected $cancelled = false;
 
 	/** @var TimingsHandler */
-	public $timings;
+	public TimingsHandler $timings;
 
 	public $timingName = null;
 
@@ -64,7 +64,7 @@ class TaskHandler{
 		$this->delay = $delay;
 		$this->period = $period;
 		$this->timingName = $timingName ?? "Unknown";
-		$this->timings = Timings::getPluginTaskTimings($this, $period);
+		$this->timings = Timings::getScheduledTaskTimings($this, $period);
 		$this->task->setHandler($this);
 	}
 
@@ -163,5 +163,13 @@ class TaskHandler{
 		}
 
 		return get_class($this->task);
+	}
+
+	public function getOwnerName() : string{
+		return match (true) {
+			($this->task instanceof PluginTask && $this->task->getOwner() !== NULL) => $this->task->getOwner()->getDescription()->getFullName(),
+			(isset($this->task->timingName)) => 'Scheduler',
+			default => 'Unknown', 
+		};
 	}
 }

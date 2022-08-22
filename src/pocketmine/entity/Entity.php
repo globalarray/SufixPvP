@@ -37,8 +37,10 @@ use pocketmine\event\entity\EntityMotionEvent;
 use pocketmine\event\entity\EntityRegainHealthEvent;
 use pocketmine\event\entity\EntitySpawnEvent;
 use pocketmine\event\entity\EntityTeleportEvent;
-use pocketmine\event\Timings;
-use pocketmine\event\TimingsHandler;
+use pocketmine\timings\{
+	Timings,
+	TimingsHandler
+};
 use pocketmine\item\enchantment\Enchantment;
 use pocketmine\level\format\Chunk;
 use pocketmine\level\Level;
@@ -1246,9 +1248,9 @@ abstract class Entity extends Location implements Metadatable{
 
 		$this->timings->startTiming();
 
-		Timings::$timerEntityBaseTick->startTiming();
+		Timings::$entityBaseTick->startTiming();
 		$hasUpdate = $this->entityBaseTick($tickDiff);
-		Timings::$timerEntityBaseTick->stopTiming();
+		Timings::$entityBaseTick->stopTiming();
 
 		$this->updateMovement();
 
@@ -1426,7 +1428,7 @@ abstract class Entity extends Location implements Metadatable{
 			return true;
 		}
 
-		Timings::$entityMoveTimer->startTiming();
+		Timings::$entityMove->startTiming();
 
 		$newBB = $this->boundingBox->getOffsetBoundingBox($dx, $dy, $dz);
 
@@ -1454,7 +1456,7 @@ abstract class Entity extends Location implements Metadatable{
 		$this->isCollided = $this->onGround;
 		$this->updateFallState($dy, $this->onGround);
 
-		Timings::$entityMoveTimer->stopTiming();
+		Timings::$entityMove->stopTiming();
 
 		return true;
 	}
@@ -1474,7 +1476,7 @@ abstract class Entity extends Location implements Metadatable{
 			return true;
 		}else{
 
-			Timings::$entityMoveTimer->startTiming();
+			Timings::$entityMove->startTiming();
 
 			$this->ySize *= 0.4;
 

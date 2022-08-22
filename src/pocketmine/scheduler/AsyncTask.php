@@ -37,6 +37,8 @@ use pocketmine\Server;
  */
 abstract class AsyncTask extends Collectable{
 
+	private static ?\ArrayObject $threadLocalStorage = null;
+
 	/** @var AsyncWorker $worker */
 	public $worker = null;
 
@@ -87,6 +89,35 @@ abstract class AsyncTask extends Collectable{
 		}
 
 		$this->setGarbage();
+	}
+
+	/**
+	 * Saves mixed data in thread-local storage. Data stored using this storage is **only accessible from the thread it
+	 * was stored on**. Data stored using this method will **not** be serialized.
+	 * This can be used to store references to variables which you need later on on the same thread, but not others.
+	 *
+	 * For example, plugin references could be stored in the constructor of the async task (which is called on the main
+	 * thread) using this, and then fetched in onCompletion() (which is also called on the main thread), without them
+	 * becoming serialized.
+	 *
+	 * Scalar types can be stored directly in class properties instead of using this storage.
+	 *
+	 * Objects stored in this storage can be retrieved using fetchLocal() on the same thread that this method was called
+	 * from.
+	 *
+	 * @param mixed  $complexData the data to store
+	 */
+	protected function storeLocal(string $key, $complexData) : void{
+		if(self::$threadLocalStorage === null){
+			/*
+			 * It's necessary to use an object (not array) here because pthreads is stupid. Non-default array statics
+			 * will be inherited when task classes are copied to the worker thread, which would cause unwanted
+			 * inheritance of primitive thread-locals, which we really don't want for various reasons.
+			 * It won't try to inherit objects though, so this is the easiest solution.
+			 */
+			self::$threadLocalStorage = new \ArrayObject();
+		}
+		self::$threadLocalStorage[spl_object_id($this)][$key] = $complexData;
 	}
 
 	public function isCrashed() : bool{

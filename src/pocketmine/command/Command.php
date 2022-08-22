@@ -27,7 +27,10 @@ declare(strict_types=1);
 namespace pocketmine\command;
 
 use pocketmine\event\TextContainer;
-use pocketmine\event\TimingsHandler;
+use pocketmine\timings\{
+	Timings,
+	TimingsHandler
+};
 use pocketmine\event\TranslationContainer;
 use pocketmine\Player;
 use pocketmine\Server;
@@ -205,10 +208,7 @@ abstract class Command{
 	public function setLabel(string $name) : bool{
 		$this->nextLabel = $name;
 		if(!$this->isRegistered()){
-			if($this->timings instanceof TimingsHandler){
-				$this->timings->remove();
-			}
-			$this->timings = new TimingsHandler("** Command: " . $name);
+			$this->timings = new TimingsHandler(Timings::INCLUDED_BY_OTHER_TIMINGS_PREFIX . "Command: " . $name);
 			$this->label = $name;
 
 			return true;

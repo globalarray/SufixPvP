@@ -24,7 +24,7 @@ declare(strict_types=1);
 namespace pocketmine\network\rcon;
 
 use pocketmine\snooze\SleeperNotifier;
-use pocketmine\Thread;
+use pocketmine\thread\Thread;
 use pocketmine\utils\Binary;
 use function count;
 use function ltrim;
@@ -162,7 +162,7 @@ class RCONInstance extends Thread{
 	/**
 	 * @return void
 	 */
-	public function run(){
+	public function onRun() : void{
 		$this->registerClassLoader();
 
 		/** @var resource[] $clients */

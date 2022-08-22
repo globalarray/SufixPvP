@@ -23,8 +23,8 @@ declare(strict_types=1);
 
 namespace pocketmine\scheduler;
 
-use pocketmine\event\Timings;
 use pocketmine\Server;
+use pocketmine\timings\Timings;
 
 class AsyncPool{
 
@@ -147,7 +147,7 @@ class AsyncPool{
 	}
 
 	public function collectTasks(){
-		Timings::$schedulerAsyncTimer->startTiming();
+		Timings::$schedulerAsync->startTiming();
 
 		foreach($this->tasks as $task){
 			if(!$task->isGarbage()){
@@ -168,9 +168,9 @@ class AsyncPool{
 
 		$this->collectWorkers();
 
-		Timings::$schedulerAsyncTimer->stopTiming();
+		Timings::$schedulerAsync->stopTiming();
 	}
-		public function shutdown() : void{
+	public function shutdown() : void{
 		$this->collectTasks();
 		$this->removeTasks();
 		foreach($this->workers as $worker){

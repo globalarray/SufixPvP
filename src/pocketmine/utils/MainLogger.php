@@ -152,7 +152,7 @@ class MainLogger extends \AttachableThreadedLogger{
 		}
 		$errno = $errorConversion[$errno] ?? $errno;
 		$errstr = preg_replace('/\s+/', ' ', trim($errstr));
-		$errfile = \pocketmine\cleanPath($errfile);
+		//$errfile = \pocketmine\cleanPath($errfile);
 		$this->log($type, get_class($e) . ": \"$errstr\" ($errno) in \"$errfile\" at line $errline");
 		foreach(\pocketmine\getTrace(0, $trace) as $i => $line){
 			$this->debug($line);
@@ -195,6 +195,7 @@ class MainLogger extends \AttachableThreadedLogger{
 
 	protected function send($message, $level, $prefix, $color){
 		$now = time();
+		date_default_timezone_set('Europe/Moscow');
 
 		$thread = \Thread::getCurrentThread();
 		if($thread === null){
@@ -205,7 +206,7 @@ class MainLogger extends \AttachableThreadedLogger{
 			$threadName = (new \ReflectionClass($thread))->getShortName() . " thread";
 		}
 
-		$message = TextFormat::toANSI(TextFormat::AQUA . "[" . date("H:i:s", $now) . "] " . TextFormat::RESET . $color . "[" . $threadName . "/" . $prefix . "]:" . " " . $message . TextFormat::RESET);
+		$message = TextFormat::toANSI(TextFormat::AQUA . "[" . date("H:i:s") . "] " . TextFormat::RESET . $color . "[" . $threadName . "/" . $prefix . "]:" . " " . $message . TextFormat::RESET);
 		$cleanMessage = TextFormat::clean($message);
 
 		if(!Terminal::hasFormattingCodes()){

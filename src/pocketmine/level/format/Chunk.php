@@ -727,7 +727,7 @@ class Chunk{
 		if(!$this->isInit){
 			$changed = false;
 			if($this->NBTentities !== null){
-				$level->timings->syncChunkLoadEntitiesTimer->startTiming();
+				$level->timings->syncChunkLoadEntities->startTiming();
 				foreach($this->NBTentities as $nbt){
 					if($nbt instanceof CompoundTag){
 						if(!isset($nbt->id)){
@@ -753,9 +753,9 @@ class Chunk{
 						}
 					}
 				}
-				$level->timings->syncChunkLoadEntitiesTimer->stopTiming();
+				$level->timings->syncChunkLoadEntities->stopTiming();
 
-				$level->timings->syncChunkLoadTileEntitiesTimer->startTiming();
+				$level->timings->syncChunkLoadTileEntities->startTiming();
 				foreach($this->NBTtiles as $nbt){
 					if($nbt instanceof CompoundTag){
 						if(!isset($nbt->id)){
@@ -775,7 +775,7 @@ class Chunk{
 					}
 				}
 
-				$level->timings->syncChunkLoadTileEntitiesTimer->stopTiming();
+				$level->timings->syncChunkLoadTileEntities->stopTiming();
 
 				$this->NBTentities = null;
 				$this->NBTtiles = null;

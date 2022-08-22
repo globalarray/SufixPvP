@@ -60,9 +60,11 @@ use pocketmine\event\level\ChunkUnloadEvent;
 use pocketmine\event\level\LevelSaveEvent;
 use pocketmine\event\level\LevelUnloadEvent;
 use pocketmine\event\level\SpawnChangeEvent;
-use pocketmine\event\LevelTimings;
+use pocketmine\timings\{
+	LevelTimings,
+	Timings
+};
 use pocketmine\event\player\PlayerInteractEvent;
-use pocketmine\event\Timings;
 use pocketmine\inventory\InventoryHolder;
 use pocketmine\item\Item;
 use pocketmine\level\format\Chunk;
@@ -716,7 +718,7 @@ class Level implements ChunkManager, Metadatable{
 		$this->unloadChunks();
 
 		//Do block updates
-		$this->timings->doTickPending->startTiming();
+		$this->timings->doTick->startTiming();
 
 		//Delayed updates
 		while($this->scheduledBlockUpdateQueue->count() > 0 and $this->scheduledBlockUpdateQueue->current()["priority"] <= $currentTick){
@@ -735,21 +737,21 @@ class Level implements ChunkManager, Metadatable{
 			}
 		}
 
-		$this->timings->doTickPending->stopTiming();
+		$this->timings->doTick->stopTiming();
 
 		$this->timings->entityTick->startTiming();
 		//Update entities that need update
-		Timings::$tickEntityTimer->startTiming();
+		Timings::$tickEntity->startTiming();
 		foreach($this->updateEntities as $id => $entity){
 			if($entity->closed or !$entity->onUpdate($currentTick)){
 				unset($this->updateEntities[$id]);
 			}
 		}
-		Timings::$tickEntityTimer->stopTiming();
+		Timings::$tickEntity->stopTiming();
 		$this->timings->entityTick->stopTiming();
 
 		$this->timings->tileEntityTick->startTiming();
-		Timings::$tickTileEntityTimer->startTiming();
+		Timings::$tickTileEntity->startTiming();
 		//Update tiles that need update
 		if(count($this->updateTiles) > 0){
 			foreach($this->updateTiles as $id => $tile){
@@ -758,12 +760,12 @@ class Level implements ChunkManager, Metadatable{
 				}
 			}
 		}
-		Timings::$tickTileEntityTimer->stopTiming();
+		Timings::$tickTileEntity->stopTiming();
 		$this->timings->tileEntityTick->stopTiming();
 
-		$this->timings->doTickTiles->startTiming();
+		$this->timings->randomChunkUpdates->startTiming();
 		$this->tickChunks();
-		$this->timings->doTickTiles->stopTiming();
+		$this->timings->randomChunkUpdates->stopTiming();
 
 		if(count($this->changedBlocks) > 0){
 			if(count($this->players) > 0){
@@ -2408,7 +2410,7 @@ class Level implements ChunkManager, Metadatable{
 
 	private function processChunkRequest(){
 		if(count($this->chunkSendQueue) > 0){
-			$this->timings->syncChunkSendTimer->startTiming();
+			$this->timings->syncChunkSend->startTiming();
 
 			foreach($this->chunkSendQueue as $index => $players){
 				if(isset($this->chunkSendTasks[$index])){
@@ -2420,27 +2422,27 @@ class Level implements ChunkManager, Metadatable{
 					$this->sendChunkFromCache($x, $z);
 					continue;
 				}
-				$this->timings->syncChunkSendPrepareTimer->startTiming();
+				$this->timings->syncChunkSendPrepare->startTiming();
 
 				$task = $this->provider->requestChunkTask($x, $z);
 				$this->server->getScheduler()->scheduleAsyncTask($task);
 
-				$this->timings->syncChunkSendPrepareTimer->stopTiming();
+				$this->timings->syncChunkSendPrepare->stopTiming();
 			}
 
-			$this->timings->syncChunkSendTimer->stopTiming();
+			$this->timings->syncChunkSend->stopTiming();
 		}
 	}
 
 	public function chunkRequestCallback(int $x, int $z, array $packets){
-		$this->timings->syncChunkSendTimer->startTiming();
+		$this->timings->syncChunkSend->startTiming();
 
 		$index = Level::chunkHash($x, $z);
 
 		if(!isset($this->chunkCache[$index]) and $this->cacheChunks and $this->server->getMemoryManager()->canUseChunkCache()){
 			$this->chunkCache[$index] = $payload;
 			$this->sendChunkFromCache($x, $z);
-			$this->timings->syncChunkSendTimer->stopTiming();
+			$this->timings->syncChunkSend->stopTiming();
 			return;
 		}
 
@@ -2454,7 +2456,7 @@ class Level implements ChunkManager, Metadatable{
 			unset($this->chunkSendQueue[$index]);
 			unset($this->chunkSendTasks[$index]);
 		}
-		$this->timings->syncChunkSendTimer->stopTiming();
+		$this->timings->syncChunkSend->stopTiming();
 	}
 
 	/**
@@ -2547,7 +2549,7 @@ class Level implements ChunkManager, Metadatable{
 			return true;
 		}
 
-		$this->timings->syncChunkLoadTimer->startTiming();
+		$this->timings->syncChunkLoad->startTiming();
 
 		$this->cancelUnloadChunkRequest($x, $z);
 
@@ -2576,7 +2578,7 @@ class Level implements ChunkManager, Metadatable{
 			$this->unloadChunkRequest($x, $z);
 		}
 
-		$this->timings->syncChunkLoadTimer->stopTiming();
+		$this->timings->syncChunkLoad->stopTiming();
 
 		return true;
 	}

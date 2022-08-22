@@ -17,34 +17,30 @@
  * @link http://www.pocketmine.net/
  *
  *
-*/
+ */
 
 declare(strict_types=1);
 
 namespace pocketmine\utils;
 
-use pocketmine\thread\Thread;
+final class InternetRequestResult{
+	/**
+	 * @param string[][] $headers
+	 * @phpstan-param list<array<string, string>> $headers
+	 */
+	public function __construct(
+		private array $headers,
+		private string $body,
+		private int $code
+	){}
 
-class ServerKiller extends Thread{
+	/**
+	 * @return string[][]
+	 * @phpstan-return list<array<string, string>>
+	 */
+	public function getHeaders() : array{ return $this->headers; }
 
-	public $time;
+	public function getBody() : string{ return $this->body; }
 
-	public function __construct($time = 15){
-		$this->time = $time;
-	}
-
-	public function onRun() : void{
-		$start = time();
-		$this->synchronized(function(){
-			$this->wait($this->time * 1000000);
-		});
-		if(time() - $start >= $this->time){
-			echo "\nTook too long to stop, server was killed forcefully!\n";
-			@\pocketmine\kill(getmypid());
-		}
-	}
-
-	public function getThreadName() : string{
-		return "Server Killer";
-	}
+	public function getCode() : int{ return $this->code; }
 }

@@ -17,25 +17,36 @@
  * @link http://www.pocketmine.net/
  *
  *
-*/
+ */
 
 declare(strict_types=1);
 
-namespace pocketmine;
+namespace pocketmine\thread;
 
-/**
- * This class must be extended by all custom threading classes
- */
-abstract class Thread extends \Thread{
+use pocketmine\errorhandler\ErrorToExceptionHandler;
+use pocketmine\Server;
+use \ClassLoader;
+use function error_reporting;
 
-	/** @var \ClassLoader */
-	protected $classLoader;
+trait CommonThreadPartsTrait{
+	/** @var \Threaded|\ClassLoader[]|null  */
+	private ?\Threaded $classLoader;
+	/** @var string|null */
+	protected $composerAutoloaderPath;
+
+	/** @var bool */
 	protected $isKilled = false;
 
-	public function getClassLoader(){
+	/**
+	 * @return \ClassLoader
+	 */
+	public function getClassLoader() : ?ClassLoader{
 		return $this->classLoader;
 	}
 
+	/**
+	 * @param \ClassLoader $loader
+	*/
 	public function setClassLoader(\ClassLoader $loader = null){
 		if($loader === null){
 			$loader = Server::getInstance()->getLoader();
@@ -44,13 +55,14 @@ abstract class Thread extends \Thread{
 	}
 
 	/**
-	 * Registers the class loader for this thread.
+	 * Registers the class loaders for this thread.
 	 *
 	 * WARNING: This method MUST be called from any descendent threads' run() method to make autoloading usable.
 	 * If you do not do this, you will not be able to use new classes that were not loaded when the thread was started
 	 * (unless you are using a custom autoloader).
 	 */
-	public function registerClassLoader(){
+
+	public function registerClassLoader() : void{
 		if(!interface_exists("ClassLoader", false)){
 			require(\pocketmine\PATH . "src/spl/ClassLoader.php");
 			require(\pocketmine\PATH . "src/spl/BaseClassLoader.php");
@@ -60,35 +72,18 @@ abstract class Thread extends \Thread{
 		}
 	}
 
-	public function start(?int $options = \PTHREADS_INHERIT_ALL){
-		ThreadManager::getInstance()->add($this);
-
-		if(!$this->isRunning() and !$this->isJoined() and !$this->isTerminated()){
-			if($this->getClassLoader() === null){
-				$this->setClassLoader();
-			}
-			return parent::start($options);
-		}
-
-		return false;
+	final public function run() : void{
+		error_reporting(-1);
+		$this->registerClassLoader();
+		//set this after the autoloader is registered
+		ErrorToExceptionHandler::set();
+		$this->onRun();
 	}
 
 	/**
-	 * Stops the thread using the best way possible. Try to stop it yourself before calling this.
+	 * Runs code on the thread.
 	 */
-	public function quit(){
-		$this->isKilled = true;
-
-		$this->notify();
-
-		if(!$this->isJoined()){
-			if(!$this->isTerminated()){
-				$this->join();
-			}
-		}
-
-		ThreadManager::getInstance()->remove($this);
-	}
+	abstract protected function onRun() : void;
 
 	public function getThreadName() : string{
 		return (new \ReflectionClass($this))->getShortName();

@@ -17,34 +17,17 @@
  * @link http://www.pocketmine.net/
  *
  *
-*/
+ */
 
 declare(strict_types=1);
 
 namespace pocketmine\utils;
 
-use pocketmine\thread\Thread;
+/**
+ * This exception should be thrown in places where something is assumed to be true, but the type system does not provide
+ * a guarantee. This makes static analysers happy and makes sure that the server will crash properly if any assumption
+ * does not hold.
+ */
+final class AssumptionFailedError extends \Error{
 
-class ServerKiller extends Thread{
-
-	public $time;
-
-	public function __construct($time = 15){
-		$this->time = $time;
-	}
-
-	public function onRun() : void{
-		$start = time();
-		$this->synchronized(function(){
-			$this->wait($this->time * 1000000);
-		});
-		if(time() - $start >= $this->time){
-			echo "\nTook too long to stop, server was killed forcefully!\n";
-			@\pocketmine\kill(getmypid());
-		}
-	}
-
-	public function getThreadName() : string{
-		return "Server Killer";
-	}
 }

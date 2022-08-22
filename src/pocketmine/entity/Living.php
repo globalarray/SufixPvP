@@ -30,7 +30,7 @@ use pocketmine\event\entity\EntityDamageByEntityEvent;
 use pocketmine\event\entity\EntityDamageEvent;
 use pocketmine\event\entity\EntityDeathEvent;
 use pocketmine\event\entity\EntityRegainHealthEvent;
-use pocketmine\event\Timings;
+use pocketmine\timings\Timings;
 use pocketmine\item\Item as ItemItem;
 use pocketmine\math\Vector3;
 use pocketmine\nbt\tag\ByteTag;
@@ -453,7 +453,7 @@ abstract class Living extends Entity implements Damageable{
 	}
 
 	public function entityBaseTick($tickDiff = 1){
-		Timings::$timerLivingEntityBaseTick->startTiming();
+		Timings::$livingEntityBaseTick->startTiming();
 		$this->setDataFlag(self::DATA_FLAGS, self::DATA_FLAG_BREATHING, !$this->isInsideOfWater());
 
 		$hasUpdate = parent::entityBaseTick($tickDiff);
@@ -502,7 +502,7 @@ abstract class Living extends Entity implements Damageable{
 			$this->attackTime -= $tickDiff;
 		}
 
-		Timings::$timerLivingEntityBaseTick->stopTiming();
+		Timings::$livingEntityBaseTick->stopTiming();
 
 		return $hasUpdate;
 	}

@@ -24,7 +24,7 @@ declare(strict_types=1);
 namespace pocketmine\command;
 
 use pocketmine\snooze\SleeperNotifier;
-use pocketmine\Thread;
+use pocketmine\thread\Thread;
 use pocketmine\utils\Utils;
 
 class CommandReader extends Thread {
@@ -42,7 +42,7 @@ class CommandReader extends Thread {
     /** @var SleeperNotifier|null */
     private $notifier;
 
-	public function __construct(?SleeperNotifier $notifier = null){
+	public function __construct(?SleeperNotifier $notifier = null) {
 		$this->buffer = new \Threaded;
 		$this->notifier = $notifier;
 
@@ -59,7 +59,7 @@ class CommandReader extends Thread {
 		$this->shutdown = true;
 	}
 
-	public function quit(){
+	public function quit() : void{
 		$wait = microtime(true) + 0.5;
 		while(microtime(true) < $wait){
 			if($this->isRunning()){
@@ -173,7 +173,7 @@ class CommandReader extends Thread {
 		return null;
 	}
 
-	public function run(){
+	public function onRun() : void{
 		$this->registerClassLoader();
 		
 		if($this->type !== self::TYPE_READLINE){

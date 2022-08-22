@@ -71,7 +71,7 @@ use pocketmine\event\player\PlayerToggleSprintEvent;
 use pocketmine\event\player\PlayerTransferEvent;
 use pocketmine\event\server\DataPacketSendEvent;
 use pocketmine\event\TextContainer;
-use pocketmine\event\Timings;
+use pocketmine\timings\Timings;
 use pocketmine\event\TranslationContainer;
 use pocketmine\inventory\BaseTransaction;
 use pocketmine\inventory\BigShapedRecipe;
@@ -869,7 +869,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 			return;
 		}
 
-		Timings::$playerChunkSendTimer->startTiming();
+		Timings::$playerChunkSend->startTiming();
 
 		$count = 0;
 		foreach($this->loadQueue as $index => $distance){
@@ -895,7 +895,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 			$this->level->requestChunk($X, $Z, $this);
 		}
 
-		Timings::$playerChunkSendTimer->stopTiming();
+		Timings::$playerChunkSend->stopTiming();
 	}
 
 	protected function doFirstSpawn(){
@@ -960,7 +960,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 			return false;
 		}
 
-		Timings::$playerChunkOrderTimer->startTiming();
+		Timings::$playerChunkOrder->startTiming();
 
 		$this->nextChunkOrderRun = 200;
 
@@ -1041,7 +1041,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 
 		$this->loadQueue = $newOrder;
 
-		Timings::$playerChunkOrderTimer->stopTiming();
+		Timings::$playerChunkOrder->stopTiming();
 
 		return true;
 	}
@@ -2076,9 +2076,9 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 					}
 
 					if(substr($ev->getMessage(), 0, 1) === "/"){
-						Timings::$playerCommandTimer->startTiming();
+						Timings::$playerCommand->startTiming();
 						$this->server->dispatchCommand($ev->getPlayer(), substr($ev->getMessage(), 1));
-						Timings::$playerCommandTimer->stopTiming();
+						Timings::$playerCommand->stopTiming();
 					}else{
 						$this->server->getPluginManager()->callEvent($ev = new PlayerChatEvent($this, $ev->getMessage()));
 						if(!$ev->isCancelled()){
@@ -3277,9 +3277,9 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 			return true;
 		}
 
-		Timings::$playerCommandTimer->startTiming();
+		Timings::$playerCommand->startTiming();
 		$this->server->dispatchCommand($ev->getPlayer(), substr($ev->getMessage(), 1));
-		Timings::$playerCommandTimer->stopTiming();
+		Timings::$playerCommand->stopTiming();
 
 		return true;
 	}
