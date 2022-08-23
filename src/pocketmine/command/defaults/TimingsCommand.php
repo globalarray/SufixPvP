@@ -95,9 +95,7 @@ class TimingsCommand extends VanillaCommand{
 				if(!file_exists($timingFolder)){
 					mkdir($timingFolder, 0777);
 				}
-
 				$timings = $timingFolder . "timings.txt";
-				
 				while(file_exists($timings)){
 					$timings = $timingFolder . "timings" . (++$index) . ".txt";
 				}
