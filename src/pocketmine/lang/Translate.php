@@ -16,7 +16,7 @@ final class Translate{
 
 	public static function init() : void{
 		foreach(self::LANGUAGES as $code => $lang){
-			self::$languages[$code] = new BaseLang($lang);
+			self::$languages[$code] = new Language($lang);
 		}
 	}
 

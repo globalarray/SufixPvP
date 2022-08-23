@@ -95,7 +95,9 @@ class TimingsCommand extends VanillaCommand{
 				if(!file_exists($timingFolder)){
 					mkdir($timingFolder, 0777);
 				}
-				$timings = Path::join($timingFolder, "timings.txt");
+
+				$timings = $timingFolder . "timings.txt";
+				
 				while(file_exists($timings)){
 					$timings = $timingFolder . "timings" . (++$index) . ".txt";
 				}

@@ -17,32 +17,21 @@
  * @link http://www.pocketmine.net/
  *
  *
-*/
+ */
 
 declare(strict_types=1);
 
-namespace pocketmine\event\player;
+namespace pocketmine\utils;
 
-use pocketmine\event\Cancellable;
-use pocketmine\Player;
-use pocketmine\GameMode;
+trait NotSerializable{
 
-/**
- * Called when a player has its gamemode changed
- */
-class PlayerGameModeChangeEvent extends PlayerEvent implements Cancellable{
-	public static $handlerList = null;
-
-	/** @var int */
-	protected $gamemode;
-
-	public function __construct(Player $player, GameMode $newGamemode){
-		$this->player = $player;
-		$this->gamemode = $newGamemode;
+	/** @return mixed[] */
+	final public function __serialize() : array{
+		throw new \LogicException("Serialization of " . static::class . " objects is not allowed");
 	}
 
-	public function getNewGamemode() : int{
-		return $this->gamemode;
+	/** @param mixed[] $data */
+	final public function __unserialize(array $data) : void{
+		throw new \LogicException("Unserialization of " . static::class . " objects is not allowed");
 	}
-
 }

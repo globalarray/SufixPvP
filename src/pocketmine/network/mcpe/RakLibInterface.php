@@ -185,7 +185,7 @@ class RakLibInterface implements ServerInstance, AdvancedSourceInterface{
 				$info->getMaxPlayerCount(),
 				$this->rakLib->getServerId(),
                 $name . " - v" . ProtocolInfo::MINECRAFT_VERSION_NETWORK,
-				Server::getGamemodeName($this->server->getGamemode())
+				$this->server->getGamemode()->getEnglishName()
 			]) . ";"
 		);
 	}

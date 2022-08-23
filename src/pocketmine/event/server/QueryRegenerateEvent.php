@@ -23,6 +23,7 @@ declare(strict_types=1);
 
 namespace pocketmine\event\server;
 
+use pocketmine\GameMode;
 use pocketmine\Player;
 use pocketmine\plugin\Plugin;
 use pocketmine\Server;
@@ -83,13 +84,13 @@ class QueryRegenerateEvent extends ServerEvent{
 			}
 		}
 
-		$this->gametype = ($server->getGamemode() & 0x01) === 0 ? "SMP" : "CMP";
+		$this->gametype = ($server->getGamemode()->equals(GameMode::SURVIVAL()) || $server->getGamemode()->equals(GameMode::ADVENTURE())) ? "SMP" : "CMP";
 		$this->version = $server->getVersion();
 		$this->server_engine = $server->getName() . " " . $server->getPocketMineVersion();
 		$this->map = $server->getDefaultLevel() === null ? "unknown" : $server->getDefaultLevel()->getName();
 		$this->numPlayers = count($this->players);
 		$this->maxPlayers = $server->getMaxPlayers();
-		$this->whitelist = $server->hasWhitelist() ? "on" : "off";
+		$this->whitelist = $server->hasWhitelist() ? 'on' : 'off';
 		$this->port = $server->getPort();
 		$this->ip = $server->getIp();
 

@@ -175,19 +175,13 @@ use pocketmine\tile\Spawnable;
 use pocketmine\tile\Tile;
 use pocketmine\utils\TextFormat;
 use pocketmine\utils\UUID;
+use pocketmine\utils\GameModeIdMap;
 
 
 /**
  * Main class that handles networking, recovery, and packet sending to the server part
  */
 class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
-
-	const SURVIVAL = 0;
-	const CREATIVE = 1;
-	const ADVENTURE = 2;
-	const SPECTATOR = 3;
-	const VIEW = Player::SPECTATOR;
-
 
 	const CRAFTING_SMALL = 0;
 	const CRAFTING_BIG = 1;
@@ -230,7 +224,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	public $spawned = false;
 	public $loggedIn = false;
 	public $joined = false;
-	public $gamemode;
+	public GameMode $gamemode;
 	public $uuid;
 	public $lastProjectile;
 	/** @var int */
@@ -970,8 +964,8 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		$newOrder = [];
 		$unloadChunks = $this->usedChunks;
 
-		$centerX = $this->x >> 4;
-		$centerZ = $this->z >> 4;
+		$centerX = (int)$this->x >> 4;
+		$centerZ = (int)$this->z >> 4;
 
 		for($x = 0; $x < $radius; ++$x){
 			for($z = 0; $z <= $x; ++$z){
@@ -1224,10 +1218,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		}
 	}
 
-	/**
-	 * @return int
-	 */
-	public function getGamemode() : int{
+	public function getGamemode() : GameMode{
 		return $this->gamemode;
 	}
 
@@ -1239,15 +1230,13 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	 *
 	 * TODO: remove this when Spectator Mode gets added properly to MCPE
 	 *
-	 * @param int $gamemode
-	 * @return int
+	 * @param GameMode $gamemode
+	 * @return GameMode
 	 */
-	public static function getClientFriendlyGamemode(int $gamemode) : int{
-		$gamemode &= 0x03;
-		if($gamemode === Player::SPECTATOR){
-			return Player::CREATIVE;
+	public static function getClientFriendlyGamemode(GameMode $gamemode) : GameMode{
+		if ($gamemode->equals(GameMode::SPECTATOR())) {
+			return GameMode::CREATIVE();
 		}
-
 		return $gamemode;
 	}
 
@@ -1259,8 +1248,8 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	 *
 	 * @return bool
 	 */
-	public function setGamemode(int $gm, bool $client = false) : bool{
-		if($gm < 0 or $gm > 3 or $this->gamemode === $gm){
+	public function setGamemode(GameMode $gm, bool $client = false) : bool{
+		if ($this->gamemode->equals($gm)) {
 			return false;
 		}
 
@@ -1275,7 +1264,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		$this->gamemode = $gm;
 
 		$this->allowFlight = $this->isCreative();
-		if($this->isSpectator()){
+		if ($this->isSpectator()) {
 			$this->flying = true;
 			$this->despawnFromAll();
 
@@ -1284,15 +1273,13 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 			// fixes spectator flight controls. Thank @robske110 for this hack.
 			$this->teleport($this->temporalVector->setComponents($this->x, $this->y + 0.1, $this->z));
 		}else{
-			if($this->isSurvival()){
-				$this->flying = false;
-			}
+			if ($this->isSurvival()) $this->flying = false;
 			$this->spawnToAll();
 		}
 
 		$this->resetFallDistance();
 
-		$this->namedtag->playerGameType = new IntTag("playerGameType", $this->gamemode);
+		$this->namedtag->playerGameType = new IntTag("playerGameType", GameModeIdMap::getInstance()->toId($this->gamemode));
 		if(!$client){ //Gamemode changed by server, do not send for client changes
 			$this->sendGamemode();
 		}else{
@@ -1317,7 +1304,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	 */
 	public function sendGamemode(){
 		$pk = new SetPlayerGameTypePacket();
-		$pk->gamemode = Player::getClientFriendlyGamemode($this->gamemode);
+		$pk->gamemode = GameModeIdMap::getInstance()->toId(self::getClientFriendlyGamemode($this->gamemode));
 		$this->dataPacket($pk);
 	}
 
@@ -1347,10 +1334,10 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	 * @return bool
 	 */
 	public function isSurvival(bool $literal = false) : bool{
-		if($literal){
-			return $this->gamemode === Player::SURVIVAL;
-		}else{
-			return ($this->gamemode & 0x01) === 0;
+		if ($literal) {
+			return $this->gamemode->equals(GameMode::SURVIVAL);
+		} else {
+			return (GameModeIdMap::getInstance()->toId($this->gamemode) & 0x01) === 0;
 		}
 	}
 
@@ -1364,9 +1351,9 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	 */
 	public function isCreative(bool $literal = false) : bool{
 		if($literal){
-			return $this->gamemode === Player::CREATIVE;
+			return $this->gamemode->equals(GameMode::CREATIVE());
 		}else{
-			return ($this->gamemode & 0x01) === 1;
+			return (GameModeIdMap::getInstance()->toId($this->gamemode) & 0x01) === 1;
 		}
 	}
 
@@ -1380,9 +1367,9 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	 */
 	public function isAdventure(bool $literal = false) : bool{
 		if($literal){
-			return $this->gamemode === Player::ADVENTURE;
+			return $this->gamemode === GameMode::ADVENTURE();
 		}else{
-			return ($this->gamemode & 0x02) > 0;
+			return (GameModeIdMap::getInstance()->toId($this->gamemode) & 0x02) > 0;
 		}
 	}
 
@@ -1390,7 +1377,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	 * @return bool
 	 */
 	public function isSpectator() : bool{
-		return $this->gamemode === Player::SPECTATOR;
+		return $this->gamemode === GameMode::SPECTATOR();
 	}
 
 	public function isFireProof() : bool{
@@ -1571,7 +1558,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 					if($to->distanceSquared($ev->getTo()) > 0.01){ //If plugins modify the destination
 						$this->teleport($ev->getTo());
 					}else{
-						$this->level->addEntityMovement($this->x >> 4, $this->z >> 4, $this->getId(), $this->x, $this->y + $this->baseOffset, $this->z, $this->yaw, $this->pitch, $this->yaw);
+						$this->level->addEntityMovement((int)$this->x >> 4, (int)$this->z >> 4, $this->getId(), $this->x, $this->y + $this->baseOffset, $this->z, $this->yaw, $this->pitch, $this->yaw);
 
 						$distance = $from->distance($to);
 						//TODO: check swimming (adds 0.015 exhaustion in MCPE)
@@ -1790,13 +1777,13 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		}else{
 			$this->namedtag["NameTag"] = $this->username;
 		}
-		$this->gamemode = $this->namedtag["playerGameType"] & 0x03;
+		$this->gamemode = GameModeIdMap::getInstance()->fromId($this->namedtag['playerGameType']) ?? GameMode::SURVIVAL();
 		if($this->server->getForceGamemode()){
 			$this->gamemode = $this->server->getGamemode();
 			$this->namedtag->playerGameType = new IntTag("playerGameType", $this->gamemode);
 		}
 
-		$this->allowFlight = (bool) ($this->gamemode & 0x01);
+		$this->allowFlight = (bool) (GameModeIdMap::getInstance()->toId($this->gamemode) & 0x01);
 
 		if(($level = $this->server->getLevelByName((string) $this->namedtag["Level"])) === null){
 			$this->setLevel($this->server->getDefaultLevel());
@@ -1845,7 +1832,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		$pk = new StartGamePacket();
 		$pk->entityUniqueId = $this->id;
 		$pk->entityRuntimeId = $this->id;
-		$pk->playerGamemode = Player::getClientFriendlyGamemode($this->gamemode);
+		$pk->playerGamemode = GameModeIdMap::getInstance()->toId(self::getClientFriendlyGamemode($this->gamemode));
 		$pk->x = $this->x;
 		$pk->y = $this->y + $this->baseOffset;
 		$pk->z = $this->z;
@@ -1853,7 +1840,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		$pk->yaw = $this->yaw;
 		$pk->seed = -1;
 		$pk->dimension = DimensionIds::OVERWORLD; //TODO: implement this properly
-		$pk->worldGamemode = Player::getClientFriendlyGamemode($this->server->getGamemode());
+		$pk->worldGamemode = GameModeIdMap::getInstance()->toId(self::getClientFriendlyGamemode($this->server->getGamemode()));
 		$pk->difficulty = $this->server->getDifficulty();
 		$pk->spawnX = $spawnPosition->getFloorX();
 		$pk->spawnY = $spawnPosition->getFloorY();
@@ -1961,12 +1948,12 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		$this->strUUID = $packet->clientUUID;
 		$this->rawUUID = $this->uuid->toBinary();
 
-		if(!Player::isValidUserName($packet->username)){
+		if(!self::isValidUserName($packet->username)){
 			$this->close($this->getLeaveMessage(), "disconnectionScreen.invalidName");
 			return true;
 		}
 
-		if(!Player::isValidSkin($packet->skin)){
+		if(!self::isValidSkin($packet->skin)){
 			$this->close($this->getLeaveMessage(), "disconnectionScreen.invalidSkin");
 			return true;
 		}
@@ -2126,7 +2113,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 			return true;
 		}
 		
-		if($this->gamemode > 1){
+		if(GameModeIdMap::getInstance()->toId($this->gamemode) > 1) {
 			$this->kick($this->server->getLanguage()->translateString("kick.reason.cheat", ["%ability.gmbypass"]));
 			return true;
 		}
@@ -2248,7 +2235,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 					$cancelled = true;
 				}
 
-				if($target instanceof Entity and $this->getGamemode() !== Player::VIEW and $this->isAlive() and $target->isAlive()){
+				if($target instanceof Entity and $this->getGamemode() !== GameMode::SPECTATOR and $this->isAlive() and $target->isAlive()){
 					if($target instanceof DroppedItem or $target instanceof Arrow){
 						$this->kick("Attempting to attack an invalid entity");
 						$this->server->getLogger()->warning($this->getServer()->getLanguage()->translateString("pocketmine.player.invalidEntity", [$this->getName()]));
@@ -2260,7 +2247,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 					if(!$this->canInteract($target, 8)){
 						$cancelled = true;
 					}elseif($target instanceof Player){
-						if(($target->getGamemode() & 0x01) > 0){
+						if((GameModeIdMap::getInstance()->toId($target->getGamemode()) & 0x01) > 0) {
 							break;
 						}elseif($this->server->getConfigBoolean("pvp") !== true or $this->server->getDifficulty() === 0){
 							$cancelled = true;
@@ -3202,7 +3189,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	}
 
 	public function handleSetPlayerGameType(SetPlayerGameTypePacket $packet) : bool{
-		if($packet->gamemode !== $this->gamemode){
+		if($packet->gamemode !== GameModeIdMap::getInstance()->toId($this->gamemode)) {
 			//Set this back to default. TODO: handle this properly
 			$this->sendGamemode();
 			$this->sendSettings();
@@ -3715,7 +3702,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 			$this->namedtag->SpawnZ = new IntTag("SpawnZ", (int) $this->spawnPosition->z);
 		}
 
-		$this->namedtag["playerGameType"] = $this->gamemode;
+		$this->namedtag["playerGameType"] = GameModeIdMap::getInstance()->toId($this->gamemode);
 		$this->namedtag["lastPlayed"] = (int) floor(microtime(true) * 1000);
 
 		if($this->username != "" and $this->namedtag instanceof CompoundTag){

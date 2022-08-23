@@ -346,7 +346,7 @@ abstract class Entity extends Location implements Metadatable{
 		$this->justCreated = true;
 		$this->namedtag = $nbt;
 
-		$this->chunk = $level->getChunk($this->namedtag["Pos"][0] >> 4, $this->namedtag["Pos"][2] >> 4, true);
+		$this->chunk = $level->getChunk((int)$this->namedtag["Pos"][0] >> 4, (int)$this->namedtag["Pos"][2] >> 4, true);
 		assert($this->chunk !== null);
 		$this->setLevel($level);
 		$this->server = $level->getServer();
@@ -1616,7 +1616,7 @@ abstract class Entity extends Location implements Metadatable{
 
 			//TODO: vehicle collision events (first we need to spawn them!)
 
-			Timings::$entityMoveTimer->stopTiming();
+			Timings::$entityMove->stopTiming();
 
 			return true;
 		}
@@ -1689,14 +1689,14 @@ abstract class Entity extends Location implements Metadatable{
 	}
 
 	protected function checkChunks(){
-		if($this->chunk === null or ($this->chunk->getX() !== ($this->x >> 4) or $this->chunk->getZ() !== ($this->z >> 4))){
+		if($this->chunk === null or ($this->chunk->getX() !== ((int)$this->x >> 4) or $this->chunk->getZ() !== ((int)$this->z >> 4))){
 			if($this->chunk !== null){
 				$this->chunk->removeEntity($this);
 			}
-			$this->chunk = $this->level->getChunk($this->x >> 4, $this->z >> 4, true);
+			$this->chunk = $this->level->getChunk((int)$this->x >> 4, (int)$this->z >> 4, true);
 
 			if(!$this->justCreated){
-				$newChunk = $this->level->getChunkPlayers($this->x >> 4, $this->z >> 4);
+				$newChunk = $this->level->getChunkPlayers((int)$this->x >> 4, (int)$this->z >> 4);
 				foreach($this->hasSpawned as $player){
 					if(!isset($newChunk[$player->getLoaderId()])){
 						$this->despawnFrom($player);

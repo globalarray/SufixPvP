@@ -53,7 +53,7 @@ use pocketmine\inventory\InventoryType;
 use pocketmine\inventory\Recipe;
 use pocketmine\item\enchantment\Enchantment;
 use pocketmine\item\Item;
-use pocketmine\lang\BaseLang;
+use pocketmine\lang\Language;
 use pocketmine\level\format\io\leveldb\LevelDB;
 use pocketmine\level\format\io\LevelProvider;
 use pocketmine\snooze\SleeperHandler;
@@ -113,6 +113,7 @@ use pocketmine\utils\TextFormat;
 use pocketmine\utils\Utils;
 use pocketmine\utils\UUID;
 use pocketmine\utils\VersionString;
+use pocketmine\utils\GameModeIdMap;
 use function array_sum;
 use function base64_encode;
 use function cli_set_process_title;
@@ -273,8 +274,8 @@ class Server{
 	private int $autoSaveTicker = 0;
 	private int $autoSaveTicks = 6000;
 
-	/** @var BaseLang */
-	private BaseLang $baseLang;
+	/** @var Language */
+	private Language $language;
 
 	private bool $forceLanguage = false;
 
@@ -462,11 +463,10 @@ class Server{
 		return $this->getConfigBoolean("generate-structures", true);
 	}
 
-	/**
-	 * @return int
-	 */
-	public function getGamemode() : int{
-		return $this->getConfigInt("gamemode", 0) & 0b11;
+
+	public function getGamemode() : GameMode{
+		$surivalMode = GameModeIdMap::getInstance()->toId(GameMode::SURVIVAL());
+		return GameModeIdMap::getInstance()->fromId($this->getConfigInt("gamemode", $surivalMode)) ?? GameMode::SURVIVAL();
 	}
 
 	/**
@@ -474,76 +474,6 @@ class Server{
 	 */
 	public function getForceGamemode() : bool{
 		return $this->getConfigBoolean("force-gamemode", false);
-	}
-
-	/**
-	 * Returns the gamemode text name
-	 *
-	 * @param int $mode
-	 *
-	 * @return string
-	 */
-	public static function getGamemodeString(int $mode) : string{
-		switch((int) $mode){
-			case Player::SURVIVAL:
-				return "%gameMode.survival";
-			case Player::CREATIVE:
-				return "%gameMode.creative";
-			case Player::ADVENTURE:
-				return "%gameMode.adventure";
-			case Player::SPECTATOR:
-				return "%gameMode.spectator";
-		}
-
-		return "UNKNOWN";
-	}
-
-	public static function getGamemodeName(int $mode) : string{
-		switch($mode){
-			case Player::SURVIVAL:
-				return "Survival";
-			case Player::CREATIVE:
-				return "Creative";
-			case Player::ADVENTURE:
-				return "Adventure";
-			case Player::SPECTATOR:
-				return "Spectator";
-			default:
-				throw new \InvalidArgumentException("Invalid gamemode $mode");
-		}
-	}
-
-	/**
-	 * Parses a string and returns a gamemode integer, -1 if not found
-	 *
-	 * @param string $str
-	 *
-	 * @return int
-	 */
-	public static function getGamemodeFromString(string $str) : int{
-		switch(strtolower(trim($str))){
-			case (string) Player::SURVIVAL:
-			case "survival":
-			case "s":
-				return Player::SURVIVAL;
-
-			case (string) Player::CREATIVE:
-			case "creative":
-			case "c":
-				return Player::CREATIVE;
-
-			case (string) Player::ADVENTURE:
-			case "adventure":
-			case "a":
-				return Player::ADVENTURE;
-
-			case (string) Player::SPECTATOR:
-			case "spectator":
-			case "view":
-			case "v":
-				return Player::SPECTATOR;
-		}
-		return -1;
 	}
 
 	/**
@@ -808,7 +738,7 @@ class Server{
 			//new IntTag("SpawnZ", (int) $spawn->z),
 			//new ByteTag("SpawnForced", 1), //TODO
 			new ListTag("Inventory", []),
-			new IntTag("playerGameType", $this->getGamemode()),
+			new IntTag("playerGameType", GameModeIdMap::getInstance()->toId($this->getGamemode())),
 			new ListTag("Motion", [
 				new DoubleTag("", 0.0),
 				new DoubleTag("", 0.0),
@@ -1485,6 +1415,9 @@ class Server{
 	 */
 	public function __construct(\ClassLoader $autoloader, \ThreadedLogger $logger, string $filePath, string $dataPath, string $pluginPath){
 		self::$instance = $this;
+		$this->dataPath = realpath($dataPath) . DIRECTORY_SEPARATOR;
+		$this->config = new Config($this->dataPath . "pocketmine.yml", Config::YAML, []);
+		$this->language = new Language($this->getProperty("settings.language", Language::FALLBACK_LANGUAGE));
 		$this->autoloader = $autoloader;
 		$this->logger = $logger;
 		$this->tickSleeper = new SleeperHandler();
@@ -1504,7 +1437,6 @@ class Server{
 				mkdir($pluginPath, 0777);
 			}
 
-			$this->dataPath = realpath($dataPath) . DIRECTORY_SEPARATOR;
 			$this->pluginPath = realpath($pluginPath) . DIRECTORY_SEPARATOR;
 
 			$consoleNotifier = new SleeperNotifier();
@@ -1524,7 +1456,6 @@ class Server{
 				}
 				@file_put_contents($this->dataPath . "pocketmine.yml", $content);
 			}
-			$this->config = new Config($this->dataPath . "pocketmine.yml", Config::YAML, []);
 
 			//$this->logger->info("Loading prismarine.yml...");
 			if(!file_exists($this->dataPath . "prismarine.yml")){
@@ -1543,7 +1474,7 @@ class Server{
 				"allow-flight" => false,
 				"spawn-animals" => true,
 				"spawn-mobs" => true,
-				"gamemode" => 0,
+				"gamemode" => GameModeIdMap::getInstance()->toId(GameMode::SURVIVAL()),
 				"force-gamemode" => false,
 				"hardcore" => false,
 				"pvp" => true,
@@ -1561,7 +1492,6 @@ class Server{
 			]);
 
 			$this->forceLanguage = $this->getProperty("settings.force-language", false);
-			$this->baseLang = new BaseLang($this->getProperty("settings.language", BaseLang::FALLBACK_LANGUAGE));
 			//$this->logger->info($this->getLanguage()->translateString("language.selected", [$this->getLanguage()->getName(), $this->getLanguage()->getLang()]));
 
 			$this->memoryManager = new MemoryManager($this);
@@ -2185,7 +2115,7 @@ class Server{
 			$this->dispatchSignals = true;
 		}
 
-		$this->logger->info($this->getLanguage()->translateString("pocketmine.server.defaultGameMode", [self::getGamemodeString($this->getGamemode())]));
+		$this->logger->info($this->getLanguage()->translateString("pocketmine.server.defaultGameMode", [$this->getGamemode()->getTranslationName()]));
 
 		$this->logger->info($this->getLanguage()->translateString("pocketmine.server.startFinished", [round(microtime(true) - \pocketmine\START_TIME, 3)]));
 
@@ -2430,7 +2360,7 @@ class Server{
 
 	public function doAutoSave(){
 		if($this->getAutoSave()){
-			Timings::$worldSaveTimer->startTiming();
+			Timings::$worldSave->startTiming();
 			foreach($this->players as $index => $player){
 				if($player->joined){
 					$player->save(true);
@@ -2442,7 +2372,7 @@ class Server{
 			foreach($this->getLevels() as $level){
 				$level->save(false);
 			}
-			Timings::$worldSaveTimer->stopTiming();
+			Timings::$worldSave->stopTiming();
 		}
 	}
 
@@ -2455,10 +2385,10 @@ class Server{
 
 
 	/**
-	 * @return BaseLang
+	 * @return Language
 	 */
-	public function getLanguage(){
-		return $this->baseLang;
+	public function getLanguage() {
+		return $this->language;
 	}
 
 	/**
@@ -2483,7 +2413,7 @@ class Server{
 	}
 
 	private function titleTick(){
-		Timings::$titleTickTimer->startTiming();
+		Timings::$titleTick->startTiming();
 		$d = Utils::getRealMemoryUsage();
 
 		$u = Utils::getMemoryUsage(true);
@@ -2500,7 +2430,7 @@ class Server{
 
 		$this->network->resetStatistics();
 
-		Timings::$titleTickTimer->stopTiming();
+		Timings::$titleTick->stopTiming();
 	}
 
 	/**
@@ -2511,7 +2441,7 @@ class Server{
 	 * TODO: move this to Network
 	 */
 	public function handlePacket(string $address, int $port, string $payload){
-		Timings::$serverRawPacketTimer->startTiming();
+		Timings::$serverRawPacket->startTiming();
 		try{
 			if(strlen($payload) > 2 and substr($payload, 0, 2) === "\xfe\xfd" and $this->queryHandler instanceof QueryHandler){
 				$this->queryHandler->handle($address, $port, $payload);
@@ -2524,7 +2454,7 @@ class Server{
 			$this->getNetwork()->blockAddress($address, 600);
 		}
 		//TODO: add raw packet events
-		Timings::$serverRawPacketTimer->stopTiming();
+		Timings::$serverRawPacket->stopTiming();
 	}
 
 

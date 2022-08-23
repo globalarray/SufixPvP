@@ -102,6 +102,9 @@ abstract class Timings{
 	public static $schedulerAsync;
 
 	/** @var TimingsHandler */
+	public static $serverRawPacket;
+
+	/** @var TimingsHandler */
 	public static $playerCommand;
 
 	/** @var TimingsHandler */
@@ -149,6 +152,7 @@ abstract class Timings{
 		self::$broadcastPackets = new TimingsHandler(self::INCLUDED_BY_OTHER_TIMINGS_PREFIX . "Broadcast Packets", self::$playerNetworkSend);
 
 		self::$playerChunkOrder = new TimingsHandler("Player Order Chunks");
+		self::$serverRawPacket = new TimingsHandler("Raw packets (Query)");
 		self::$playerChunkSend = new TimingsHandler("Player Send Chunks");
 		self::$connection = new TimingsHandler("Connection Handler");
 		self::$scheduler = new TimingsHandler("Scheduler");

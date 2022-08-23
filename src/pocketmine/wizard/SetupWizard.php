@@ -27,28 +27,29 @@ declare(strict_types=1);
  */
 namespace pocketmine\wizard;
 
-use pocketmine\lang\BaseLang;
+use pocketmine\Server;
+use pocketmine\lang\Language;
 use pocketmine\utils\Config;
-use pocketmine\utils\Utils;
+use pocketmine\utils\Internet;
+use pocketmine\utils\GameModeIdMap;
 
 class SetupWizard{
-	const DEFAULT_NAME = "Minecraft: PE Server";
-	const DEFAULT_PORT = 19132;
-	const DEFAULT_MEMORY = 256;
-	const DEFAULT_PLAYERS = 20;
-	const DEFAULT_GAMEMODE = 0;
+	private const DEFAULT_NAME = 'Minecraft: PE Server';
+	private const DEFAULT_PORT = 19132;
+	private const DEFAULT_MEMORY = 256;
+	private const DEFAULT_PLAYERS = 20;
+	private const DEFAULT_GAMEMODE = 'Survival';
 
-	/** @var BaseLang */
-	private $lang;
+	private Language $lang;
 
-	public function __construct(){
+	public function __construct() {
 
 	}
 
 	public function run() : bool{
-		$this->message("PocketMine-MP set-up wizard");
+		$this->message(\pocketmine\NAME . ' set-up wizard');
 
-		$langs = BaseLang::getLanguageList();
+		$langs = Language::getLanguageList();
 		if(empty($langs)){
 			$this->error("No language files found, please use provided builds or clone the repository recursively.");
 			return false;
@@ -67,7 +68,7 @@ class SetupWizard{
 			}
 		}while($lang === null);
 
-		$this->lang = new BaseLang($lang);
+		$this->lang = new Language($lang);
 
 		$this->message($this->lang->get("language_has_been_selected"));
 
@@ -145,7 +146,7 @@ LICENSE;
 
 		do{
 			$gamemode = (int) $this->getInput($this->lang->get("default_gamemode"), (string) self::DEFAULT_GAMEMODE);
-		}while($gamemode < 0 or $gamemode > 3);
+		}while($gamemode === NULL);
 		$config->set("gamemode", $gamemode);
 
 		$config->set("max-players", (int) $this->getInput($this->lang->get("max_players"), (string) self::DEFAULT_PLAYERS));
@@ -210,7 +211,7 @@ LICENSE;
 
 		$this->message($this->lang->get("ip_get"));
 
-		$externalIP = Utils::getIP();
+		$externalIP = Internet::getIP();
 		if($externalIP === false){
 			$externalIP = "unknown (server offline)";
 		}

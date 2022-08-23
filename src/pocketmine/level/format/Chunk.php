@@ -181,7 +181,7 @@ class Chunk{
 	 * @return int bitmap, (id << 4) | meta
 	 */
 	public function getFullBlock(int $x, int $y, int $z) : int{
-		return $this->getSubChunk($y >> 4)->getFullBlock($x, $y & 0x0f, $z);
+		return $this->getSubChunk((int)$y >> 4)->getFullBlock($x, $y & 0x0f, $z);
 	}
 
 	/**
@@ -196,7 +196,7 @@ class Chunk{
 	 * @return bool
 	 */
 	public function setBlock(int $x, int $y, int $z, $blockId = null, $meta = null) : bool{
-		if($this->getSubChunk($y >> 4, true)->setBlock($x, $y & 0x0f, $z, $blockId !== null ? ($blockId & 0xff) : null, $meta !== null ? ($meta & 0x0f) : null)){
+		if($this->getSubChunk((int)$y >> 4, true)->setBlock($x, $y & 0x0f, $z, $blockId !== null ? ($blockId & 0xff) : null, $meta !== null ? ($meta & 0x0f) : null)){
 			$this->hasChanged = true;
 			return true;
 		}
@@ -213,7 +213,7 @@ class Chunk{
 	 * @return int 0-255
 	 */
 	public function getBlockId(int $x, int $y, int $z) : int{
-		return $this->getSubChunk($y >> 4)->getBlockId($x, $y & 0x0f, $z);
+		return $this->getSubChunk((int)$y >> 4)->getBlockId($x, $y & 0x0f, $z);
 	}
 
 	/**
@@ -225,7 +225,7 @@ class Chunk{
 	 * @param int $id 0-255
 	 */
 	public function setBlockId(int $x, int $y, int $z, int $id){
-		if($this->getSubChunk($y >> 4, true)->setBlockId($x, $y & 0x0f, $z, $id)){
+		if($this->getSubChunk((int)$y >> 4, true)->setBlockId($x, $y & 0x0f, $z, $id)){
 			$this->hasChanged = true;
 		}
 	}
@@ -240,7 +240,7 @@ class Chunk{
 	 * @return int 0-15
 	 */
 	public function getBlockData(int $x, int $y, int $z) : int{
-		return $this->getSubChunk($y >> 4)->getBlockData($x, $y & 0x0f, $z);
+		return $this->getSubChunk((int)$y >> 4)->getBlockData($x, $y & 0x0f, $z);
 	}
 
 	/**
@@ -252,7 +252,7 @@ class Chunk{
 	 * @param int $data 0-15
 	 */
 	public function setBlockData(int $x, int $y, int $z, int $data){
-		if($this->getSubChunk($y >> 4)->setBlockData($x, $y & 0x0f, $z, $data)){
+		if($this->getSubChunk((int)$y >> 4)->setBlockData($x, $y & 0x0f, $z, $data)){
 			$this->hasChanged = true;
 		}
 	}
@@ -298,7 +298,7 @@ class Chunk{
 	 * @return int 0-15
 	 */
 	public function getBlockSkyLight(int $x, int $y, int $z) : int{
-		return $this->getSubChunk($y >> 4)->getBlockSkyLight($x, $y & 0x0f, $z);
+		return $this->getSubChunk((int)$y >> 4)->getBlockSkyLight($x, $y & 0x0f, $z);
 	}
 
 	/**
@@ -310,7 +310,7 @@ class Chunk{
 	 * @param int $level 0-15
 	 */
 	public function setBlockSkyLight(int $x, int $y, int $z, int $level){
-		if($this->getSubChunk($y >> 4, true)->setBlockSkyLight($x, $y & 0x0f, $z, $level)){
+		if($this->getSubChunk((int)$y >> 4, true)->setBlockSkyLight($x, $y & 0x0f, $z, $level)){
 			$this->hasChanged = true;
 		}
 	}
@@ -319,7 +319,7 @@ class Chunk{
 	 * @param int $level
 	 */
 	public function setAllBlockSkyLight(int $level){
-		$char = chr(($level & 0x0f) | ($level << 4));
+		$char = chr(($level & 0x0f) | ((int)$level << 4));
 		$data = str_repeat($char, 2048);
 		for($y = $this->getHighestSubChunkIndex(); $y >= 0; --$y){
 			$this->getSubChunk($y, true)->setBlockSkyLightArray($data);
@@ -336,7 +336,7 @@ class Chunk{
 	 * @return int 0-15
 	 */
 	public function getBlockLight(int $x, int $y, int $z) : int{
-		return $this->getSubChunk($y >> 4)->getBlockLight($x, $y & 0x0f, $z);
+		return $this->getSubChunk((int)$y >> 4)->getBlockLight($x, $y & 0x0f, $z);
 	}
 
 	/**
@@ -348,7 +348,7 @@ class Chunk{
 	 * @param int $level 0-15
 	 */
 	public function setBlockLight(int $x, int $y, int $z, int $level){
-		if($this->getSubChunk($y >> 4, true)->setBlockLight($x, $y & 0x0f, $z, $level)){
+		if($this->getSubChunk((int)$y >> 4, true)->setBlockLight($x, $y & 0x0f, $z, $level)){
 			$this->hasChanged = true;
 		}
 	}
@@ -378,7 +378,7 @@ class Chunk{
 			return -1;
 		}
 
-		$height = $index << 4;
+		$height = (int)$index << 4;
 
 		for($y = $index; $y >= 0; --$y){
 			$height = $this->getSubChunk($y)->getHighestBlockAt($x, $z) | ($y << 4);
@@ -391,7 +391,7 @@ class Chunk{
 	}
 
 	public function getMaxY() : int{
-		return ($this->getHighestSubChunkIndex() << 4) | 0x0f;
+		return ((int)$this->getHighestSubChunkIndex() << 4) | 0x0f;
 	}
 
 	/**
@@ -403,7 +403,7 @@ class Chunk{
 	 * @return int
 	 */
 	public function getHeightMap(int $x, int $z) : int{
-		return $this->heightMap[($z << 4) | $x];
+		return $this->heightMap[((int)$z << 4) | $x];
 	}
 
 	/**
@@ -413,7 +413,7 @@ class Chunk{
 	 * @param int $value
 	 */
 	public function setHeightMap(int $x, int $z, int $value){
-		$this->heightMap[($z << 4) | $x] = $value;
+		$this->heightMap[((int)$z << 4) | $x] = $value;
 	}
 
 	/**
@@ -490,7 +490,7 @@ class Chunk{
 	 * @return int 0-255
 	 */
 	public function getBiomeId(int $x, int $z) : int{
-		return ord($this->biomeIds[($z << 4) | $x]);
+		return ord($this->biomeIds[((int)$z << 4) | $x]);
 	}
 
 	/**
@@ -502,7 +502,7 @@ class Chunk{
 	 */
 	public function setBiomeId(int $x, int $z, int $biomeId){
 		$this->hasChanged = true;
-		$this->biomeIds[($z << 4) | $x] = chr($biomeId & 0xff);
+		$this->biomeIds[((int)$z << 4) | $x] = chr($biomeId & 0xff);
 	}
 
 	/**
@@ -735,7 +735,7 @@ class Chunk{
 							continue;
 						}
 
-						if(($nbt["Pos"][0] >> 4) !== $this->x or ($nbt["Pos"][2] >> 4) !== $this->z){
+						if(((int)$nbt["Pos"][0] >> 4) !== $this->x or ((int)$nbt["Pos"][2] >> 4) !== $this->z){
 							$changed = true;
 							continue; //Fixes entities allocated in wrong chunks.
 						}

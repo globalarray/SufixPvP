@@ -17,32 +17,15 @@
  * @link http://www.pocketmine.net/
  *
  *
-*/
+ */
 
 declare(strict_types=1);
 
-namespace pocketmine\event\player;
+namespace pocketmine\utils;
 
-use pocketmine\event\Cancellable;
-use pocketmine\Player;
-use pocketmine\GameMode;
+trait NotCloneable{
 
-/**
- * Called when a player has its gamemode changed
- */
-class PlayerGameModeChangeEvent extends PlayerEvent implements Cancellable{
-	public static $handlerList = null;
-
-	/** @var int */
-	protected $gamemode;
-
-	public function __construct(Player $player, GameMode $newGamemode){
-		$this->player = $player;
-		$this->gamemode = $newGamemode;
+	final public function __clone(){
+		throw new \LogicException("Cloning " . static::class . " objects is not allowed");
 	}
-
-	public function getNewGamemode() : int{
-		return $this->gamemode;
-	}
-
 }

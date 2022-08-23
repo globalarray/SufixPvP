@@ -51,17 +51,17 @@ class StatusCommand extends VanillaCommand{
 
 		$time = microtime(true) - \pocketmine\START_TIME;
 
-		$seconds = floor($time % 60);
+		$seconds = floor((int)$time % 60);
 		$minutes = null;
 		$hours = null;
 		$days = null;
 
 		if($time >= 60){
-			$minutes = floor(($time % 3600) / 60);
+			$minutes = floor(((int)$time % 3600) / 60);
 			if($time >= 3600){
-				$hours = floor(($time % (3600 * 24)) / 3600);
+				$hours = floor(((int)$time % (3600 * 24)) / 3600);
 				if($time >= 3600 * 24){
-					$days = floor($time / (3600 * 24));
+					$days = floor((int)$time / (3600 * 24));
 				}
 			}
 		}
