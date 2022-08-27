@@ -41,6 +41,8 @@ use raklib\server\RakLibServer;
 use raklib\server\ServerHandler;
 use raklib\server\ServerInstance;
 use raklib\utils\InternetAddress;
+use Exception;
+use function spl_object_hash;
 
 class RakLibInterface implements ServerInstance, AdvancedSourceInterface{
 
@@ -93,7 +95,7 @@ class RakLibInterface implements ServerInstance, AdvancedSourceInterface{
 		if(!$this->rakLib->isRunning() and !$this->rakLib->isShutdown()){
 			$this->network->unregisterInterface($this);
 
-			throw new \Exception("RakLib Thread crashed");
+			throw new Exception("RakLib Thread crashed");
 		}
 
 		return $work;
@@ -184,7 +186,7 @@ class RakLibInterface implements ServerInstance, AdvancedSourceInterface{
 				$info->getPlayerCount(),
 				$info->getMaxPlayerCount(),
 				$this->rakLib->getServerId(),
-                $name . " - v" . ProtocolInfo::MINECRAFT_VERSION_NETWORK,
+                $this->server->getName() . ' ' . $this->server->getPocketmineVersion(),
 				$this->server->getGamemode()->getEnglishName()
 			]) . ";"
 		);

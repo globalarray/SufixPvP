@@ -27,6 +27,8 @@ use pocketmine\utils\MainLogger;
 use pocketmine\thread\Worker;
 
 class AsyncWorker extends Worker{
+    
+    private static array $store = [];
 
 	private $logger;
 	private $id;
@@ -36,15 +38,24 @@ class AsyncWorker extends Worker{
 		$this->id = $id;
 	}
 
+	public function saveToThreadStore(string $identifier, $value) : void{
+		self::$store[$identifier] = $value;
+	}
+
+    public function getFromThreadStore(string $identifier) : ?array {
+		return self::$store[$identifier] ?? null;
+	}
+
+	public function removeFromThreadStore(string $identifier) : void{
+		unset(self::$store[$identifier]);
+	}
+
 	public function onRun() : void{
 		$this->registerClassLoader();
 		$this->logger->registerStatic();
 
 		gc_enable();
 		ini_set("memory_limit", '-1');
-
-		global $store;
-		$store = [];
 	}
 
 	public function handleException(\Throwable $e){

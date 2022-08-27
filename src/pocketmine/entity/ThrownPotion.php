@@ -35,18 +35,18 @@ use pocketmine\Player;
 use pocketmine\utils\Color;
 
 class ThrownPotion extends Projectile{
-	const NETWORK_ID = 86;
+	public const NETWORK_ID = 86;
 
 	const DATA_POTION_ID = 37;
 
-	public $width = 0.25;
-	public $length = 0.25;
-	public $height = 0.25;
+	public float $width = 0.25;
+	public float $length = 0.25;
+	public float $height = 0.25;
 
-	protected $gravity = 0.1;
-	protected $drag = 0.05;
+	protected float $gravity = 0.1;
+	protected float $drag = 0.05;
 
-	private $hasSplashed = false;
+	private bool $hasSplashed = false;
 
 	/**
 	 * ThrownPotion constructor.

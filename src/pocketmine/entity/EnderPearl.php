@@ -35,16 +35,16 @@ use pocketmine\Player;
 use pocketmine\Server;
 
 class EnderPearl extends Projectile{
-	const NETWORK_ID = 87;
+	public const NETWORK_ID = 87;
 
-	public $width = 0.25;
-	public $length = 0.25;
-	public $height = 0.25;
+	public float $width = 0.25;
+	public float $length = 0.25;
+	public float $height = 0.25;
 
-	protected $gravity = 0.03;
-	protected $drag = 0.01;
+	protected float $gravity = 0.03;
+	protected float $drag = 0.01;
 
-	private $hasTeleportedShooter = false;
+	private bool $hasTeleportedShooter = false;
 
 	public function __construct(Level $level, CompoundTag $nbt, Entity $shootingEntity = null){
 		parent::__construct($level, $nbt, $shootingEntity);

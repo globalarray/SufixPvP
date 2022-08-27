@@ -20,10 +20,13 @@
 
 namespace ddosnik;
 
+use pocketmine\{
+    Player,
+    GameMode
+};
 use pocketmine\block\Block;
 use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
-use pocketmine\Player;
 use pocketmine\item\{Item, ItemIds};
 use pocketmine\level\Position;
 use ddosnik\task\{Hotbar, LeaveTask, Broadcaster, ParticlesManager};
@@ -594,7 +597,7 @@ class Loader extends PluginBase implements Listener {
                 $p->getInventory()->setItem(2, Item::get(388)->setCustomName("§r§aПлащи\n§7Нажмите, чтобы выбрать себе плащ."));
                 $p->teleport($this->getServer()->getDefaultLevel()->getSpawnLocation());
                 $p->removeAllEffects();
-                $p->setGamemode(2);
+                $p->setGamemode(GameMode::ADVENTURE());
                 $p->setMaxHealth(20);
                 $p->setHealth(20);
                 $p->setFood(20);
@@ -641,7 +644,7 @@ class Loader extends PluginBase implements Listener {
         $player->setMaxHealth(20);
         $player->setXpLevel($this->getLvL($player));
         $player->removeAllEffects();
-        $player->setGamemode(2);
+        $player->setGamemode(GameMode::ADVENTURE());
         $player->setHealth(20);
         $player->setFood(20);
         $player->getInventory()->setItem(4, ClickableItemFactory::get('join_arena'));
@@ -1118,7 +1121,7 @@ class Loader extends PluginBase implements Listener {
 
     public function addPointInFFA(Player $entity, mixed $damager)
     {
-        $entity->setGamemode(3);
+        $entity->setGamemode(GameMode::SPECTATOR());
         $entity->getLevel()->addParticle(new \pocketmine\level\particle\DestroyBlockParticle($entity->getPosition(), Block::get(152, 0)));
         $entity->addTitle("§cYOU DEAD!");
         $entity->getInventory()->clearAll();
@@ -1266,7 +1269,7 @@ class Loader extends PluginBase implements Listener {
         $player->teleport($this->getServer()->getDefaultLevel()->getSpawnLocation());
         $player->setMaxHealth(20);
         $player->removeAllEffects();
-        $player->setGamemode(2);
+        $player->setGamemode(GameMode::ADVENTURE());
         $player->setHealth(20);
         $player->setFood(20);
         $player->getInventory()->setItem(2, Item::get(388)->setCustomName("§r§aПлащи\n§7Нажмите, чтобы выбрать себе плащ."));

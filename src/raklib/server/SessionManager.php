@@ -179,7 +179,7 @@ class SessionManager{
 			if($len > 0){
 				$pid = ord($buffer[0]);
 
-				if($pid === UNCONNECTED_PING::$ID){
+				if($pid === UNCONNECTED_PING::$ID) {
 					//No need to create a session for just pings
 					$packet = new UNCONNECTED_PING;
 					$packet->buffer = $buffer;
@@ -190,8 +190,6 @@ class SessionManager{
 					$pk->pingID = $packet->pingID;
 					$pk->serverName = $this->getName();
 					$this->sendPacket($pk, $address->ip, $address->port);
-				}elseif($pid === UNCONNECTED_PONG::$ID){
-					//ignored
 				}elseif(($packet = $this->getPacketFromPool($pid)) !== null){
 					$packet->buffer = $buffer;
 					$this->getSession($address)->handlePacket($packet);
@@ -412,7 +410,7 @@ class SessionManager{
 	}
 
 	private function registerPackets(){
-		//$this->registerPacket(UNCONNECTED_PING::$ID, UNCONNECTED_PING::class);
+		$this->registerPacket(UNCONNECTED_PING::$ID, UNCONNECTED_PING::class);
 		$this->registerPacket(UNCONNECTED_PING_OPEN_CONNECTIONS::$ID, UNCONNECTED_PING_OPEN_CONNECTIONS::class);
 		$this->registerPacket(OPEN_CONNECTION_REQUEST_1::$ID, OPEN_CONNECTION_REQUEST_1::class);
 		$this->registerPacket(OPEN_CONNECTION_REPLY_1::$ID, OPEN_CONNECTION_REPLY_1::class);

@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /*
  * ┏━━━┓╋╋╋┏━┓╋╋╋┏━━┓
  * ┃┏━┓┃╋╋╋┃┏┛╋╋╋┃┏┓┃
@@ -13,6 +11,8 @@ declare(strict_types=1);
  * @author RootiTeam
  * @link https://github.com/RootiTeam
  */
+
+declare(strict_types=1);
 
 namespace raklib\errorhandler;
 

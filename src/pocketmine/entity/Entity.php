@@ -277,23 +277,22 @@ abstract class Entity extends Location implements Metadatable{
 	public $positionChanged;
 	public $motionChanged;
 	public $deadTicks = 0;
-	protected $age = 0;
+	protected int $age = 0;
 
-	public $height;
+	public float $height;
 
-	public $eyeHeight = null;
+	public ?float $eyeHeight = null;
 
-	public $width;
-	public $length;
+	public float $width;
+	public float $length;
 
-	protected $baseOffset = 0.0;
+	protected float $baseOffset = 0.0;
 
-	/** @var int */
-	private $health = 20;
-	private $maxHealth = 20;
+	private int $health = 20;
+	private int $maxHealth = 20;
 
-	protected $ySize = 0;
-	protected $stepHeight = 0;
+	protected float $ySize = 0;
+	protected float $stepHeight = 0;
 	public $keepMovement = false;
 
 	/** @var float */
@@ -303,7 +302,7 @@ abstract class Entity extends Location implements Metadatable{
 	public $maxFireTicks;
 	public $fireTicks = 0;
 	public $namedtag;
-	public $canCollide = true;
+	public bool $canCollide = true;
 
 	protected $isStatic = false;
 
@@ -318,8 +317,8 @@ abstract class Entity extends Location implements Metadatable{
 	/** @var AttributeMap */
 	protected $attributeMap;
 
-	protected $gravity;
-	protected $drag;
+	protected float $gravity;
+	protected float $drag;
 
 	/** @var Server */
 	protected $server;

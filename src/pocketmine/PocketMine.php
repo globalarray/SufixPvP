@@ -79,8 +79,27 @@ namespace pocketmine {
 	use pocketmine\wizard\SetupWizard;
 	use pocketmine\thread\ThreadManager;
 	use raklib\RakLib;
+	use const DIRECTORY_SEPARATOR;
+	use BaseClassLoader;
+	use ErrorException;
+	use Phar;
+	use function version_compare;
+	use function extension_loaded;
+	use function set_error_handler;
+	use function error_reporting;
+	use function class_exists;
+	use function ini_set;
+	use function is_file;
+	use function define;
+	use function mkdir;
+	use function date_default_timezone_set;
+	use function ini_get;
+	use function strpos;
+	use function str_replace;
+	use function function_exists;
 
-	const VERSION = 'v0.4-beta';
+	const VERSION = 'v0.5.1';
+	const DEVELOPERS = ['vk.com/ddosnik', 'vk.com/id160057084', 'vk.com/encritary'];
 	const API_VERSION = '3.0.0';
 	const CODENAME = 'David Ratnikov & Danila Stroganov & Cake';
 	const NAME = 'SufixBase';
@@ -91,8 +110,8 @@ namespace pocketmine {
 	 * This is the only non-class based file on this project.
 	 * Enjoy it as much as I did writing it. I don't want to do it again.
 	 */
-	if (version_compare("8.0", PHP_VERSION) > 0) {
-		echo "[CRITICAL] You must use PHP >= 8.0" . PHP_EOL;
+	if (version_compare("8.1", PHP_VERSION) > 0) {
+		echo "[CRITICAL] You must use PHP >= 8.1" . PHP_EOL;
 		echo "[CRITICAL] Please use the installer provided on the homepage." . PHP_EOL;
 		exit(1);
 	}
@@ -107,7 +126,7 @@ namespace pocketmine {
 
 	set_error_handler(function($severity, $message, $file, $line){
 		if(error_reporting() & $severity){
-			throw new \ErrorException($message, 0, $severity, $file, $line);
+			throw new ErrorException($message, 0, $severity, $file, $line);
 		}else{ //stfu operator
 			return true;
 		}
@@ -119,7 +138,7 @@ namespace pocketmine {
 		exit(1);
 	}
 
-	if(\Phar::running(true) !== ""){
+	if(Phar::running(true) !== ""){
 		define('pocketmine\PATH', \Phar::running(true) . "/");
 	}else{
 		define('pocketmine\PATH', realpath(getcwd()) . DIRECTORY_SEPARATOR);
@@ -135,7 +154,7 @@ namespace pocketmine {
 		require_once(\pocketmine\PATH . "src/spl/BaseClassLoader.php");
 	}
 
-	$autoloader = new \BaseClassLoader();
+	$autoloader = new BaseClassLoader();
 	$autoloader->addPath(\pocketmine\PATH . "src");
 	$autoloader->addPath(\pocketmine\PATH . "src" . DIRECTORY_SEPARATOR . "spl");
 	$autoloader->register(true);
@@ -173,7 +192,7 @@ namespace pocketmine {
 	//Logger has a dependency on timezone, so we'll set it to UTC until we can get the actual timezone.
 	date_default_timezone_set("UTC");
 
-	$logger = new MainLogger(\pocketmine\DATA . "server" . date("d-y-m") . ".log");
+	$logger = new MainLogger(\pocketmine\DATA . "server" . date("d-y-m") . ".log", new \DateTimeZone('UTC'));
 	$logger->registerStatic();
 
 	if(!ini_get("date.timezone")){
@@ -377,37 +396,6 @@ namespace pocketmine {
 		return -1;
 	}
 
-	function getTrace($start = 0, $trace = null){
-		if($trace === null){
-			if(function_exists("xdebug_get_function_stack")){
-				$trace = array_reverse(xdebug_get_function_stack());
-			}else{
-				$e = new \Exception();
-				$trace = $e->getTrace();
-			}
-		}
-
-		$messages = [];
-		$j = 0;
-		for($i = (int) $start; isset($trace[$i]); ++$i, ++$j){
-			$params = "";
-			if(isset($trace[$i]["args"]) or isset($trace[$i]["params"])){
-				if(isset($trace[$i]["args"])){
-					$args = $trace[$i]["args"];
-				}else{
-					$args = $trace[$i]["params"];
-				}
-
-				$params = implode(", ", array_map(function($value){
-					return (is_object($value) ? get_class($value) . " object" : gettype($value) . " " . (is_array($value) ? "Array()" : Utils::printable(@strval($value))));
-				}, $args));
-			}
-			$messages[] = "#$j " . (isset($trace[$i]["file"]) ? cleanPath($trace[$i]["file"]) : "") . "(" . ($trace[$i]["line"] ?? "") . "): " . (isset($trace[$i]["class"]) ? $trace[$i]["class"] . (($trace[$i]["type"] === "dynamic" or $trace[$i]["type"] === "->") ? "->" : "::") : "") . $trace[$i]["function"] . "(" . Utils::printable($params) . ")";
-		}
-
-		return $messages;
-	}
-
 	function cleanPath($path){
 		return str_replace(["\\", ".php", "phar://", str_replace(["\\", "phar://"], ["/", ""], \pocketmine\PATH), str_replace(["\\", "phar://"], ["/", ""], \pocketmine\PLUGIN_PATH)], ["/", "", "", "", ""], $path);
 	}
@@ -455,11 +443,9 @@ namespace pocketmine {
 			}
 		}
 
-		if(extension_loaded("xdebug")){
-			$logger->warning(PHP_EOL . PHP_EOL . PHP_EOL . "\tYou are running PocketMine with xdebug enabled. This has a major impact on performance." . PHP_EOL . PHP_EOL);
+		if(extension_loaded('xdebug') && (function_exists('xdebug_info') || count(xdebug_info('mode')) !== 0)) {
+			$logger->warning('Xdebug extension is enabled. This has a major impact on performance.');
 		}
-
-
 
 		$extensions = [
 			"curl" => "cURL",
@@ -516,7 +502,7 @@ namespace pocketmine {
 		}
 
 
-		if(\Phar::running(true) === ""){
+		if(Phar::running(true) === ""){
 			$logger->warning('Non-packaged ' . NAME . ' installation detected, do not use on production.');
 		}
 

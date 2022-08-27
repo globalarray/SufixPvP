@@ -56,33 +56,29 @@ class Human extends Creature implements ProjectileSource, InventoryHolder{
 
 	const DATA_PLAYER_BED_POSITION = 29;
 
-	/** @var PlayerInventory */
-	protected $inventory;
+	protected ?PlayerInventory $inventory;
 
-	/** @var FloatingInventory */
-	protected $floatingInventory;
+	protected ?FloatingInventory $floatingInventory;
 
-	/** @var SimpleTransactionQueue */
-	protected $transactionQueue = null;
+	protected ?SimpleTransactionQueue $transactionQueue = null;
 
-	/** @var UUID */
-	protected $uuid;
-	protected $rawUUID;
+	protected ?UUID $uuid;
+	protected ?string $rawUUID;
 
-	public $width = 0.6;
-	public $length = 0.6;
-	public $height = 1.8;
-	public $eyeHeight = 1.62;
+	public float $width = 0.6;
+	public float $length = 0.6;
+	public float $height = 1.8;
+	public ?float $eyeHeight = 1.62;
 
-	protected $skinId;
-	protected $skin = "";
+	protected string $skinId;
+	protected string $skin = "";
 
-	protected $foodTickTimer = 0;
+	protected int $foodTickTimer = 0;
 
-	protected $totalXp = 0;
-	protected $xpSeed;
+	protected int $totalXp = 0;
+	protected int $xpSeed;
 
-	protected $baseOffset = 1.62;
+	protected float $baseOffset = 1.62;
 
 	public function __construct(Level $level, CompoundTag $nbt){
 		if($this->skin === "" and (!isset($nbt->Skin) or !isset($nbt->Skin->Data) or !Player::isValidSkin($nbt->Skin->Data->getValue()))){
@@ -322,7 +318,7 @@ class Human extends Creature implements ProjectileSource, InventoryHolder{
 		return $this->inventory;
 	}
 
-	public function getFloatingInventory(){
+	public function getFloatingInventory() {
 		return $this->floatingInventory;
 	}
 

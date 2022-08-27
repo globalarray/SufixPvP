@@ -1,6 +1,6 @@
 <?php
 
-/*
+/**
  *
  *  ____            _        _   __  __ _                  __  __ ____
  * |  _ \ ___   ___| | _____| |_|  \/  (_)_ __   ___      |  \/  |  _ \
@@ -219,16 +219,17 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	 */
 	protected $sessionAdapter;
 
-	/** @var bool */
 	public $playedBefore;
-	public $spawned = false;
-	public $loggedIn = false;
-	public $joined = false;
+	public bool $spawned = false;
+	public bool $loggedIn = false;
+	public bool $joined = false;
 	public GameMode $gamemode;
-	public $uuid;
 	public $lastProjectile;
-	/** @var int */
-	protected $protocol = ProtocolInfo::CURRENT_PROTOCOL;
+
+	public PlayerInfo $playerInfo;
+	public string $displayName;
+	public ?string $rawUUID;
+	public ?UUID $uuid;
 
 	protected $windowCnt = 2;
 	/** @var \SplObjectStorage<Inventory> */
@@ -247,29 +248,20 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 
 	public $creationTime = 0;
 
-	protected $randomClientId;
-
 	protected $connected = true;
 	protected $ip;
 	protected $removeFormat = true;
 	protected $port;
-	protected $username;
-	public $iusername;
-	protected $displayName;
-	protected $languageCode = "en_UK";
 	protected $startAction = -1;
 	/** @var Vector3|null */
 	protected $sleeping = null;
 	protected $clientID = null;
-	protected $deviceOS;
-	protected $deviceModel;
-	protected $clientInput;
 
 	public $ping = 0;
 
 	private $loaderId = 0;
 
-	protected $stepHeight = 0.6;
+	protected float $stepHeight = 0.6;
 
 	public $usedChunks = [];
 	protected $chunkLoadCount = 0;
@@ -323,55 +315,23 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		return "";
 	}
 
-	/**
-	 * This might disappear in the future.
-	 * Please use getUniqueId() instead (IP + clientId + name combo, in the future it'll change to real UUID for online
-	 * auth)
-	 *
-	 * @deprecated
-	 *
-	 */
-	public function getClientId(){
-		return $this->randomClientId;
-	}
-
-	public function getUUID() : string {
-		return $this->strUUID;
-	}
-
-    public function getDeviceOS() : int{
-		return $this->deviceOS;
-	}
-
-    public function getDeviceModel() : string{
-		return $this->deviceModel;
-	}
-
-	public function getClientInput() : int{
-		return $this->clientInput;
-	}
-
 	public function getClientSecret(){
 		return $this->clientSecret;
 	}
 
-	public function setPing($ping) : void{
+	public function setPing(int $ping) : void{
 		$this->ping = $ping;
 	}
 
-	public function getPing(){
+	public function getPing() : int{
 		return $this->ping;
-	}
-	
-	public function getLocale() : string{
-		return $this->languageCode;
 	}
 
 	public function isBanned() : bool{
-		return $this->server->getNameBans()->isBanned($this->iusername);
+		return $this->server->getNameBans()->isBanned($this->getLowerCaseName());
 	}
 
-	public function setBanned(bool $value){
+	public function setBanned(bool $value) : void{
 		if($value === true){
 			$this->server->getNameBans()->addBan($this->getName(), null, null, null);
 			$this->kick("You have been banned");
@@ -381,18 +341,18 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	}
 
 	public function isWhitelisted() : bool{
-		return $this->server->isWhitelisted($this->iusername);
+		return $this->server->isWhitelisted($this->getLowerCaseName());
 	}
 
 	public function setWhitelisted(bool $value){
-		if($value === true){
-			$this->server->addWhitelist($this->iusername);
-		}else{
-			$this->server->removeWhitelist($this->iusername);
+		if ($value) {
+			$this->server->addWhitelist($this->getLowerCaseName());
+		} else {
+			$this->server->removeWhitelist($this->getLowerCaseName());
 		}
 	}
 
-	public function getPlayer(){
+	public function getPlayer() : Player{
 		return $this;
 	}
 
@@ -435,33 +395,21 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		return $this->autoJump;
 	}
 
-	/**
-	 * @param Player $player
-	 */
-	public function spawnTo(Player $player){
+	public function spawnTo(Player $player) : void{
 		if($this->spawned and $player->spawned and $this->isAlive() and $player->isAlive() and $player->getLevel() === $this->level and $player->canSee($this) and !$this->isSpectator()){
 			parent::spawnTo($player);
 		}
 	}
 
-	/**
-	 * @return Server
-	 */
-	public function getServer(){
+	public function getServer() : Server{
 		return $this->server;
 	}
 
-	/**
-	 * @return bool
-	 */
 	public function getRemoveFormat() : bool{
 		return $this->removeFormat;
 	}
 
-	/**
-	 * @param bool $remove
-	 */
-	public function setRemoveFormat($remove = true){
+	public function setRemoveFormat(bool $remove = true) : void{
 		$this->removeFormat = (bool) $remove;
 	}
 
@@ -696,7 +644,6 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 
 		$this->uuid = null;
 		$this->rawUUID = null;
-		$this->strUUID = null;
 
 		$this->creationTime = microtime(true);
 
@@ -711,18 +658,9 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	}
 
 	/**
-	 * Gets the "friendly" name to display of this player to use in the chat.
-	 *
-	 * @return string
-	 */
-	public function getDisplayName() : string{
-		return $this->displayName;
-	}
-
-	/**
 	 * @param string $name
 	 */
-	public function setDisplayName($name){
+	public function setDisplayName($name) : void{
 		$this->displayName = $name;
 		if($this->spawned){
 			$this->server->updatePlayerListData($this->getUniqueId(), $this->getId(), $this->getDisplayName(), $this->getSkinId(), $this->getSkinData());
@@ -833,7 +771,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		$this->usedChunks[Level::chunkHash($x, $z)] = true;
 		$this->chunkLoadCount++;
 
-		if ($this->protocol < ProtocolInfo::MULTIVERSION_PROTOCOL) {
+		if ($this->getProtocol() < ProtocolInfo::MULTIVERSION_PROTOCOL) {
 			$pk = new ChunkRadiusUpdatedPacket();
 			$pk->radius = $this->viewDistance + 4;
 			$this->server->getScheduler()->scheduleDelayedTask(new CallbackTask([$this, "dataPacket"], [$pk]), 5);
@@ -1614,7 +1552,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 
 	}
 
-	public function sendAttributes(bool $sendAll = false){
+	public function sendAttributes(bool $sendAll = false) {
 		$entries = $sendAll ? $this->attributeMap->getAll() : $this->attributeMap->needSend();
 		if(count($entries) > 0){
 			$pk = new UpdateAttributesPacket();
@@ -1752,11 +1690,11 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	}
 
 	protected function processLogin(){
-		if(!$this->server->isWhitelisted($this->iusername)){
+		if(!$this->server->isWhitelisted($this->getLowerCaseName())){
 			$this->close($this->getLeaveMessage(), "Server is white-listed");
 
 			return;
-		}elseif($this->server->getNameBans()->isBanned($this->iusername) or $this->server->getIPBans()->isBanned($this->getAddress())){
+		}elseif($this->server->getNameBans()->isBanned($this->getLowerCaseName()) or $this->server->getIPBans()->isBanned($this->getAddress())){
 			$this->close($this->getLeaveMessage(), "You are banned");
 
 			return;
@@ -1764,18 +1702,18 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 
 		foreach($this->server->getOnlinePlayers() as $p){
 			if($p->loggedIn and $this->getUniqueId()->equals($p->getUniqueId())){
-					$this->close($this->getLeaveMessage(), TextFormat::RED . 'Игрок ' . TextFormat::YELLOW . $p->iusername . TextFormat::RED . ' уже играет на сервере!');
+					$this->close($this->getLeaveMessage(), TextFormat::RED . 'Игрок ' . TextFormat::YELLOW . $p->getLowerCaseName() . TextFormat::RED . ' уже играет на сервере!');
 					return;
 			}
 		}
 
-		$this->namedtag = $this->server->getOfflinePlayerData($this->username);
+		$this->namedtag = $this->server->getOfflinePlayerData($this->getName());
 
 		$this->playedBefore = ($this->namedtag["lastPlayed"] - $this->namedtag["firstPlayed"]) > 1; // microtime(true) - microtime(true) may have less than one millisecond difference
 		if(!isset($this->namedtag->NameTag)){
-			$this->namedtag->NameTag = new StringTag("NameTag", $this->username);
+			$this->namedtag->NameTag = new StringTag("NameTag", $this->getName());
 		}else{
-			$this->namedtag["NameTag"] = $this->username;
+			$this->namedtag["NameTag"] = $this->getName();
 		}
 		$this->gamemode = GameModeIdMap::getInstance()->fromId($this->namedtag['playerGameType']) ?? GameMode::SURVIVAL();
 		if($this->server->getForceGamemode()){
@@ -1797,7 +1735,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 
 		$this->namedtag->lastPlayed = new LongTag("lastPlayed", (int) floor(microtime(true) * 1000));
 		if($this->server->getAutoSave()){
-			$this->server->saveOfflinePlayerData($this->username, $this->namedtag, true);
+			$this->server->saveOfflinePlayerData($this->getName(), $this->namedtag, true);
 		}
 
 		$this->sendPlayStatus(PlayStatusPacket::LOGIN_SUCCESS);
@@ -1870,7 +1808,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		$this->setCanClimb(true);
 
 		$this->server->getLogger()->info($this->getServer()->getLanguage()->translateString("pocketmine.player.logIn", [
-			TextFormat::AQUA . $this->username . TextFormat::WHITE,
+			TextFormat::AQUA . $this->getName() . TextFormat::WHITE,
 			$this->ip,
 			$this->port,
 			$this->id,
@@ -1921,13 +1859,12 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 			return true;
 		}
 
+		$this->playerInfo = new PlayerInfo($packet);
+		$this->displayName = $packet->username;
+		$this->uuid = UUID::fromString($packet->clientUUID);
+		$this->rawUUID = $this->uuid->toBinary();
 
-		$this->username = TextFormat::clean($packet->username);
-		$this->displayName = $this->username;
-		$this->iusername = strtolower($this->username);
-		$this->setDataProperty(self::DATA_NAMETAG, self::DATA_TYPE_STRING, $this->username, false);
-
-		$this->languageCode = $packet->languageCode;
+		$this->setDataProperty(self::DATA_NAMETAG, self::DATA_TYPE_STRING, $this->playerInfo->username, false);
 
 		if($this->server->getConfigBoolean("online-mode", false) && $packet->identityPublicKey === null){
 			$this->kick("disconnectionScreen.notAuthenticated", false);
@@ -1937,16 +1874,6 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		if(count($this->server->getOnlinePlayers()) >= $this->server->getMaxPlayers() and $this->kick("disconnectionScreen.serverFull", false)){
 			return true;
 		}
-
-		$this->randomClientId = $packet->clientId;
-		$this->protocol = $packet->protocol;
-		$this->deviceOS = $packet->deviceOS;
-		$this->deviceModel = $packet->deviceModel;
-		$this->clientInput = $packet->clientInput;
-
-		$this->uuid = UUID::fromString($packet->clientUUID);
-		$this->strUUID = $packet->clientUUID;
-		$this->rawUUID = $this->uuid->toBinary();
 
 		if(!self::isValidUserName($packet->username)){
 			$this->close($this->getLeaveMessage(), "disconnectionScreen.invalidName");
@@ -2793,7 +2720,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 				return true;
 			case PlayerActionPacket::ACTION_START_GLIDE:
 				if($this->inventory->getChestplate()->getId() !== Item::ELYTRA){
-					$this->server->getLogger()->debug("Client ".$this->username." tried to start glide without elytra");
+					$this->server->getLogger()->debug("Client ".$this->getName()." tried to start glide without elytra");
 					return false;
 				}
 				$ev = new PlayerToggleGlideEvent($this, true);
@@ -3705,34 +3632,45 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		$this->namedtag["playerGameType"] = GameModeIdMap::getInstance()->toId($this->gamemode);
 		$this->namedtag["lastPlayed"] = (int) floor(microtime(true) * 1000);
 
-		if($this->username != "" and $this->namedtag instanceof CompoundTag){
-			$this->server->saveOfflinePlayerData($this->username, $this->namedtag, $async);
+		if($this->getName() != "" and $this->namedtag instanceof CompoundTag){
+			$this->server->saveOfflinePlayerData($this->getName(), $this->namedtag, $async);
 		}
 	}
 
-	/**
-	 * Gets the username
-	 *
-	 * @return string
-	 */
-	public function getName(){
-		return $this->username;
+	public function getName() : string{
+		return $this->playerInfo->username;
 	}
 
-	/**
-	 * Gets client's language
-	 *
-	 * @return string
-	 */
-	public function getLanguageCode(): string{
-		return $this->languageCode;
-	}
-
-	/**
-	 * @return string
-	 */
 	public function getLowerCaseName() : string{
-		return $this->iusername;
+		return $this->playerInfo->iusername;
+	}
+
+	public function getLocale() : string{
+		return $this->playerInfo->languageCode;
+	}
+
+	public function getClientId() : int{
+		return $this->playerInfo->randomClientId;
+	}
+
+	public function getDeviceOS() : int{
+		return $this->playerInfo->deviceOS;
+	}
+
+	public function getDeviceModel() : string{
+		return $this->playerInfo->deviceModel;
+	}
+
+	public function getClientInput() : int{
+		return $this->playerInfo->clientInput;
+	}
+
+	public function getUUID() : string{
+		return $this->playerInfo->strUUID;
+	}
+
+	public function getDisplayName() : string{
+		return $this->displayName;
 	}
 
 	public function kill(){
@@ -4080,7 +4018,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	}
 
 	public function getProtocol() : int{
-		return $this->protocol;
+		return $this->playerInfo->protocol ?? ProtocolInfo::CURRENT_PROTOCOL;
 	}
 
 	public function isLoaderActive() : bool{

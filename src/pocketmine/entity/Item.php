@@ -34,26 +34,22 @@ use pocketmine\network\mcpe\protocol\AddItemEntityPacket;
 use pocketmine\Player;
 
 class Item extends Entity{
-	const NETWORK_ID = 64;
+	public const NETWORK_ID = 64;
 
-	/** @var string */
-	protected $owner = "";
-	/** @var string */
-	protected $thrower = "";
-	/** @var int */
-	protected $pickupDelay = 0;
-	/** @var ItemItem */
-	protected $item;
+	protected string $owner = "";
+	protected string $thrower = "";
+	protected int $pickupDelay = 0;
+	protected ItemItem $item;
 
-	public $width = 0.25;
-	public $length = 0.25;
-	public $height = 0.25;
-	protected $baseOffset = 0.125;
+	public float $width = 0.25;
+	public float $length = 0.25;
+	public float $height = 0.25;
+	protected float $baseOffset = 0.125;
 
-	protected $gravity = 0.04;
-	protected $drag = 0.02;
+	protected float $gravity = 0.04;
+	protected float $drag = 0.02;
 
-	public $canCollide = false;
+	public bool $canCollide = false;
 
 	protected function initEntity(){
 		parent::initEntity();

@@ -32,17 +32,16 @@ use pocketmine\network\mcpe\protocol\EntityEventPacket;
 use pocketmine\Player;
 
 class Squid extends WaterAnimal{
-	const NETWORK_ID = 17;
+	public const NETWORK_ID = 17;
 
-	public $width = 0.95;
-	public $length = 0.95;
-	public $height = 0.95;
+	public float $width = 0.95;
+	public float $length = 0.95;
+	public float $height = 0.95;
 
-	/** @var Vector3 */
-	public $swimDirection = null;
-	public $swimSpeed = 0.1;
+	public ?Vector3 $swimDirection = null;
+	public float $swimSpeed = 0.1;
 
-	private $switchDirectionTicker = 0;
+	private int $switchDirectionTicker = 0;
 
 	public function initEntity(){
 		$this->setMaxHealth(10);

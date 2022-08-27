@@ -28,6 +28,7 @@ declare(strict_types=1);
 namespace pocketmine\utils;
 
 use pocketmine\ThreadManager;
+use pocketmine\errorhandler\ErrorTypeToStringMap;
 
 /**
  * Big collection of functions
@@ -141,6 +142,49 @@ class Utils{
 		return $reflect->getName();
 	}
 
+	private static function printableExceptionMessage(\Throwable $e) : string{
+		$errstr = preg_replace('/\s+/', ' ', trim($e->getMessage()));
+
+		$errno = $e->getCode();
+		if(is_int($errno)){
+			try{
+				$errno = ErrorTypeToStringMap::get($errno);
+			}catch(\InvalidArgumentException $ex){
+				//pass
+			}
+		}
+
+		$errfile = Filesystem::cleanPath($e->getFile());
+		$errline = $e->getLine();
+
+		return get_class($e) . ": \"$errstr\" ($errno) in \"$errfile\" at line $errline";
+	}
+
+	/**
+	 * @param mixed[] $trace
+	 * @return string[]
+	 */
+	public static function printableExceptionInfo(\Throwable $e, $trace = null) : array{
+		if($trace === null){
+			$trace = $e->getTrace();
+		}
+
+		$lines = [self::printableExceptionMessage($e)];
+		$lines[] = "--- Stack trace ---";
+		foreach(Utils::printableTrace($trace) as $line){
+			$lines[] = "  " . $line;
+		}
+		for($prev = $e->getPrevious(); $prev !== null; $prev = $prev->getPrevious()){
+			$lines[] = "--- Previous ---";
+			$lines[] = self::printableExceptionMessage($prev);
+			foreach(Utils::printableTrace($prev->getTrace()) as $line){
+				$lines[] = "  " . $line;
+			}
+		}
+		$lines[] = "--- End of exception information ---";
+		return $lines;
+	}
+
 	/**
 	 * @param mixed[][] $trace
 	 * @phpstan-param list<array<string, mixed>> $trace
@@ -151,29 +195,38 @@ class Utils{
 		$messages = [];
 		for($i = 0; isset($trace[$i]); ++$i){
 			$params = "";
-			if(isset($trace[$i]["args"]) or isset($trace[$i]["params"])){
+			if(isset($trace[$i]["args"]) || isset($trace[$i]["params"])){
 				if(isset($trace[$i]["args"])){
 					$args = $trace[$i]["args"];
 				}else{
 					$args = $trace[$i]["params"];
 				}
+				/** @var mixed[] $args */
 
-				$params = implode(", ", array_map(function($value) use($maxStringLength) : string{
-					if(is_object($value)){
-						return "object " . self::getNiceClassName($value);
-					}
-					if(is_array($value)){
-						return "array[" . count($value) . "]";
-					}
-					if(is_string($value)){
-						return "string[" . strlen($value) . "] " . substr(Utils::printable($value), 0, $maxStringLength);
-					}
-					return gettype($value) . " " . Utils::printable((string) $value);
-				}, $args));
+				$paramsList = [];
+				$offset = 0;
+				foreach($args as $argId => $value){
+					$paramsList[] = ($argId === $offset ? "" : "$argId: ") . self::stringifyValueForTrace($value, $maxStringLength);
+					$offset++;
+				}
+				$params = implode(", ", $paramsList);
 			}
-			$messages[] = "#$i " . (isset($trace[$i]["file"]) ? self::cleanPath($trace[$i]["file"]) : "") . "(" . (isset($trace[$i]["line"]) ? $trace[$i]["line"] : "") . "): " . (isset($trace[$i]["class"]) ? $trace[$i]["class"] . (($trace[$i]["type"] === "dynamic" or $trace[$i]["type"] === "->") ? "->" : "::") : "") . $trace[$i]["function"] . "(" . Utils::printable($params) . ")";
+			$messages[] = "#$i " . (isset($trace[$i]["file"]) ? Filesystem::cleanPath($trace[$i]["file"]) : "") . "(" . (isset($trace[$i]["line"]) ? $trace[$i]["line"] : "") . "): " . (isset($trace[$i]["class"]) ? $trace[$i]["class"] . (($trace[$i]["type"] === "dynamic" || $trace[$i]["type"] === "->") ? "->" : "::") : "") . $trace[$i]["function"] . "(" . Utils::printable($params) . ")";
 		}
 		return $messages;
+	}
+
+	private static function stringifyValueForTrace(mixed $value, int $maxStringLength) : string{
+		return match(true){
+			is_object($value) => "object " . self::getNiceClassName($value) . "#" . spl_object_id($value),
+			is_array($value) => "array[" . count($value) . "]",
+			is_string($value) => "string[" . strlen($value) . "] " . substr(Utils::printable($value), 0, $maxStringLength),
+			is_bool($value) => $value ? "true" : "false",
+			is_int($value) => "int " . $value,
+			is_float($value) => "float " . $value,
+			$value === null => "null",
+			default => gettype($value) . " " . Utils::printable((string) $value)
+		};
 	}
 
 	/**

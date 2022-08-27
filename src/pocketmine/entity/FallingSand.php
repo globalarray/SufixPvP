@@ -34,20 +34,20 @@ use pocketmine\network\mcpe\protocol\AddEntityPacket;
 use pocketmine\Player;
 
 class FallingSand extends Entity{
-	const NETWORK_ID = 66;
+	public const NETWORK_ID = 66;
 
-	public $width = 0.98;
-	public $length = 0.98;
-	public $height = 0.98;
+	public float $width = 0.98;
+	public float $length = 0.98;
+	public float $height = 0.98;
 
-	protected $baseOffset = 0.49;
+	protected float $baseOffset = 0.49;
 
-	protected $gravity = 0.04;
-	protected $drag = 0.02;
-	protected $blockId = 0;
-	protected $damage;
+	protected float $gravity = 0.04;
+	protected float $drag = 0.02;
+	protected int $blockId = 0;
+	protected int $damage;
 
-	public $canCollide = false;
+	public bool $canCollide = false;
 
 	protected function initEntity(){
 		parent::initEntity();

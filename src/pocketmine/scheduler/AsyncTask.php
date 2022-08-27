@@ -25,6 +25,9 @@ namespace pocketmine\scheduler;
 
 use pocketmine\Collectable;
 use pocketmine\Server;
+use ArrayObject;
+use function unserialize;
+use function spl_object_id;
 
 /**
  * Class used to run async tasks in other threads.
@@ -35,9 +38,9 @@ use pocketmine\Server;
  *
  * WARNING: Do not call PocketMine-MP API methods, or save objects (and arrays containing objects) from/on other Threads!!
  */
-abstract class AsyncTask extends Collectable{
+abstract class AsyncTask extends \Threaded implements \Collectable{
 
-	private static ?\ArrayObject $threadLocalStorage = null;
+	private static ?ArrayObject $threadLocalStorage = null;
 
 	/** @var AsyncWorker $worker */
 	public $worker = null;
@@ -50,6 +53,10 @@ abstract class AsyncTask extends Collectable{
 	private $cancelRun = false;
 	/** @var int|null */
 	private $taskId = null;
+
+	private $isGarbage = false;
+
+	private $isFinished = false;
 
 	private $crashed = false;
 
@@ -76,7 +83,26 @@ abstract class AsyncTask extends Collectable{
 		Server::getInstance()->getScheduler()->storeLocalComplex($this, $complexData);
 	}
 
-	public function run(){
+
+	/**
+	 * @return bool
+	 */
+	public function isGarbage() : bool{
+		return $this->isGarbage;
+	}
+
+	public function setGarbage(){
+		$this->isGarbage = true;
+	}
+
+	/**
+	 * @return bool
+	 */
+	public function isFinished() : bool{
+		return $this->isFinished;
+	}
+
+	public function run() {
 		$this->result = null;
 
 		if($this->cancelRun !== true){
@@ -88,7 +114,7 @@ abstract class AsyncTask extends Collectable{
 			}
 		}
 
-		$this->setGarbage();
+		$this->isFinished = true;
 	}
 
 	/**
@@ -107,17 +133,19 @@ abstract class AsyncTask extends Collectable{
 	 *
 	 * @param mixed  $complexData the data to store
 	 */
-	protected function storeLocal(string $key, $complexData) : void{
-		if(self::$threadLocalStorage === null){
-			/*
-			 * It's necessary to use an object (not array) here because pthreads is stupid. Non-default array statics
-			 * will be inherited when task classes are copied to the worker thread, which would cause unwanted
-			 * inheritance of primitive thread-locals, which we really don't want for various reasons.
-			 * It won't try to inherit objects though, so this is the easiest solution.
-			 */
-			self::$threadLocalStorage = new \ArrayObject();
+	protected function storeLocal($complexData){
+		if($this->worker !== null and $this->worker === \Thread::getCurrentThread()){
+			throw new \BadMethodCallException("Objects can only be stored from the parent thread");
 		}
-		self::$threadLocalStorage[spl_object_id($this)][$key] = $complexData;
+
+		if(self::$threadLocalStorage === null){
+			self::$threadLocalStorage = new \SplObjectStorage(); //lazy init
+		}
+
+		if(isset(self::$threadLocalStorage[$this])){
+			throw new \InvalidStateException("Already storing complex data for this async task");
+		}
+		self::$threadLocalStorage[$this] = $complexData;
 	}
 
 	public function isCrashed() : bool{
@@ -185,11 +213,23 @@ abstract class AsyncTask extends Collectable{
 	 * @param string $identifier
 	 * @param mixed  $value
 	 */
-	public function saveToThreadStore(string $identifier, $value){
-		global $store;
-		if(!$this->isGarbage()){
-			$store[$identifier] = $value;
+	public function saveToThreadStore($identifier, $value) : void{
+		if($this->worker === null or $this->isGarbage()){
+			throw new \BadMethodCallException("Objects can only be added to AsyncWorker thread-local storage during task execution");
 		}
+		$this->worker->saveToThreadStore($identifier, $value);
+	}
+
+	/**
+	 * @see AsyncWorker::removeFromThreadStore()
+	 *
+	 * @param string $identifier
+	 */
+	public function removeFromThreadStore(string $identifier) : void{
+		if($this->worker === null or $this->isGarbage()){
+			throw new \BadMethodCallException("Objects can only be removed from AsyncWorker thread-local storage during task execution");
+		}
+		$this->worker->removeFromThreadStore($identifier);
 	}
 
 	/**
@@ -254,19 +294,18 @@ abstract class AsyncTask extends Collectable{
 	 * be used in the next {@link AsyncTask#onProgressUpdate} call or from {@link AsyncTask#onCompletion}. Use
 	 * {@link AsyncTask#peekLocal} instead.
 	 *
-	 * @param Server $server default null
-	 *
 	 * @return mixed
 	 *
 	 * @throws \RuntimeException if no data were stored by this AsyncTask instance.
 	 */
-	protected function fetchLocal(Server $server = null){
-		if($server === null){
-			$server = Server::getInstance();
-			assert($server !== null, "Call this method only from the main thread!");
+	protected function fetchLocal() : mixed{
+		try{
+			return $this->peekLocal();
+		}finally{
+			if(self::$threadLocalStorage !== null){
+				unset(self::$threadLocalStorage[$this]);
+			}
 		}
-
-		return $server->getScheduler()->fetchLocalComplex($this);
 	}
 
 	/**
@@ -276,29 +315,26 @@ abstract class AsyncTask extends Collectable{
 	 * the data, and not clearing the data will result in a warning for memory leak after {@link AsyncTask#onCompletion}
 	 * finished executing.
 	 *
-	 * @param Server|null $server default null
-	 *
 	 * @return mixed
 	 *
 	 * @throws \RuntimeException if no data were stored by this AsyncTask instance
 	 */
-	protected function peekLocal(Server $server = null){
-		if($server === null){
-			$server = Server::getInstance();
-			assert($server !== null, "Call this method only from the main thread!");
+	protected function peekLocal(){
+		if($this->worker !== null and $this->worker === \Thread::getCurrentThread()){
+			throw new \BadMethodCallException("Objects can only be retrieved from the parent thread");
 		}
 
-		return $server->getScheduler()->peekLocalComplex($this);
+		if(self::$threadLocalStorage === null or !isset(self::$threadLocalStorage[$this])){
+			throw new \InvalidStateException("No complex data stored for this async task");
+		}
+
+		return self::$threadLocalStorage[$this];
 	}
 
-	public function cleanObject(){
-		foreach($this as $p => $v){
-			if(!($v instanceof \Threaded)){
-				$this->{$p} = null;
-			}
+	public function cleanObject() : void{
+		if (self::$threadLocalStorage !== null && isset(self::$threadLocalStorage[$this])) {
+			unset($threadLocalStorage[$this]);
 		}
-
-		$this->setGarbage();
 	}
 }
 

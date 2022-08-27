@@ -23,22 +23,20 @@ declare(strict_types=1);
 
 namespace pocketmine\utils;
 
-use LogLevel;
 use pocketmine\Thread;
 use pocketmine\Worker;
+use LogLevel;
+use DateTimeZone;
 
 class MainLogger extends \AttachableThreadedLogger{
 
-	/** @var string */
-	protected $logFile;
-	/** @var \Threaded */
-	protected $logStream;
-	/** @var bool */
-	protected $shutdown;
-	/** @var bool */
-	protected $logDebug;
-	/** @var MainLogger */
-	public static $logger = null;
+    private string $format = TextFormat::AQUA . "[%s] " . TextFormat::RESET . "%s[%s/%s]: %s" . TextFormat::RESET;
+	protected string $logFile;
+	protected \Threaded $logStream;
+	protected bool $shutdown;
+	protected bool $logDebug;
+	protected DateTimeZone $timezone;
+	public static ?MainLogger $logger = null;
 
 	/**
 	 * @param string $logFile
@@ -46,13 +44,14 @@ class MainLogger extends \AttachableThreadedLogger{
 	 *
 	 * @throws \RuntimeException
 	 */
-	public function __construct(string $logFile, bool $logDebug = false){
+	public function __construct(string $logFile, DateTimeZone $timezone, bool $logDebug = false){
 		if(static::$logger instanceof MainLogger){
 			throw new \RuntimeException("MainLogger has been already created");
 		}
 		touch($logFile);
 		$this->logFile = $logFile;
 		$this->logDebug = $logDebug;
+		$this->timezone = $timezone->getName();
 		$this->logStream = new \Threaded;
 		$this->start();
 	}
@@ -119,44 +118,7 @@ class MainLogger extends \AttachableThreadedLogger{
 	}
 
 	public function logException(\Throwable $e, $trace = null){
-		if($trace === null){
-			$trace = $e->getTrace();
-		}
-		$errstr = $e->getMessage();
-		$errfile = $e->getFile();
-		$errno = $e->getCode();
-		$errline = $e->getLine();
-
-		$errorConversion = [
-			0 => "EXCEPTION",
-			E_ERROR => "E_ERROR",
-			E_WARNING => "E_WARNING",
-			E_PARSE => "E_PARSE",
-			E_NOTICE => "E_NOTICE",
-			E_CORE_ERROR => "E_CORE_ERROR",
-			E_CORE_WARNING => "E_CORE_WARNING",
-			E_COMPILE_ERROR => "E_COMPILE_ERROR",
-			E_COMPILE_WARNING => "E_COMPILE_WARNING",
-			E_USER_ERROR => "E_USER_ERROR",
-			E_USER_WARNING => "E_USER_WARNING",
-			E_USER_NOTICE => "E_USER_NOTICE",
-			E_STRICT => "E_STRICT",
-			E_RECOVERABLE_ERROR => "E_RECOVERABLE_ERROR",
-			E_DEPRECATED => "E_DEPRECATED",
-			E_USER_DEPRECATED => "E_USER_DEPRECATED"
-		];
-		if($errno === 0){
-			$type = LogLevel::CRITICAL;
-		}else{
-			$type = ($errno === E_ERROR or $errno === E_USER_ERROR) ? LogLevel::ERROR : (($errno === E_USER_WARNING or $errno === E_WARNING) ? LogLevel::WARNING : LogLevel::NOTICE);
-		}
-		$errno = $errorConversion[$errno] ?? $errno;
-		$errstr = preg_replace('/\s+/', ' ', trim($errstr));
-		//$errfile = \pocketmine\cleanPath($errfile);
-		$this->log($type, get_class($e) . ": \"$errstr\" ($errno) in \"$errfile\" at line $errline");
-		foreach(\pocketmine\getTrace(0, $trace) as $i => $line){
-			$this->debug($line);
-		}
+		$this->critical(implode("\n", Utils::printableExceptionInfo($e, $trace)));
 	}
 
 	public function log($level, $message){
@@ -194,8 +156,7 @@ class MainLogger extends \AttachableThreadedLogger{
 	}
 
 	protected function send($message, $level, $prefix, $color){
-		$now = time();
-		date_default_timezone_set('Europe/Moscow');
+		$time = new \DateTime('now', new \DateTimeZone($this->timezone));
 
 		$thread = \Thread::getCurrentThread();
 		if($thread === null){
@@ -206,7 +167,8 @@ class MainLogger extends \AttachableThreadedLogger{
 			$threadName = (new \ReflectionClass($thread))->getShortName() . " thread";
 		}
 
-		$message = TextFormat::toANSI(TextFormat::AQUA . "[" . date("H:i:s") . "] " . TextFormat::RESET . $color . "[" . $threadName . "/" . $prefix . "]:" . " " . $message . TextFormat::RESET);
+		//$message = TextFormat::toANSI(TextFormat::AQUA . "[" . date("H:i:s") . "] " . TextFormat::RESET . $color . "[" . $threadName . "/" . $prefix . "]:" . " " . $message . TextFormat::RESET);
+		$message = TextFormat::toANSI(sprintf($this->format, $time->format("H:i:s.v"), $color, $threadName, $prefix, TextFormat::clean($message, false)));
 		$cleanMessage = TextFormat::clean($message);
 
 		if(!Terminal::hasFormattingCodes()){
@@ -219,7 +181,7 @@ class MainLogger extends \AttachableThreadedLogger{
 			$this->attachment->call($level, $message);
 		}
 
-		$this->logStream[] = date("Y-m-d", $now) . " " . $cleanMessage . PHP_EOL;
+		$this->logStream[] = $time->format("Y-m-d") . " " . $cleanMessage . PHP_EOL;
 	}
 
 	/**

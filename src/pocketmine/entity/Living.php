@@ -46,19 +46,18 @@ use pocketmine\utils\BlockIterator;
 
 abstract class Living extends Entity implements Damageable{
 
-    protected $gravity = 0.00000001;
-    protected $drag = 0.00000001;
+    protected float $gravity = 0.00000001;
+    protected float $drag = 0.00000001;
 
-	protected $attackTime = 0;
+	protected int $attackTime = 0;
 
-	protected $invisible = false;
+	protected bool $invisible = false;
 
-	protected $jumpVelocity = 0.42;
-	protected $timeLastDamage = null;
+	protected float $jumpVelocity = 0.42;
+	protected ?int $timeLastDamage = null;
 
-	/** @var Effect[] */
-	protected $effects = [];
-	public $moveAnimation = 0;
+	protected array $effects = [];
+	public int $moveAnimation = 0;
 
 	abstract public function getName();
 

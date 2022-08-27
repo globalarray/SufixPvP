@@ -31,20 +31,20 @@ use pocketmine\Player;
 use pocketmine\item\Bow;
 
 class Arrow extends Projectile{
-	const NETWORK_ID = 80;
+	public const NETWORK_ID = 80;
 
-	public $width = 0.5;
-	public $length = 0.5;
-	public $height = 0.5;
+	public float $width = 0.5;
+	public float $length = 0.5;
+	public float $height = 0.5;
 
-	protected $gravity = 0.05;
-	protected $drag = 0.01;
+	protected float $gravity = 0.05;
+	protected float $drag = 0.01;
 
-	protected $damage = 2;
+	protected int $damage = 2;
 
-	protected $sound = true;
+	protected bool $sound = true;
 
-	protected $bow;
+	protected ?Bow $bow;
 
 	public function __construct(Level $level, CompoundTag $nbt, Entity $shootingEntity = null, bool $critical = false, Bow $bow = null){
 		parent::__construct($level, $nbt, $shootingEntity);

@@ -35,11 +35,11 @@ class Villager extends Creature implements NPC, Ageable{
 	const PROFESSION_BUTCHER = 4;
 	const PROFESSION_GENERIC = 5;
 
-	const NETWORK_ID = 15;
+	public const NETWORK_ID = 15;
 
-	public $width = 0.6;
-	public $length = 0.6;
-	public $height = 1.8;
+	public float $width = 0.6;
+	public float $length = 0.6;
+	public float $height = 1.8;
 
 	public function getName(){
 		return "Villager";

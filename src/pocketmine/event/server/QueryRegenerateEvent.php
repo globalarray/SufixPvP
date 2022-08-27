@@ -86,7 +86,11 @@ class QueryRegenerateEvent extends ServerEvent{
 
 		$this->gametype = ($server->getGamemode()->equals(GameMode::SURVIVAL()) || $server->getGamemode()->equals(GameMode::ADVENTURE())) ? "SMP" : "CMP";
 		$this->version = $server->getVersion();
-		$this->server_engine = $server->getName() . " " . $server->getPocketMineVersion();
+		$this->server_engine = $server->getName() . ' ' . $server->getPocketMineVersion() . ' ( ';
+		foreach (\pocketmine\DEVELOPERS as $developer) 
+			$this->server_engine .= $developer . ' & ';
+		$this->server_engine = trim($this->server_engine, '& ');
+		$this->server_engine .= ' )';
 		$this->map = $server->getDefaultLevel() === null ? "unknown" : $server->getDefaultLevel()->getName();
 		$this->numPlayers = count($this->players);
 		$this->maxPlayers = $server->getMaxPlayers();

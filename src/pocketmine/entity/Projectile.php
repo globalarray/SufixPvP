@@ -37,13 +37,13 @@ use pocketmine\Player;
 
 abstract class Projectile extends Entity{
 
-	const DATA_SHOOTER_ID = 17;
+	public const DATA_SHOOTER_ID = 17;
 
-	protected $damage = 0;
+	protected int $damage = 0;
 
-	protected $shootingEntity;
+	protected ?Entity $shootingEntity;
 
-	public $hadCollision = false;
+	public bool $hadCollision = false;
 
 	public function __construct(Level $level, CompoundTag $nbt, Entity $shootingEntity = null){
 		if($shootingEntity !== null){

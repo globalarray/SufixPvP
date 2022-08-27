@@ -105,20 +105,33 @@ class AsyncPool{
 	}
 
 	private function removeTask(AsyncTask $task, bool $force = false){
+		$task->setGarbage();
+
 		if(isset($this->taskWorkers[$task->getTaskId()])){
 			if(!$force and ($task->isRunning() or !$task->isGarbage())){
 				return;
 			}
 			$this->workerUsage[$this->taskWorkers[$task->getTaskId()]]--;
+			$this->workers[$this->taskWorkers[$task->getTaskId()]]->collector($task);
 		}
+		$task->cleanObject();
 
 		unset($this->tasks[$task->getTaskId()]);
 		unset($this->taskWorkers[$task->getTaskId()]);
-
-		$task->cleanObject();
 	}
 
-	public function removeTasks(){
+	public function removeTasks() : void{
+		foreach($this->workers as $worker){
+			/** @var AsyncTask $task */
+			while(($task = $worker->unstack()) !== null){
+				echo 228;
+				//cancelRun() is not strictly necessary here, but it might be used to inform plugins of the task state
+				//(i.e. it never executed).
+				assert($task instanceof AsyncTask);
+				$task->cancelRun();
+				$this->removeTask($task, true);
+			}
+		}
 		do{
 			foreach($this->tasks as $task){
 				$task->cancelRun();
@@ -140,27 +153,34 @@ class AsyncPool{
 		$this->collectWorkers();
 	}
 
-	private function collectWorkers(){
+	private function collectWorkers() : void{
 		foreach($this->workers as $worker){
 			$worker->collect();
 		}
 	}
 
-	public function collectTasks(){
+	public function collectTasks() : void{
 		Timings::$schedulerAsync->startTiming();
 
 		foreach($this->tasks as $task){
-			if(!$task->isGarbage()){
-				$task->checkProgressUpdates($this->server);
-			}
-			if($task->isGarbage() and !$task->isRunning() and !$task->isCrashed()){
+			$task->checkProgressUpdates($this->server);
+			if($task->isFinished() and !$task->isRunning() and !$task->isCrashed()){
 				if(!$task->hasCancelledRun()){
+					/*
+					 * It's possible for a task to submit a progress update and then finish before the progress
+					 * update is detected by the parent thread, so here we consume any missed updates.
+					 *
+					 * When this happens, it's possible for a progress update to arrive between the previous
+					 * checkProgressUpdates() call and the next isGarbage() call, causing progress updates to be
+					 * lost. Thus, it's necessary to do one last check here to make sure all progress updates have
+					 * been consumed before completing.
+					 */
+					$task->checkProgressUpdates($this->server);
 					$task->onCompletion($this->server);
-					$this->server->getScheduler()->removeLocalComplex($task);
 				}
 
 				$this->removeTask($task);
-			}elseif($task->isTerminated() or $task->isCrashed()){
+			}elseif($task->isCrashed()){
 				$this->server->getLogger()->critical("Could not execute asynchronous task " . (new \ReflectionClass($task))->getShortName() . ": Task crashed");
 				$this->removeTask($task, true);
 			}
@@ -170,6 +190,7 @@ class AsyncPool{
 
 		Timings::$schedulerAsync->stopTiming();
 	}
+
 	public function shutdown() : void{
 		$this->collectTasks();
 		$this->removeTasks();

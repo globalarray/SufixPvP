@@ -29,11 +29,11 @@ use pocketmine\network\mcpe\protocol\AddEntityPacket;
 use pocketmine\Player;
 
 class Zombie extends Monster{
-	const NETWORK_ID = 32;
+	public const NETWORK_ID = 32;
 
-	public $width = 0.6;
-	public $length = 0.6;
-	public $height = 1.8;
+	public float $width = 0.6;
+	public float $length = 0.6;
+	public float $height = 1.8;
 
 	public function getName(){
 		return "Zombie";

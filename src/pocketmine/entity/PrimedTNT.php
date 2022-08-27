@@ -32,20 +32,20 @@ use pocketmine\network\mcpe\protocol\LevelEventPacket;
 use pocketmine\Player;
 
 class PrimedTNT extends Entity implements Explosive{
-	const NETWORK_ID = 65;
+	public const NETWORK_ID = 65;
 
-	public $width = 0.98;
-	public $length = 0.98;
-	public $height = 0.98;
+	public float $width = 0.98;
+	public float $length = 0.98;
+	public float $height = 0.98;
 
-	protected $baseOffset = 0.49;
+	protected float $baseOffset = 0.49;
 
-	protected $gravity = 0.04;
-	protected $drag = 0.02;
+	protected float $gravity = 0.04;
+	protected float $drag = 0.02;
 
-	protected $fuse;
+	protected int $fuse;
 
-	public $canCollide = false;
+	public bool $canCollide = false;
 
 
 	public function attack($damage, EntityDamageEvent $source){
@@ -104,7 +104,7 @@ class PrimedTNT extends Entity implements Explosive{
 
 			$this->motionY -= $this->gravity;
 
-			$this->move($this->motionX, $this->motionY, $this->motionZ);
+			$this->fastMove($this->motionX, $this->motionY, $this->motionZ);
 
 			$friction = 1 - $this->drag;
 
