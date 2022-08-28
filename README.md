@@ -7,7 +7,7 @@
 [![Ratnikov's GitHub Stats](https://github-readme-stats.vercel.app/api?username=ddosnikgit)](https://github.com/ddosnikgit)
 
 ![](https://komarev.com/ghpvc/?username=ddosnikgit)
-
+<br>
 <h1 align="center"> GitHub Profile Trophies 🏆</h1>
 
 [![trophy](https://github-profile-trophy.vercel.app/?username=ddosnikgit)](https://github.com/ddosnikgit)
