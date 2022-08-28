@@ -4,7 +4,7 @@
 <br>
 <h1 align="center"> GitHub Profile Stats 📊</h1>
 
-[![Ratnikov's GitHub Stats](https://github-readme-stats.vercel.app/api?username=ddosnikgit)](https://github.com/ddosnikgit)
+[![Ratnikov's GitHub Stats](https://github-readme-stats.vercel.app/api?username=ddosnikgit&theme=cobalt&show_icons=true)](https://github.com/ddosnikgit)
 
 ![](https://komarev.com/ghpvc/?username=ddosnikgit)
 <br>
