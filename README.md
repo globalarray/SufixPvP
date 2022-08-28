@@ -8,6 +8,6 @@
 
 ![](https://komarev.com/ghpvc/?username=ddosnikgit&color=blueviolet)
 <br>
-<h1 align="center"> GitHub Profile Trophies 🏆</h1>
+<h1 align="center"> GitHub Streak 🔥</h1>
 
 [![GitHub Streak](http://github-readme-streak-stats.herokuapp.com?user=ddosnikgit&theme=dark&hide_border=true)](https://git.io/streak-stats)
