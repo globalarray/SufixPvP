@@ -4,7 +4,7 @@
 <br>
 <h1 align="center"> GitHub Profile Stats 📊</h1>
 
-[![Ratnikov's GitHub Stats](https://github-readme-stats.vercel.app/api?username=ddosnikgit&theme=cobalt&show_icons=true&title_color=6f1abd&icon_color=6f1abd&bg_color=000000&text_color=ffffff)](https://github.com/ddosnikgit)
+[![Ratnikov's GitHub Stats](https://github-readme-stats.vercel.app/api?username=ddosnikgit&theme=cobalt&show_icons=true&title_color=6f1abd&icon_color=6f1abd&bg_color=000000&text_color=ffffff&hide_border=true)](https://github.com/ddosnikgit)
 
 ![](https://komarev.com/ghpvc/?username=ddosnikgit)
 <br>
