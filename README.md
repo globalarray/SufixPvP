@@ -2,7 +2,9 @@
 <img src="https://github.com/blackcater/blackcater/raw/main/images/Hi.gif" height="32"/></h1>
 <h3 align="center">PHP developer, IT news writer from Russia 🇷🇺</h3>
 
-[![Ratnikov's GitHub Stats](https://github-readme-stats.vercel.app/api?username=ddosnikgit)](https://github.com/anuraghazra/github-readme-stats)
+<h1 align="center"> GitHub Profile Stats 📊</h1>
+
+[![Ratnikov's GitHub Stats](https://github-readme-stats.vercel.app/api?username=ddosnikgit)](https://github.com/ddosnikgit)
 
 ![](https://komarev.com/ghpvc/?username=ddosnikgit)
 
