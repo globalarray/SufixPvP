@@ -10,6 +10,4 @@
 <br>
 <h1 align="center"> GitHub Profile Trophies 🏆</h1>
 
-![GitHub Snake dark](github-snake-dark.svg#gh-dark-mode-only)
-
-[![trophy](https://github-profile-trophy.vercel.app/?username=ddosnikgit)](https://github.com/ddosnikgit)
+[![GitHub Streak](http://github-readme-streak-stats.herokuapp.com?user=ddosnikgit&theme=dark&hide_border=true)](https://git.io/streak-stats)
