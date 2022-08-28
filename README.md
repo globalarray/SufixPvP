@@ -6,7 +6,7 @@
 
 [![Ratnikov's GitHub Stats](https://github-readme-stats.vercel.app/api?username=ddosnikgit&theme=cobalt&show_icons=true&title_color=6f1abd&icon_color=6f1abd&bg_color=000000&text_color=ffffff&hide_border=true)](https://github.com/ddosnikgit)
 
-![](https://komarev.com/ghpvc/?username=ddosnikgit)
+![](https://komarev.com/ghpvc/?username=ddosnikgit&color=blueviolet)
 <br>
 <h1 align="center"> GitHub Profile Trophies 🏆</h1>
 
