@@ -46,19 +46,21 @@ use pocketmine\nbt\tag\StringTag;
 use pocketmine\network\mcpe\protocol\AddPlayerPacket;
 use pocketmine\Player;
 use pocketmine\utils\UUID;
+use InvalidStateException;
+use ReflectionClass;
 
 class Human extends Creature implements ProjectileSource, InventoryHolder{
 
-	const DATA_PLAYER_FLAG_SLEEP = 1;
-	const DATA_PLAYER_FLAG_DEAD = 2; //TODO: CHECK
+	public const DATA_PLAYER_FLAG_SLEEP = 1;
+	public const DATA_PLAYER_FLAG_DEAD = 2; //TODO: CHECK
 
-	const DATA_PLAYER_FLAGS = 27;
+	public const DATA_PLAYER_FLAGS = 27;
 
-	const DATA_PLAYER_BED_POSITION = 29;
+	public const DATA_PLAYER_BED_POSITION = 29;
 
-	protected ?PlayerInventory $inventory;
+	protected ?PlayerInventory $inventory = null;
 
-	protected ?FloatingInventory $floatingInventory;
+	protected ?FloatingInventory $floatingInventory = null;
 
 	protected ?SimpleTransactionQueue $transactionQueue = null;
 
@@ -82,7 +84,7 @@ class Human extends Creature implements ProjectileSource, InventoryHolder{
 
 	public function __construct(Level $level, CompoundTag $nbt){
 		if($this->skin === "" and (!isset($nbt->Skin) or !isset($nbt->Skin->Data) or !Player::isValidSkin($nbt->Skin->Data->getValue()))){
-			throw new \InvalidStateException((new \ReflectionClass($this))->getShortName() . " must have a valid skin set");
+			throw new InvalidStateException((new ReflectionClass($this))->getShortName() . " must have a valid skin set");
 		}
 
 		parent::__construct($level, $nbt);
@@ -116,7 +118,7 @@ class Human extends Creature implements ProjectileSource, InventoryHolder{
 	 */
 	public function setSkin($str, $skinId){
 		if(!Player::isValidSkin($str)){
-			throw new \InvalidStateException("Specified skin is not valid, must be 8KiB or 16KiB");
+			throw new InvalidStateException("Specified skin is not valid, must be 8KiB or 16KiB");
 		}
 
 		$this->skin = $str;
@@ -276,9 +278,9 @@ class Human extends Creature implements ProjectileSource, InventoryHolder{
 	}
 
 	public static function getTotalXpForLevel(int $level) : int{
-		if($level <= 16){
+		if ($level <= 16) {
 			return $level ** 2 + $level * 6;
-		}elseif($level < 32){
+		} elseif($level < 32){
 			return $level ** 2 * 2.5 - 40.5 * $level + 360;
 		}
 		return $level ** 2 * 4.5 - 162.5 * $level + 2220;

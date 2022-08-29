@@ -1,6 +1,6 @@
 <?php
 
-/*
+/**
  *
  * ╔═══╗───╔═╗───╔═══╗
  * ║╔═╗║───║╔╝───║╔══╝
@@ -20,7 +20,6 @@ declare(strict_types=1);
 
 namespace ddosnik\menu;
 
-use ddosnik\Loader;
 use ddosnik\player\SufixPlayer;
 use const PHP_EOL;
 
@@ -32,10 +31,10 @@ final class ChangeTimeItem extends ClickableItem {
 	}
 
     public function handleClick(SufixPlayer $player) : void{
-        $player->getInventory()->clearAll();
-        $player->setItem(2, ClickableItemFactory::get('item_time_morning'));
-        $player->setItem(4, ClickableItemFactory::get('item_time_day'));
-        $player->setItem(6, ClickableItemFactory::get('item_time_evening'));
-        $player->setItem(8, ClickableItemFactory::get('item_back_menu'));
+        ($inventory = $player->getInventory())->clearAll();
+        $inventory->setItem(2, ClickableItemFactory::TIME_MORNING());
+        $inventory->setItem(4, ClickableItemFactory::TIME_DAY());
+        $inventory->setItem(6, ClickableItemFactory::TIME_EVENING());
+        $inventory->setItem(8, ClickableItemFactory::BACK_MENU());
     }
 }

@@ -31,7 +31,7 @@ final class SetEveningTimeItem extends ClickableItem {
     }
 
     public function handleClick(SufixPlayer $player) : void{
-        $player->setTime(13000);
+        $player->sendTime(13000);
         $player->sendMessage(Loader::Prefix . '§eУстановленное время: §9Вечер §7(Время: §l§f19:00§r§7)');
     }
 }

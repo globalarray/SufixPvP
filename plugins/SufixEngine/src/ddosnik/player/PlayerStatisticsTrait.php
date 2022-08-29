@@ -31,11 +31,11 @@ trait PlayerStatisticsTrait {
 	}
 
 	public function getWins() : int{
-		return Loader::getInstance()->getPlayerData($this, 'WINS')['wins'];
+		return (int) Loader::getInstance()->getPlayerData($this, 'WINS')['wins'];
 	}
 
 	public function getLvl() : int{
-		return Loader::getInstance()->getPlayerData($this, 'LEVEL')['lvl'];
+		return (int) Loader::getInstance()->getPlayerData($this, 'LEVEL')['lvl'];
 	}
 
 	public function setLvl(int $lvl) : void{
@@ -43,7 +43,7 @@ trait PlayerStatisticsTrait {
 	}
 
 	public function getFactor() : int{
-		return Loader::getInstance()->getPlayerData($this, 'FACTOR')['factor'];
+		return (int) Loader::getInstance()->getPlayerData($this, 'FACTOR')['factor'];
 	}
 
     public function getFactorToString() : string{
@@ -52,7 +52,7 @@ trait PlayerStatisticsTrait {
     }
 
 	public function getExperience() : int{
-		return Loader::getInstance()->getPlayerData($this, 'EXPIRIENCE')['exp'];
+		return (int) Loader::getInstance()->getPlayerData($this, 'EXPIRIENCE')['exp'];
 	}
 
 	public function addExperience(int $count) : void{
@@ -66,10 +66,15 @@ trait PlayerStatisticsTrait {
     }
 
     public function getKills() : int{
-    	return Loader::getInstance()->getPlayerData($this, 'KILLS')['kills'];
+    	return (int) Loader::getInstance()->getPlayerData($this, 'KILLS')['kills'];
     }
 
-    public function getPingString() : string{
+    public function getExpNextLevel(): int{
+        $next = [0, 100, 500, 1500, 3000, 5000, 7000, 10000, 15000, 20000, 30000];
+        return $next[$this->getLvl()];
+    }
+
+    public function getPingToString() : string{
     	$ping = $this->getPing();
         return match (true) {
             $ping < 100 => Format::GREEN . $ping . Format::RESET,

@@ -37,6 +37,7 @@ use pocketmine\network\mcpe\protocol\MobEquipmentPacket;
 use pocketmine\network\mcpe\protocol\types\ContainerIds;
 use pocketmine\Player;
 use pocketmine\Server;
+use pocketmine\GameMode;
 
 class PlayerInventory extends BaseInventory{
 
@@ -589,7 +590,7 @@ class PlayerInventory extends BaseInventory{
 	public function sendCreativeContents(){
 		$pk = new ContainerSetContentPacket();
 		$pk->windowid = ContainerIds::CREATIVE;
-		if($this->getHolder()->getGamemode() === Player::CREATIVE){
+		if($this->getHolder()->getGamemode() === GameMode::CREATIVE()){
 			foreach(Item::getCreativeItems() as $i => $item){
 				$pk->slots[$i] = clone $item;
 			}

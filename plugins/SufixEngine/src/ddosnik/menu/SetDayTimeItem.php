@@ -31,7 +31,7 @@ final class SetDayTimeItem extends ClickableItem {
     }
 
     public function handleClick(SufixPlayer $player) : void{
-        $player->setTime(1000);
+        $player->sendTime(1000);
         $player->sendMessage(Loader::Prefix . '§eУстановленное время: §eДень §7(Время: §l§f12:00§r§7)');
     }
 }

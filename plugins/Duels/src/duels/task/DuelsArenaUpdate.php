@@ -8,7 +8,9 @@ use pocketmine\scheduler\PluginTask;
 
 use duels\Duels;
 use duels\manager\ArenaManager;
+use pocketmine\math\Vector3;
 use pocketmine\item\ItemIds;
+use pocketmine\block\TNT;
 
 class DuelsArenaUpdate extends PluginTask {
     public function __construct(Duels $plugin) {
@@ -18,10 +20,15 @@ class DuelsArenaUpdate extends PluginTask {
     public function onRun(int $currentTick) : void{
         foreach ($this->getOwner()->getServer()->getOnlinePlayers() as $player) {
             if (($game = ArenaManager::getGameByPlayer($player)) !== NULL) {
-                if ($game->getGamemode() === 'tntrun') {
-                    if ($level = ($player->getLevel())->getBlockIdAt(($x = $player->getX()), ($y = $player->getY()) - 2, $z = ($player->getZ())) === ItemIds::TNT) {
-                        $level->setBlockIdAt($x, $y - 2, $z, ItemIds::AIR);
-                        $level->setBlockIdAt($x, $y - 1, $z, ItemIds::AIR);
+                $player->setNameTag($player->getRankColor() . $player->getName() . ' §7(§r§l' . $player->getHealth() . '§c❤§r§7)');
+                if ($game->getGamemode() === 'tntrun' && $game->isStarted()) {
+                    if ((microtime(true) - $game->last_move[$player->getLowerCaseName()]) > 4) {
+                        $game->kill($player);
+                        $player->sendMessage('§l§d» §r§fВы не §l§aдвигались§r §l§c5§r секунд. Игра §l§cпроиграна§r.');
+                        continue;
+                    }
+                    if (($block = ($level = $player->getLevel())->getBlock(new Vector3(($x = $player->getFloorX()), ($y = $player->getFloorY()) - 2, $z = ($player->getFloorZ())))) instanceof TNT) {
+                        $block->ignite();
                     }
                 }
             }

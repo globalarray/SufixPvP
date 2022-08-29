@@ -1,68 +1,96 @@
 <?php
 
-/*
- *
- * ╔═══╗───╔═╗───╔═══╗
- * ║╔═╗║───║╔╝───║╔══╝
- * ║╚══╦╗╔╦╝╚╦╦╗╔╣╚══╦═╗╔══╦╦═╗╔══╗
- * ╚══╗║║║╠╗╔╬╬╬╬╣╔══╣╔╗╣╔╗╠╣╔╗╣║═╣
- * ║╚═╝║╚╝║║║║╠╬╬╣╚══╣║║║╚╝║║║║║║═╣
- * ╚═══╩══╝╚╝╚╩╝╚╩═══╩╝╚╩═╗╠╩╝╚╩══╝
- * ─────────────────────╔═╝║
- * ─────────────────────╚══╝
- *
- * @author David Ratnikov
- * @link https://vk.com/showyouass
- *
- */
-
 declare(strict_types=1);
 
 namespace ddosnik\menu;
 
-class ClickableItemFactory {
+use pocketmine\utils\CloningRegistryTrait;
 
-	public static $list = null;
+ /**
+ * This doc-block is generated automatically, do not modify it manually.
+ * This must be regenerated whenever registry members are added, removed or changed.
+ * @see build/generate-registry-annotations.php
+ * @generate-registry-docblock
+ *
+ * @method static JoinArenaItem JOIN_ARENA()
+ * @method static RebornItem REBORN()
+ * @method static JoinArenaGappleItem FFA_GAPPLE()
+ * @method static JoinArenaFistItem FFA_FIST()
+ * @method static JoinArenaResistanceItem FFA_RESISTANCE()
+ * @method static BackToMenuItem BACK_MENU()
+ * @method static CloaksListItem CLOAKS()
+ * @method static DragonCloakItem DRAGON_CLOAK()
+ * @method static GolemCloakItem GOLEM_CLOAK()
+ * @method static PistonCloakItem PISTON_CLOAK()
+ * @method static PickaxeCloakItem PICKAXE_CLOAK()
+ * @method static CreeperCloakItem CREEPER_CLOAK()
+ * @method static QuitToLobbyItem QUIT_LOBBY()
+ * @method static ChangeTimeItem CHANGE_TIME()
+ * @method static SetMorningTimeItem TIME_MORNING()
+ * @method static SetDayTimeItem TIME_DAY()
+ * @method static SetEveningTimeItem TIME_EVENING()
+ * @method static CustomizationItem CUSTOMIZATION()
+ * @method static ChangeColorNicknameItem CHANGE_COLOR()
+ * @method static YellowColorNameItem YELLOW_COLOR()
+ * @method static BlueColorNameItem BLUE_COLOR()
+ * @method static RedColorNameItem RED_COLOR()
+ * @method static GreenColorNameItem GREEN_COLOR()
+ * @method static ParticlesListItem PARTICLES()
+ * @method stasic HeartParticleItem HEART_PARTICLE()
+ * @method static HappyParticleItem HAPPY_PARTICLE()
+ * @method static RainParticleItem RAIN_PARTICLE()
+ * @method static FlameParticleItem FLAME_PARTICLE()
+ */
+ 
 
-	public static function init() : void{
-		if (self::$list === null) {
-			self::$list = [];
-			
-			self::$list['join_arena'] = JoinArenaItem::class;
-			self::$list['item_reborn'] = RebornItem::class;
-			self::$list['ffa_gapple'] = JoinArenaGappleItem::class;
-			self::$list['ffa_fist'] = JoinArenaFistItem::class;
-			self::$list['ffa_resistance'] = JoinArenaResistanceItem::class;
-			self::$list['item_back_menu'] = BackToMenuItem::class;
-			self::$list['item_cloaks'] = CloaksListItem::class;
-			self::$list['dragon_cloak'] = DragonCloakItem::class;
-			self::$list['golem_cloak'] = GolemCloakItem::class;
-			self::$list['piston_cloak'] = PistonCloakItem::class;
-			self::$list['pickaxe_cloak'] = PickaxeCloakItem::class;
-			self::$list['creeper_cloak'] = CreeperCloakItem::class;
-			self::$list['item_quit_lobby'] = QuitToLobbyItem::class;
-			self::$list['item_change_time'] = ChangeTimeItem::class;
-			self::$list['item_time_morning'] = SetMorningTimeItem::class;
-			self::$list['item_time_day'] = SetDayTimeItem::class;
-			self::$list['item_time_evening'] = SetEveningTimeItem::class;
-		}
+final class ClickableItemFactory {
+	use CloningRegistryTrait;
+
+	private function __construct(){
+		//NOOP
+	}
+
+	protected static function register(string $name, $item) : void{
+		self::_registryRegister($name, $item);
 	}
 
 	/**
-	 *
-	 * @param string             $identifier
-	 * @param int                $meta
-	 * @param int                $count
-	 * @param CompoundTag|string $tags
-	 *
-	 * @return ClickableItem
+	 * @return ClickableItem[]
 	 */
-	public static function get(string $identifier, int $meta = 0, int $count = 1) : ClickableItem{
-		$class = self::$list[$identifier];
-		if ($class === null) {
-			//return (new Item::get(0, 0, 0));
-		} else {
-			return (new $class($meta, $count));
-		}
+	public static function getAll() : array{
+		/** @var ClickableItem[] $result */
+		$result = self::_registryGetAll();
+		return $result;
+	}
+
+	protected static function setup() : void{
+		self::register('join_arena', new JoinArenaItem());
+		self::register('reborn', new RebornItem());
+		self::register('ffa_gapple', new JoinArenaGappleItem());
+		self::register('ffa_fist', new JoinArenaFistItem());
+		self::register('ffa_resistance', new JoinArenaResistanceItem());
+		self::register('back_menu', new BackToMenuItem());
+		self::register('cloaks', new CloaksListItem());
+		self::register('dragon_cloak', new DragonCloakItem());
+		self::register('golem_cloak', new GolemCloakItem());
+		self::register('piston_cloak', new PistonCloakItem());
+		self::register('pickaxe_cloak', new PickaxeCloakItem());
+		self::register('creeper_cloak', new CreeperCloakItem());
+		self::register('quit_lobby', new QuitToLobbyItem());
+		self::register('change_time', new ChangeTimeItem());
+		self::register('time_morning', new SetMorningTimeItem());
+		self::register('time_day', new SetDayTimeItem());
+		self::register('time_evening', new SetEveningTimeItem());
+		self::register('customization', new CustomizationItem());
+		self::register('change_color', new ChangeColorNicknameItem());
+		self::register('yellow_color', new YellowColorNameItem());
+		self::register('blue_color', new BlueColorNameItem());
+		self::register('red_color', new RedColorNameItem());
+		self::register('green_color', new GreenColorNameItem());
+		self::register('particles', new ParticlesListItem());
+		self::register('heart_particle', new HeartParticleItem());
+		self::register('happy_particle', new HappyParticleItem());
+		self::register('rain_particle', new RainParticleItem());
+		self::register('flame_particle', new FlameParticleItem());
 	}
 }

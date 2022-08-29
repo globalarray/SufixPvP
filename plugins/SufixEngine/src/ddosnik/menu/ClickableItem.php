@@ -1,6 +1,6 @@
 <?php
 
-/*
+/**
  *
  * ╔═══╗───╔═╗───╔═══╗
  * ║╔═╗║───║╔╝───║╔══╝
@@ -35,26 +35,35 @@ abstract class ClickableItem extends Item implements ItemIds {
 				Item::get(self::DIAMOND_LEGGINGS),
 				Item::get(self::DIAMOND_BOOTS),
 				Item::get(self::DIAMOND_SWORD),
-				Item::get(self::GOLDEN_APPLE)],
+				Item::get(self::GOLDEN_APPLE, 0, 8)],
 			'FIST' => [Item::get(self::STEAK, 0, 64)],
 		};
 	}
 
 	public function getCloaksList() : array{
 		return [
-			[1, ClickableItemFactory::get('dragon_cloak')],
-			[2, ClickableItemFactory::get('golem_cloak')],
-			[3, ClickableItemFactory::get('piston_cloak')],
-			[4, ClickableItemFactory::get('pickaxe_cloak')],
-			[5, ClickableItemFactory::get('creeper_cloak')]
+			[1, ClickableItemFactory::DRAGON_CLOAK()],
+			[2, ClickableItemFactory::GOLEM_CLOAK()],
+			[3, ClickableItemFactory::PISTON_CLOAK()],
+			[4, ClickableItemFactory::PICKAXE_CLOAK()],
+			[5, ClickableItemFactory::CREEPER_CLOAK()]
+		];
+	}
+
+	public function getParticlesList() : array{
+		return [
+			[0, ClickableItemFactory::HEART_PARTICLE()],
+			[2, ClickableItemFactory::HAPPY_PARTICLE()],
+			[4, ClickableItemFactory::RAIN_PARTICLE()],
+			[6, ClickableItemFactory::FLAME_PARTICLE()]
 		];
 	}
 
 	public function getMainMenuItems() : array{
 		return [
-			[2, ClickableItemFactory::get('item_cloaks')],
-			[4, ClickableItemFactory::get('join_arena')],
-			[6, ClickableItemFactory::get('item_customization')]
+			[2, ClickableItemFactory::CLOAKS()],
+			[4, ClickableItemFactory::JOIN_ARENA()],
+			[6, ClickableItemFactory::CUSTOMIZATION()]
 		];
 	}
 }

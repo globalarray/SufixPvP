@@ -1290,8 +1290,8 @@ abstract class Entity extends Location implements Metadatable{
 		return false;
 	}
 
-	public function getDirection(){
-		$rotation = ($this->yaw - 90) % 360;
+	public function getDirection() {
+		$rotation = ((int)$this->yaw - 90) % 360;
 		if($rotation < 0){
 			$rotation += 360.0;
 		}

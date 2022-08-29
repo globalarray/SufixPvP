@@ -24,6 +24,7 @@ use ddosnik\Loader;
 use pocketmine\Server;
 use ddosnik\player\SufixPlayer;
 use const PHP_EOL;
+use function sizeof;
 
 final class JoinArenaFistItem extends ClickableItem {
 
@@ -34,16 +35,16 @@ final class JoinArenaFistItem extends ClickableItem {
 
 	public function handleClick(SufixPlayer $player) : void{
 		$player->getInventory()->clearAll();
-		$player->teleport(Server::getInstance()->getLevelByName('4FIST')->getSafeSpawn());
+		$player->teleport(($level = Server::getInstance()->getLevelByName('4FIST'))->getSafeSpawn());
 		$player->setMaxHealth(20);
         $player->setHealth(20);
         $player->setFood(20);
 		foreach ($this->getItemsOnArena('FIST') as $item) {
 			$player->getInventory()->addItem($item);
 		}
-		foreach (Server::getInstance()->getLevelByName('4FIST')->getPlayers() as $playerOnArena) {
+		foreach ($level->getPlayers() as $playerOnArena) {
 			$playerOnArena->sendMessage(Loader::Prefix . ' §fИгрок §l' . $player->getName() . '§f§r присоединился к арене §l§cFFA-FIST§r.');
-			$playerOnArena->sendMessage(Loader::Prefix . ' §fИгроков на арене: §l§c' . sizeof($this->getServer()->getLevelByName('4FIST')->getPlayers()) . '§r');
+			$playerOnArena->sendMessage(Loader::Prefix . ' §fИгроков на арене: §l§c' . sizeof($level->getPlayers()) . '§r');
 		}
 		$player->sendMessage(Loader::Prefix . ' Чтобы выйти с §l§aарены§r используйте команду §e/quit§r');
 	}

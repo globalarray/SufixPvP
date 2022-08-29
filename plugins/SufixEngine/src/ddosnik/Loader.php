@@ -89,6 +89,7 @@ class Loader extends PluginBase implements Listener {
     public const Prefix = '§l§d» §r';
     public const MESSAGES = ['sufixpvp.broadcast.site', 'sufixpvp.broadcast.emoji', 'sufixpvp.broadcast.thanks', 'sufixpvp.broadcast.duels', 'sufixpvp.broadcast.follow_our'];
     public const FRANCHISES = ['GUEST' => 0, 'GUEST+' => 1, 'YT' => 2, 'SAKURA' => 3, 'MOD' => 4, 'OWNER' => 5];
+    public const FFA_WORLDS = ['6GAPPLE' => 'gapple', '4FIST' => 'fist', 'aCOMBO' => 'resistance'];
     public const CUSTOM_WINGS = [
         'EXAMPLE_WINGS' =>
             ['shape' => [
@@ -133,7 +134,6 @@ class Loader extends PluginBase implements Listener {
             [8, new Vector3(7.5, 39.5, 260), 'sufixpvp.floatingtext.wins'],
             [9, new Vector3(7.5, 39.1, 260), 'sufixpvp.floatingtext.kills']
         ];
-        ClickableItemFactory::init();
         for ($i = 0; $i < sizeof($floating_texts); $i++) {
             $this->registerParticle($floating_texts[$i][0], $floating_texts[$i][1], $floating_texts[$i][2], '');
         }
@@ -201,88 +201,6 @@ class Loader extends PluginBase implements Listener {
     }
 
     /**
-     * @param PlayerJoinEvent $event
-     * @return void
-     */
-    public function handleDisplayAndNametag(PlayerJoinEvent $event): void
-    {
-        $player = $event->getPlayer();
-        $franchise = match ($this->getGroup($player)) {
-            'GUEST' => '§7(§r§e' . $this->getLvL($player) . '§7) ' . $this->getCustomizeCurrentColor($player) . $player->getName(),
-            'GUEST+' => '§7(§r§e' . $this->getLvL($player) . '§7) §aＧｕｅｓｔ§6+ ' . $this->getCustomizeCurrentColor($player) . $player->getName(),
-            'YT' => '§7(§r§e' . $this->getLvL($player) . '§7) §cＹｏｕＴｕｂｅ ' . $this->getCustomizeCurrentColor($player) . $player->getName(),
-            'SAKURA' => '§7(§r§e' . $this->getLvL($player) . '§7) §dＳａｋｕｒａ ' . $this->getCustomizeCurrentColor($player) . $player->getName(),
-            'MOD' => '§7(§r§e' . $this->getLvL($player) . '§7) §6Ｍｏｄｅｒａｔｏｒ ' . $this->getCustomizeCurrentColor($player) . $player->getName(),
-            'OWNER' => '§7(§r§e' . $this->getLvL($player) . '§7) §aＯｗｎｅｒ ' . $this->getCustomizeCurrentColor($player) . $player->getName(),
-        };
-        $player->setDisplayName($franchise);
-        $player->setNameTag($franchise);
-    }
-
-    /**
-     * @param Player $player
-     * @return string
-     */
-    public function getCustomizeCurrentColor(Player $player): string
-    {
-        return $this->getPlayerData($player, 'CURRENTCOLOR')['color'];
-    }
-
-    /**
-     * @param Player $player
-     * @return int
-     */
-    public function getExpNextLevel(Player $player): int
-    {
-        $next = [0, 100, 500, 1500, 3000, 5000, 7000, 10000, 15000, 20000, 30000];
-        return $next[$this->getLvL($player)];
-    }
-
-    /**
-     * @param Player $player
-     * @param string $value
-     * @return bool
-     */
-    public function getCustomizeColor(Player $player, string $value): bool
-    {
-        return match ($value) {
-            'BLUE' => $this->getPlayerData($player, 'BLUETAG')['blue_tag'],
-            'RED' => $this->getPlayerData($player, 'REDTAG')['red_tag'],
-            'GREEN' => $this->getPlayerData($player, 'GREENTAG')['green_tag'],
-            'YELLOW' => $this->getPlayerData($player, 'YELLOWTAG')['yellow_tag'],
-        };
-    }
-
-    /**
-     * @param Player $player
-     * @return int
-     */
-    public function getLvL(Player $player): int
-    {
-        return $this->getPlayerData($player, 'LEVEL')['lvl'];
-    }
-
-    /**
-     * @param Player $player
-     * @param int $lvl
-     * @return void
-     */
-    public function setLvL(Player $player, int $lvl): void
-    {
-        $this->setPlayerData($player, 'LEVEL', $lvl);
-    }
-
-    /**
-     * @param Player $player
-     * @return void
-     */
-    public function addWin(Player $player): void
-    {
-        $wins = $this->getPlayerData($player, 'WINS')['wins'];
-        $this->setPlayerData($player, 'WINS', $wins + 1);
-    }
-
-    /**
      * @param Player $player
      * @param int $value
      * @return void
@@ -310,7 +228,7 @@ class Loader extends PluginBase implements Listener {
     public function remMoney(Player $player, int $value): void
     {
         $money = $this->getPlayerData($player, 'MONEY')['balance'];
-        $this->setPlayerData($player, 'MONEY', $value - $money);
+        $this->setPlayerData($player, 'MONEY', $money - $value);
     }
 
     /**
@@ -399,22 +317,6 @@ class Loader extends PluginBase implements Listener {
     }
 
     /**
-     * @param Player $player
-     * @return string
-     */
-    public function getRankColor(Player $player): string
-    {
-        return match ($this->getGroup($player)) {
-            default => '§7',
-            'GUEST+' => '§a',
-            'YT' => '§c',
-            'SAKURA' => '§d',
-            'MOD' => '§6',
-            'OWNER' => '§b',
-        };
-    }
-
-    /**
      * @param PlayerJoinEvent $event
      * @return void
      */
@@ -437,16 +339,7 @@ class Loader extends PluginBase implements Listener {
     public function handleChat(PlayerChatEvent $event): void
     {
         $player = $event->getPlayer();
-        $message = $event->getMessage();
-        $format = match ($this->getGroup($player)) {
-            'GUEST' => '§7(§r§e' . $this->getLvL($player) . '§7) ' . $this->getCustomizeCurrentColor($player) . $player->getName() . '§7: ' . $this->removeColors($message),
-            'GUEST+' => '§7(§r§e' . $this->getLvL($player) . '§7) §aＧｕｅｓｔ§6+ ' . $this->getCustomizeCurrentColor($player) . $player->getName() . '§7: ' . $this->removeColors($message),
-            'YT' => '§7(§r§e' . $this->getLvL($player) . '§7) §cＹｏｕＴｕｂｅ ' . $this->getCustomizeCurrentColor($player) . $player->getName() . '§7: ' . $this->removeColors($message),
-            'SAKURA' => '§7(§r§e' . $this->getLvL($player) . '§7) §dＳａｋｕｒａ ' . $this->getCustomizeCurrentColor($player) . $player->getName() . '§7: ' . $this->removeColors($message),
-            'MOD' => '§7(§r§e' . $this->getLvL($player) . '§7) §6Ｍｏｄｅｒａｔｏｒ ' . $this->getCustomizeCurrentColor($player) . $player->getName() . '§7: ' . $this->removeColors($message),
-            'OWNER' => '§7(§r§e' . $this->getLvL($player) . '§7) §aＯｗｎｅｒ ' . $this->getCustomizeCurrentColor($player) . $player->getName() . '§7: ' . $this->removeColors($message),
-        };
-        $event->setFormat($format);
+        $event->setFormat($player->getSufixNameTag() . '§7: '. self::removeColors($event->getMessage()));
     }
 
     /**
@@ -594,15 +487,16 @@ class Loader extends PluginBase implements Listener {
                     return true;
                 }
                 $p->getInventory()->clearAll();
-                $p->getInventory()->setItem(2, Item::get(388)->setCustomName("§r§aПлащи\n§7Нажмите, чтобы выбрать себе плащ."));
                 $p->teleport($this->getServer()->getDefaultLevel()->getSpawnLocation());
+                $p->removeBossBar();
                 $p->removeAllEffects();
                 $p->setGamemode(GameMode::ADVENTURE());
                 $p->setMaxHealth(20);
                 $p->setHealth(20);
                 $p->setFood(20);
-                $p->getInventory()->setItem(4, Item::get(345)->setCustomName("§r§eВойти на арену\n§7Нажмите, чтобы открыть."));
-                $p->getInventory()->setItem(6, Item::get(351, 9, 1)->setCustomName("§r§dКастомизация\n§7Нажмите, чтобы изменить свою кастомизацию."));
+                $p->getInventory()->setItem(2, ClickableItemFactory::CLOAKS());
+                $p->getInventory()->setItem(4, ClickableItemFactory::JOIN_ARENA());
+                $p->getInventory()->setItem(6, ClickableItemFactory::CUSTOMIZATION());
                 $p->sendMessage(Loader::Prefix . ' Вы телепортированы в §l§aлобби§r сервера.');
                 $p->sendMessage(Loader::Prefix . ' Не §l§bзадерживайся§r там...');
                 break;
@@ -632,405 +526,38 @@ class Loader extends PluginBase implements Listener {
      * @param PlayerJoinEvent $event
      * @return void
      */
-    public function handleJoinToServer(PlayerJoinEvent $event): void
-    {
-        // $e->getPlayer()->getLevel()->addParticle(new \pocketmine\level\particle\FloatingTextParticle(new \pocketmine\math\Vector3(250, 19, 296), "", "§8— §l§aВаша статистика:§r\n\n Монеток: §a".Loader::getInstance()->getMoney($e->getPlayer()->getLowerCaseName())."§6\n §r§fУровень:§l §e".Loader::getInstance()->getLvL($e->getPlayer()->getLowerCaseName())."\n §r§fОпыт: §8[§l§c".Loader::getInstance()->getExp($e->getPlayer()->getLowerCaseName())."§r§8/§l§c".Loader::getInstance()->getExpNextLevel($e->getPlayer()->getLowerCaseName())."§r§8]\n §r§fУбийств: §l§c".Loader::getInstance()->getKills($e->getPlayer()->getLowerCaseName())), array($e->getPlayer()));
+    public function handlePlayerJoin(PlayerJoinEvent $event): void{
         $player = $event->getPlayer();
         $event->setJoinMessage(null);
-        $this->addMoney($player, 3000);
         $player->sendMessage("§fДобро пожаловать на §l§dSufixPvP§r§f, §e§l{$player->getName()}§r§f!\n\n§fСообщество во §9ВКонтакте §8- §e@sufixpvp\n§aАвто-донат §8- §ehttps://pay.sufixpvp.fun/");
         $player->getInventory()->clearAll();
         $player->teleport($this->getServer()->getDefaultLevel()->getSpawnLocation());
         $player->setMaxHealth(20);
-        $player->setXpLevel($this->getLvL($player));
+        $player->setXpLevel($player->getLvl());
         $player->removeAllEffects();
         $player->setGamemode(GameMode::ADVENTURE());
         $player->setHealth(20);
         $player->setFood(20);
-        $player->getInventory()->setItem(4, ClickableItemFactory::get('join_arena'));
-        $player->getInventory()->setItem(2, ClickableItemFactory::get('item_cloaks'));
-        //$player->getInventory()->setItem(4, Item::get(345)->setCustomName("§r§eВойти на арену\n§7Нажмите, чтобы открыть."));
-        $player->getInventory()->setItem(6, Item::get(351, 9)->setCustomName("§r§dКастомизация\n§7Нажмите, чтобы изменить свою кастомизацию."));
-    }
-
-    /**
-     * @param Player $player
-     * @param int $time
-     * @return void
-     */
-    public function sendTimePacket(Player $player, int $time): void
-    {
-        $pk = new SetTimePacket;
-        $pk->time = $time;
-        $player->dataPacket($pk);
+        $this->addMoney($player, 10000);
+        $player->updateNameTag();
+        $player->updateDisplayName();
+        $player->getInventory()->setItem(4, ClickableItemFactory::JOIN_ARENA());
+        $player->getInventory()->setItem(2, ClickableItemFactory::CLOAKS());
+        $player->getInventory()->setItem(6, ClickableItemFactory::CUSTOMIZATION());
     }
 
     /**
      * @param PlayerInteractEvent $event
-     * @return bool|void
      */
-    public function handleMenu(PlayerInteractEvent $event)
-    {
+    public function handleMenu(PlayerInteractEvent $event) : void{
         $player = $event->getPlayer();
-        $event->setCancelled();
-        if ($this->auth->players[$player->getLowerCaseName()] !== 'game') return false;
+        if ($this->auth->players[$player->getLowerCaseName()] !== 'game') return;
         if ($event->getAction() === InteractPacket::ACTION_LEAVE_VEHICLE) {
             if (($item = $event->getItem()) instanceof ClickableItem) {
+                $event->setCancelled();
                 $item->handleClick($player);
             }
         }
-    }
-    /*
-            switch ($player->getInventory()->getItemInHand()->getCustomName()) {
-                case "§r§eВойти на арену\n§7Нажмите, чтобы открыть.":
-                    $player->getInventory()->clearAll();
-                    $player->getInventory()->setItem(2, Item::get(322)->setCustomName('§r§eFFA GAPPLE' . PHP_EOL . '§7Нажмите, чтобы войти на арену.'));
-                    $player->getInventory()->setItem(4, Item::get(364, 1, 1)->setCustomName('§r§cFFA FIST' . PHP_EOL . '§7Нажмите, чтобы войти на арену.'));
-                    $player->getInventory()->setItem(6, Item::get(373)->setCustomName('§r§3FFA RESISTANCE' . PHP_EOL . '§7Нажмите, чтобы войти на арену.'));
-                    $player->getInventory()->setItem(7, Item::get(262)->setCustomName('§r§cВернуться§c' . PHP_EOL . '§7Нажми, чтобы вернуться'));
-                    break;
-                case "§r§aВозродиться §fна арене §e§lGAPPLE§r\n§7Нажмите, чтобы вернуться к жизни.":
-                    $player->getInventory()->clearAll();
-                    $player->teleport(new Position($this->getServer()->getLevelByName('6GAPPLE')->getSafeSpawn()->x, $this->getServer()->getLevelByName('6GAPPLE')->getSafeSpawn()->y, $this->getServer()->getLevelByName('6GAPPLE')->getSafeSpawn()->z, $this->getServer()->getLevelByName('6GAPPLE')));
-                    $player->getInventory()->setHelmet(Item::get(310));
-                    $player->getInventory()->setChestplate(Item::get(307));
-                    $player->getInventory()->setLeggings(Item::get(312));
-                    $player->getInventory()->setBoots(Item::get(313));
-                    $player->getInventory()->addItem(Item::get(276));
-                    $player->getInventory()->addItem(Item::get(322, 0, 8));
-                    $player->setGamemode(2);
-                    $player->setMaxHealth(20);
-                    $player->setHealth(20);
-                    $player->setFood(20);
-                    $player->addTitle("§aYOU REBORN", "", 6, 10, 6);
-                    break;
-                case "§r§aВозродиться §fна арене §c§lFIST§r\n§7Нажмите, чтобы вернуться к жизни.":
-                    $player->getInventory()->clearAll();
-                    $player->teleport(new Position($this->getServer()->getLevelByName('4FIST')->getSafeSpawn()->x, $this->getServer()->getLevelByName('4FIST')->getSafeSpawn()->y, $this->getServer()->getLevelByName('4FIST')->getSafeSpawn()->z, $this->getServer()->getLevelByName('4FIST')));
-                    $player->getInventory()->addItem(Item::get(364, 0, 64));
-                    $player->setGamemode(2);
-                    $player->setMaxHealth(20);
-                    $player->setHealth(20);
-                    $player->setFood(20);
-                    $player->addTitle("§aYOU REBORN", "", 6, 10, 6);
-                    break;
-                case "§r§dКастомизация\n§7Нажмите, чтобы изменить свою кастомизацию.":
-                    $player->getInventory()->clearAll();
-                    $player->getInventory()->setItem(8, Item::get(262)->setCustomName("§r§cВернуться§c\n§7Нажми, чтобы вернуться"));
-                    $player->getInventory()->setItem(1, Item::get(351, 15)->setCustomName("§r§6Изменить цвет никнейма\n§7Нажмите, чтобы открыть цвета."));
-                    $player->getInventory()->setItem(4, Item::get(351, 12)->setCustomName("§r§bПерки\n§7Нажми, чтобы посмотреть партиклы"));
-                    $player->getInventory()->setItem(7, Item::get(347)->setCustomName("§r§9Время\n§7Нажмите, чтобы изменить свое время."));
-                    break;
-                case "§r§bПерки\n§7Нажми, чтобы посмотреть партиклы":
-                    $player->getInventory()->clearAll();
-                    $player->getInventory()->setItem(1, Item::get(360)->setCustomName("§r§2Melon Particle\n§7Нажми, чтобы активировать"));
-                    $player->getInventory()->setItem(2, Item::get(351, 1)->setCustomName("§r§cHeart Particle\n§7Нажми, чтобы активировать"));
-                    $player->getInventory()->setItem(3, Item::get(388)->setCustomName("§r§aHappy Particle\n§7Нажми, чтобы активировать"));
-                    $player->getInventory()->setItem(4, Item::get(9)->setCustomName("§r§bRain Particle\n§7Нажми, чтобы активировать"));
-                    $player->getInventory()->setItem(5, Item::get(351, 14)->setCustomName("§r§6Flame Particle\n§7Нажми, чтобы активировать"));
-                    $player->getInventory()->setItem(6, Item::get(175)->setCustomName("§r§dCustom Particle\n§7Нажми, чтобы активировать"));
-                    $player->getInventory()->setItem(8, Item::get(262)->setCustomName("§r§cВернуться§c\n§7Нажми, чтобы вернуться"));
-                    break;
-                case "§r§2Melon Particle\n§7Нажми, чтобы активировать":
-                    if ($this->getGroup($player) === 'GUEST') {
-                        $player->sendMessage(Loader::Prefix . ' §fПартикл §l§2Melon§r доступен игрокам с привилегией §l§aＧｕｅｓｔ§6+§r.');
-                        $player->sendMessage(Loader::Prefix . ' Повысить свой §l§aранг§r можно в нашем магазине §8- §l§epay.sufixpvp.su');
-                        return false;
-                    }
-                    if ($this->getPlayerData($player, 'PARTICLE')['particle'] === 'MELON') {
-                        $player->sendMessage(Loader::Prefix . ' У вас уже установлен партикл §l§2Melon§r.');
-                        return false;
-                    }
-                    $this->setPlayerData($player, 'PARTICLE', 'MELON');
-                    $player->sendMessage(Loader::Prefix . ' Партикл §l§2Melon§r успешно установлен.');
-                    $player->sendMessage(Loader::Prefix . ' Хочешь §l§cбольше§r партиклов? Тогда §l§aповысь§r свой ранг сайте - §l§epay.sufixpvp.su');
-                    break;
-                case "§r§cHeart Particle\n§7Нажми, чтобы активировать":
-                    if (!$this->getPlayerData($player, 'HEARTPARTICLE')['heart']) {
-                        if (($money = $this->getMoney($player)) < 3000) {
-                            $player->sendMessage(Loader::Prefix . ' Недостаточно §l§a' . (3000 - $money) . '§r  для покупки партикла §l§cHeart§r');
-                            $player->sendMessage(Loader::Prefix . ' Приобрести §l§bвалюту§r можно на нашем сайте - §l§epay.sufixpvp.su');
-                            return false;
-                        } else {
-                            $player->sendMessage(Loader::Prefix . ' Партикл §l§cHeart§r успешно куплен за §l§b3000 §r');
-                            $player->sendMessage(Loader::Prefix . ' Партикл §l§cHeart§r успешно установлен.');
-                            $this->setPlayerData($player, 'PARTICLE', 'HEART');
-                            $this->setPlayerData($player, 'HEARTPARTICLE', true);
-                            return true;
-                        }
-                    }
-                    if ($this->getPlayerData($player, 'PARTICLE')['particle'] === 'HEART') {
-                        $player->sendMessage(Loader::Prefix . ' У вас уже установлен партикл §l§cHeart§r.');
-                        return false;
-                    }
-                    $this->setPlayerData($player, 'PARTICLE', 'HEART');
-                    $player->sendMessage(Loader::Prefix . ' Партикл §l§cHeart§r успешно установлен.');
-                    $player->sendMessage(Loader::Prefix . ' Хочешь §l§cбольше§r партиклов? Тогда §l§aповысь§r свой ранг сайте - §l§epay.sufixpvp.su');
-                    break;
-                case "§r§aHappy Particle\n§7Нажми, чтобы активировать":
-                    if ($this->getGroup($player) === 'GUEST') {
-                        $player->sendMessage(Loader::Prefix . ' §fПартикл §l§aHappy§r доступен игрокам с привилегией §l§aＧｕｅｓｔ§6+§r.');
-                        $player->sendMessage(Loader::Prefix . ' Повысить свой §l§aранг§r можно в нашем магазине §8- §l§epay.sufixpvp.su');
-                        return false;
-                    }
-                    if ($this->getPlayerData($player, 'PARTICLE')['particle'] === 'HAPPY') {
-                        $player->sendMessage(Loader::Prefix . ' У вас уже установлен партикл §l§aHappy§r.');
-                        return false;
-                    }
-                    $this->setPlayerData($player, 'PARTICLE', 'HAPPY');
-                    $player->sendMessage(Loader::Prefix . ' Партикл §l§aHappy§r успешно установлен.');
-                    $player->sendMessage(Loader::Prefix . ' Хочешь §l§cбольше§r партиклов? Тогда §l§aповысь§r свой ранг сайте - §l§epay.sufixpvp.su');
-                    break;
-                case "§r§bRain Particle\n§7Нажми, чтобы активировать":
-                    if ($this->getGroup($player) === 'GUEST') {
-                        $player->sendMessage(Loader::Prefix . ' §fПартикл §l§bRain§r доступен игрокам с привилегией §l§aＧｕｅｓｔ§6+§r.');
-                        $player->sendMessage(Loader::Prefix . ' Повысить свой §l§aранг§r можно в нашем магазине §8- §l§epay.sufixpvp.su');
-                        return false;
-                    }
-                    if ($this->getPlayerData($player, 'PARTICLE')['particle'] === 'RAIN') {
-                        $player->sendMessage(Loader::Prefix . ' У вас уже установлен партикл §l§bRain§r.');
-                        return false;
-                    }
-                    $this->setPlayerData($player, 'PARTICLE', 'RAIN');
-                    $player->sendMessage(Loader::Prefix . ' Партикл §l§bRain§r успешно установлен.');
-                    $player->sendMessage(Loader::Prefix . ' Хочешь §l§cбольше§r партиклов? Тогда §l§aповысь§r свой ранг сайте - §l§epay.sufixpvp.su');
-                    break;
-                case "§r§6Flame Particle\n§7Нажми, чтобы активировать":
-                    if ($this->getGroup($player) === 'GUEST') {
-                        $player->sendMessage(Loader::Prefix . ' §fПартикл §l§6Flame§r доступен игрокам с привилегией §l§aＧｕｅｓｔ§6+§r.');
-                        $player->sendMessage(Loader::Prefix . ' Повысить свой §l§aранг§r можно в нашем магазине §8- §l§epay.sufixpvp.su');
-                        return false;
-                    }
-                    if ($this->getPlayerData($player, 'PARTICLE')['particle'] === 'FLAME') {
-                        $player->sendMessage(Loader::Prefix . ' У вас уже установлен партикл §l§6Flame§r.');
-                        return false;
-                    }
-                    $this->setPlayerData($player, 'PARTICLE', 'FLAME');
-                    $player->sendMessage(Loader::Prefix . ' Партикл §l§6Flame§r успешно установлен.');
-                    $player->sendMessage(Loader::Prefix . ' Хочешь §l§cбольше§r партиклов? Тогда §l§aповысь§r свой ранг сайте - §l§epay.sufixpvp.su');
-                    break;
-                case "§r§dCustom Particle\n§7Нажми, чтобы активировать":
-                    if (self::FRANCHISES[$this->getGroup($player)] < 3) {
-                        $player->sendMessage(Loader::Prefix . ' §fПартикл §l§eCustom§r доступен игрокам с привилегией §l§dＳａｋｕｒａ§r.');
-                        $player->sendMessage(Loader::Prefix . ' Повысить свой §l§aранг§r можно в нашем магазине §8- §l§epay.sufixpvp.su');
-                        return false;
-                    }
-                    if (!($this->getPlayerData($player, 'CUSTOM_ITEM'))) {
-                        $player->sendMessage(Loader::Prefix . ' Установите §l§6предмет§r командой - §l§b/custom');
-                        return false;
-                    }
-                    if ($this->getPlayerData($player, 'PARTICLE')['particle'] === 'CUSTOM') {
-                        $player->sendMessage(Loader::Prefix . ' У вас уже установлен партикл §l§eCustom§r.');
-                        return false;
-                    }
-                    $this->setPlayerData($player, 'PARTICLE', 'CUSTOM');
-                    $player->sendMessage(Loader::Prefix . ' Партикл §l§eCustom§r успешно установлен.');
-                    $player->sendMessage(Loader::Prefix . ' Изменить §l§6предмет§r можно командой - §l§b/custom');
-                    $player->sendMessage(Loader::Prefix . ' Хочешь §l§cбольше§r партиклов? Тогда §l§aповысь§r свой ранг сайте - §l§epay.sufixpvp.su');
-                    break;
-                case '§r§921:00':
-                    $this->sendTimePacket($player, 13000);
-                    $player->sendMessage(Loader::Prefix . "§eУстановленное время: §r§921:00");
-                    break;
-                case '§r§e12:00':
-                    $this->sendTimePacket($player, 1000);
-                    $player->sendMessage(Loader::Prefix . "§eУстановленное время: §r§e12:00");
-                    break;
-                case '§r§a9:00':
-                    $this->sendTimePacket($player, 0);
-                    $player->sendMessage(Loader::Prefix . "§eУстановленное время: §r§a9:00");
-                    break;
-                case "§r§9Время\n§7Нажмите, чтобы изменить свое время.":
-                    $player->getInventory()->clearAll();
-                    $player->getInventory()->setItem(2, Item::get(347)->setCustomName("§r§a9:00"));
-                    $player->getInventory()->setItem(4, Item::get(347)->setCustomName("§r§e12:00"));
-                    $player->getInventory()->setItem(6, Item::get(347)->setCustomName("§r§921:00"));
-                    $player->getInventory()->setItem(8, Item::get(262)->setCustomName("§r§cВернуться§c\n§7Нажми, чтобы вернуться"));
-                    break;
-                case "§r§6Изменить цвет никнейма\n§7Нажмите, чтобы открыть цвета.":
-                    $player->getInventory()->clearAll();
-                    $player->getInventory()->setItem(2, Item::get(351, 12)->setCustomName("§r§bГолубой цвет\n§7Нажмите, чтобы установить."));
-                    $player->getInventory()->setItem(4, Item::get(351, 1)->setCustomName("§r§cКрасный цвет\n§7Нажмите, чтобы установить."));
-                    $player->getInventory()->setItem(6, Item::get(351, 10)->setCustomName("§r§aЗеленый цвет\n§7Нажмите, чтобы установить."));
-                    $player->getInventory()->setItem(0, Item::get(351, 11)->setCustomName("§r§eЖелтый цвет\n§7Нажмите, чтобы установить."));
-                    $player->getInventory()->setItem(8, Item::get(262)->setCustomName("§r§cВернуться§c\n§7Нажми, чтобы вернуться"));
-                    break;
-                case "§r§bГолубой цвет\n§7Нажмите, чтобы установить.":
-                    if (!$this->getCustomizeColor($player, 'BLUE')) {
-                        if ($this->getMoney($player) < 2500) {
-                            $player->sendMessage(Loader::Prefix . "У вас не куплен §r§bголубой цвет §fникнейма. У вас §cнедостаточно§f монет для его покупки. Стоимость цвета: §e2500 монет.");
-                            return false;
-                        }
-                        if ($this->getMoney($player) >= 2500) {
-                            $player->sendMessage(Loader::Prefix . "§r§bГолубой цвет §fникнейма успешно приобретен за §e2500 монет§f.");
-                            $this->remMoney($player, 2500);
-                            $this->setPlayerData($player, 'BLUETAG', true);
-                            $this->setPlayerData($player, 'CURRENTCOLOR', '§b');
-                            $player->sendMessage(Loader::Prefix . "§r§bГолубой цвет §fникнейма успешно установлен, перезайдите для активации.");
-                        }
-                    } else {
-                        $this->setPlayerData($player, 'CURRENTCOLOR', '§b');
-                        $player->sendMessage(Loader::Prefix . "§r§bГолубой цвет §fникнейма успешно установлен, перезайдите для активации.");
-                    }
-                    break;
-                case "§r§eЖелтый цвет\n§7Нажмите, чтобы установить.":
-                    if (!$this->getCustomizeColor($player, 'YELLOW')) {
-                        if ($this->getMoney($player) < 2500) {
-                            $player->sendMessage(Loader::Prefix . "У вас не куплен §r§eжелтый цвет §fникнейма. У вас §cнедостаточно§f монет для его покупки. Стоимость цвета: §e2500 монет.");
-                            return false;
-                        }
-                        if ($this->getMoney($player) >= 2500) {
-                            $player->sendMessage(Loader::Prefix . "§r§eЖелтый цвет §fникнейма успешно приобретен за §e2500 монет§f.");
-                            $this->remMoney($player, 2500);
-                            $this->setPlayerData($player, 'YELLOWTAG', true);
-                            $this->setPlayerData($player, 'CURRENTCOLOR', '§e');
-                            $player->sendMessage(Loader::Prefix . "§r§eЖелтый цвет §fникнейма успешно установлен, перезайдите для активации.");
-                        }
-                    } else {
-                        $this->setPlayerData($player, 'CURRENTCOLOR', '§e');
-                        $player->sendMessage(Loader::Prefix . "§r§eЖелтый цвет §fникнейма успешно установлен, перезайдите для активации.");
-                    }
-                    break;
-                case "§r§cКрасный цвет\n§7Нажмите, чтобы установить.":
-                    if (!$this->getCustomizeColor($player, 'RED')) {
-                        if ($this->getMoney($player) < 2500) {
-                            $player->sendMessage(Loader::Prefix . "У вас не куплен §r§cкрасный цвет §fникнейма. У вас §cнедостаточно§f монет для его покупки. Стоимость цвета: §e2500 монет.");
-                        }
-                        if ($this->getMoney($player) >= 2500) {
-                            $player->sendMessage(Loader::Prefix . "§r§cКрасный цвет §fникнейма успешно приобретен за §e2500 монет§f.");
-                            $this->remMoney($player, 2500);
-                            $this->setPlayerData($player, 'REDTAG', true);
-                            $this->setPlayerData($player, 'CURRENTCOLOR', '§c');
-                            $player->sendMessage(Loader::Prefix . "§r§cКрасный цвет §fникнейма успешно установлен, перезайдите для активации.");
-                        }
-                    } else {
-                        $this->setPlayerData($player, 'CURRENTCOLOR', '§c');
-                        $player->sendMessage(Loader::Prefix . "§r§cКрасный цвет §fникнейма успешно установлен, перезайдите для активации.");
-                    }
-                    break;
-                case "§r§aЗеленый цвет\n§7Нажмите, чтобы установить.":
-                    if (!$this->getCustomizeColor($player, 'GREEN')) {
-                        if ($this->getMoney($player) < 2500) {
-                            $player->sendMessage(Loader::Prefix . "У вас не куплен §r§aзеленый цвет §fникнейма. У вас §cнедостаточно§f монет для его покупки. Стоимость цвета: §e2500 монет.");
-                        }
-                        if ($this->getMoney($player) >= 2500) {
-                            $player->sendMessage(Loader::Prefix . "§r§aЗеленый цвет §fникнейма успешно приобретен за §e2500 монет§f.");
-                            $this->remMoney($player, 2500);
-                            $this->setPlayerData($player, 'GREENTAG', true);
-                            $this->setPlayerData($player, 'CURRENTCOLOR', '§a');
-                            $player->sendMessage(Loader::Prefix . "§r§aЗеленый цвет §fникнейма успешно установлен, перезайдите для активации.");
-                        }
-                    } else {
-                        $this->setPlayerData($player, 'CURRENTCOLOR', '§a');
-                        $player->sendMessage(Loader::Prefix . "§r§aЗеленый цвет §fникнейма успешно установлен, перезайдите для активации.");
-                    }
-                    break;
-                case "§r§cВыход\n§7Нажмите, чтобы выйти в лобби.":
-                    $player->getInventory()->clearAll();
-                    $player->getInventory()->setItem(2, Item::get(388)->setCustomName("§r§aПлащи\n§7Нажмите, чтобы выбрать себе плащ."));
-                    $player->teleport($this->getServer()->getDefaultLevel()->getSpawnLocation());
-                    $player->removeAllEffects();
-                    $player->setGamemode(2);
-                    $player->setMaxHealth(20);
-                    $player->setHealth(20);
-                    $player->setFood(20);
-                    $player->getInventory()->setItem(4, Item::get(345)->setCustomName("§r§eВойти на арену\n§7Нажмите, чтобы открыть."));
-                    $player->getInventory()->setItem(6, Item::get(351, 9)->setCustomName("§r§dКастомизация\n§7Нажмите, чтобы изменить свою кастомизацию."));
-                    break;
-                case "§r§aПлащи\n§7Нажмите, чтобы выбрать себе плащ.":
-                    if ($this->getGroup($player) === "GUEST") {
-                        $player->sendMessage(Loader::Prefix . " §cДанный раздел доступен игрокам с привилегией §l§aＧｕｅｓｔ§6+§r\n" . Loader::Prefix . "Повысить свой §aранг§r можно в нашем магазине §8- §epay.sufixpvp.su");
-                        return true;
-                    }
-                    $player->getInventory()->clearAll();
-                    $player->getInventory()->setItem(1, Item::get(397, 5)->setCustomName("§r§5Dragon Cloak\n§7Нажми, чтобы активировать"));
-                    $player->getInventory()->setItem(2, Item::get(42)->setCustomName("§r§3Golem Cloak\n§7Нажми, чтобы активировать"));
-                    $player->getInventory()->setItem(3, Item::get(33)->setCustomName("§r§2Piston Cloak\n§7Нажми, чтобы активировать"));
-                    $player->getInventory()->setItem(4, Item::get(285)->setCustomName("§r§9Pick Cloak\n§7Нажми, чтобы активировать"));
-                    $player->getInventory()->setItem(5, Item::get(397, 4)->setCustomName("§r§cCrieper Cloak\n§7Нажми, чтобы активировать"));
-                    $player->getInventory()->setItem(7, Item::get(262)->setCustomName("§r§cВернуться§c\n§7Нажми, чтобы вернуться"));
-                    break;
-                case "§r§5Dragon Cloak\n§7Нажми, чтобы активировать":
-                    $player->sendMessage("§l§d» §rВы успешно установили себе плащ §l§5Dragon Cloak§r");
-                    $this->setCloak($player, 'Minecon_MineconSteveCape2016');
-                    break;
-                case "§r§3Golem Cloak\n§7Нажми, чтобы активировать":
-                    $player->sendMessage("§l§d» §rВы успешно установили себе плащ §l§3Golem Cloak§r");
-                    $this->setCloak($player, 'Minecon_MineconSteveCape2015');
-                    break;
-                case "§r§2Piston Cloak\n§7Нажми, чтобы активировать":
-                    $player->sendMessage("§l§d» §rВы успешно установили себе плащ §l§2Piston Cloak§r");
-                    $this->setCloak($player, 'Minecon_MineconSteveCape2013');
-                    break;
-                case "§r§9Pick Cloak\n§7Нажми, чтобы активировать":
-                    $player->sendMessage("§l§d» §rВы успешно установили себе плащ §l§9Pick Cloak§r");
-                    $this->setCloak($player, 'Minecon_MineconSteveCape2012');
-                    break;
-                case "§r§cCrieper Cloak\n§7Нажми, чтобы активировать":
-                    $player->sendMessage("§l§d» §rВы успешно установили себе плащ §l§cCrieper Cloak§r");
-                    $this->setCloak($player, 'Minecon_MineconSteveCape2011');
-                    break;
-                case "§r§cВернуться§c\n§7Нажми, чтобы вернуться":
-                    $player->getInventory()->clearAll();
-                    $player->getInventory()->setItem(4, Item::get(345)->setCustomName("§r§eВойти на арену\n§7Нажмите, чтобы открыть."));
-                    $player->getInventory()->setItem(2, Item::get(388)->setCustomName("§r§aПлащи\n§7Нажмите, чтобы выбрать себе плащ."));
-                    $player->getInventory()->setItem(6, Item::get(351, 9)->setCustomName("§r§dКастомизация\n§7Нажмите, чтобы изменить свою кастомизацию."));
-                    break;
-                case "§r§3FFA RESISTANCE\n§7Нажмите, чтобы войти на арену.":
-                    $player->getInventory()->clearAll();
-                    $player->teleport(new Position($this->getServer()->getLevelByName('aCOMBO')->getSafeSpawn()->x, $this->getServer()->getLevelByName('aCOMBO')->getSafeSpawn()->y, $this->getServer()->getLevelByName('aCOMBO')->getSafeSpawn()->z, $this->getServer()->getLevelByName('aCOMBO')));
-                    $player->setMaxHealth(20);
-                    $player->setHealth(20);
-                    $player->setFood(20);
-                    foreach ($this->getServer()->getLevelByName('aCOMBO')->getPlayers() as $p) {
-                        $p->sendMessage(Loader::Prefix . ' §fИгрок §l' . $player->getName() . '§f§r присоединился к арене §l§3FFA-RESISTANCE§r');
-                        $p->sendMessage(Loader::Prefix . ' §fИгроков на арене: §l§c' . sizeof($this->getServer()->getLevelByName('aCOMBO')->getPlayers()) . '§r');
-                    }
-                    $player->sendMessage(Loader::Prefix . " Чтобы выйти с §l§aарены§r используйте команду §e/quit§r");
-                    break;
-                case "§r§cFFA FIST\n§7Нажмите, чтобы войти на арену.":
-                    $player->getInventory()->clearAll();
-                    $player->teleport(new Position($this->getServer()->getLevelByName('4FIST')->getSafeSpawn()->x, $this->getServer()->getLevelByName('4FIST')->getSafeSpawn()->y, $this->getServer()->getLevelByName('4FIST')->getSafeSpawn()->z, $this->getServer()->getLevelByName('4FIST')));
-                    $player->getInventory()->addItem(Item::get(364, 0, 64));
-                    $player->setMaxHealth(20);
-                    $player->setHealth(20);
-                    $player->setFood(20);
-                    foreach ($this->getServer()->getLevelByName('4FIST')->getPlayers() as $p) {
-                        $p->sendMessage(Loader::Prefix . ' §fИгрок §l' . $player->getName() . '§f§r присоединился к арене §l§cFFA-FIST§r.');
-                        $p->sendMessage(Loader::Prefix . ' §fИгроков на арене: §l§c' . sizeof($this->getServer()->getLevelByName('4FIST')->getPlayers()) . '§r');
-                    }
-                    $player->sendMessage(Loader::Prefix . " Чтобы выйти с §l§aарены§r используйте команду §e/quit§r");
-                    break;
-                case "§r§eFFA GAPPLE\n§7Нажмите, чтобы войти на арену.":
-                    $player->getInventory()->clearAll();
-                    $player->teleport(new Position($this->getServer()->getLevelByName('6GAPPLE')->getSafeSpawn()->x, $this->getServer()->getLevelByName('6GAPPLE')->getSafeSpawn()->y, $this->getServer()->getLevelByName('6GAPPLE')->getSafeSpawn()->z, $this->getServer()->getLevelByName('6GAPPLE')));
-                    $player->getInventory()->setHelmet(Item::get(310));
-                    $player->getInventory()->setChestplate(Item::get(307));
-                    $player->getInventory()->setLeggings(Item::get(312));
-                    $player->getInventory()->setBoots(Item::get(313));
-                    $player->getInventory()->addItem(Item::get(276));
-                    $player->getInventory()->addItem(Item::get(322, 0, 8));
-                    $player->setMaxHealth(20);
-                    $player->setHealth(20);
-                    $player->setFood(20);
-                    foreach ($this->getServer()->getLevelByName("6GAPPLE")->getPlayers() as $p) {
-                        $p->sendMessage(Loader::Prefix . ' §fИгрок §l' . $player->getName() . '§f§r присоединился к арене §l§eFFA-GAPPLE§r.');
-                        $p->sendMessage(Loader::Prefix . ' §fИгроков на арене: §l§c' . sizeof($this->getServer()->getLevelByName("6GAPPLE")->getPlayers()) . '§r');
-                    }
-                    $player->sendMessage(Loader::Prefix . " Чтобы выйти с §l§aарены§r используйте команду §e/quit§r");
-                    break;
-            }
-        }
-    }
-*/
-    public function getGroup(Player $player): string
-    {
-        return $this->getPlayerData($player, 'GROUP')['group'];
-    }
-
-    public function setGroup(Player $player, string $group): void
-    {
-        $this->setPlayerData($player, 'GROUP', $group);
     }
 
     public function setTime(Player $player): void
@@ -1071,34 +598,6 @@ class Loader extends PluginBase implements Listener {
         $player->dataPacket($pk);
     }
 
-    public function getFactor(Player $player): int
-    {
-        return $this->getPlayerData($player, 'FACTOR')['factor'];
-    }
-
-    public function getFactorString(Player $player): string
-    {
-        $factors = ['Unknown', 'Отсутсвует', 'X2', 'X3'];
-        return $factors[$this->getFactor($player)];
-    }
-
-    public function getExp(Player $player): int
-    {
-        return $this->getPlayerData($player, 'EXPIRIENCE')['exp'];
-    }
-
-    public function addExp(Player $player, int $count): void
-    {
-        $exp = $this->getPlayerData($player, 'EXPIRIENCE')['exp'];
-        $this->setPlayerData($player, 'EXPIRIENCE', $exp + $count);
-    }
-
-    public function addKill(Player $player): void
-    {
-        $kills = $this->getPlayerData($player, 'KILLS')['kills'];
-        $this->setPlayerData($player, 'KILLS', $kills + 1);
-    }
-
     public function handleCommand(PlayerCommandPreprocessEvent $event): void
     {
         if (isset($this->players[$event->getPlayer()->getName()])) {
@@ -1109,119 +608,96 @@ class Loader extends PluginBase implements Listener {
         }
     }
 
-    public function getFFAMode(Player $player): string
-    {
-        return match ($player->getLevel()->getFolderName()) {
-            '6GAPPLE' => 'gapple',
-            '4FIST' => 'fist',
-            'aCOMBO' => 'resistance',
-            default => 'underfined',
-        };
-    }
-
-    public function addPointInFFA(Player $entity, mixed $damager)
-    {
+    public function addPointInFFA(Player $entity, mixed $damager) : void{
         $entity->setGamemode(GameMode::SPECTATOR());
-        $entity->getLevel()->addParticle(new \pocketmine\level\particle\DestroyBlockParticle($entity->getPosition(), Block::get(152, 0)));
-        $entity->addTitle("§cYOU DEAD!");
+        $entity->getLevel()->addParticle(new DestroyBlockParticle($entity->getPosition(), Block::get(152, 0)));
+        $entity->addTitle('§cYOU DEAD!');
         $entity->getInventory()->clearAll();
         $rand = mt_rand(5, 20);
         $rand2 = mt_rand(1, 15);
-        switch ($this->getFFAMode($entity)) {
-            case 'gapple':
-                $entity->getInventory()->setItem(2, Item::get(388)->setCustomName("§r§aВозродиться §fна арене §e§lGAPPLE§r\n§7Нажмите, чтобы вернуться к жизни."));
-                $entity->getInventory()->setItem(6, Item::get(355)->setCustomName("§r§cВыход\n§7Нажмите, чтобы выйти в лобби."));
-                break;
-            case 'fist':
-                $entity->getInventory()->setItem(2, Item::get(388)->setCustomName("§r§aВозродиться §fна арене §c§lFIST§r\n§7Нажмите, чтобы вернуться к жизни."));
-                $entity->getInventory()->setItem(6, Item::get(355)->setCustomName("§r§cВыход\n§7Нажмите, чтобы выйти в лобби."));
-                break;
-            case 'sumo':
-                $entity->getInventory()->setItem(2, Item::get(388)->setCustomName("§r§aВозродиться §fна арене §c§bSUMO§r\n§7Нажмите, чтобы вернуться к жизни."));
-                $entity->getInventory()->setItem(6, Item::get(355)->setCustomName("§r§cВыход\n§7Нажмите, чтобы выйти в лобби."));
-                break;
-        }
+        $entity->getInventory()->setItem(2, ClickableItemFactory::REBORN());
+        $entity->getInventory()->setItem(6, ClickableItemFactory::QUIT_LOBBY());
         unset($this->players[$entity->getName()]);
-        if (!$damager) return false;
-        $factor = $this->getFactor($damager);
+        if (!$damager) return;
+        $factor = $damager->getFactor();
         unset($this->players[$damager->getName()]);
         $damager->addTitle('§7KILL', '§c' . $entity->getName());
-        $this->addKill($damager);
         $damager->sendMessage(' §a+' . $rand * $factor . ' опыта! (Множитель: §l§b' . $this->getFactorString($damager) . '§r§a)');
         $damager->sendMessage(' §e+' . $rand2 * $factor . ' монет! (Множитель: §l§b' . $this->getFactorString($damager) . '§r§e)');
+        $damager->addKill();
         $damager->setHealth(20);
         $damager->setFood(20);
-        $this->addExp($damager, $rand * $factor);
+        $damager->addExp($rand * $factor);
         $this->addMoney($damager, $rand2 * $factor);
-        switch ($this->getLvL($damager)) {
+        switch ($damager->getLvL()) {
             case 1:
-                if ($this->getExp($damager) > 100) {
+                if ($damager->getExperience() > 100) {
                     $damager->addTitle("§l§92", "§9уровень");
                     $damager->sendMessage(Loader::Prefix . "Вы перешли на §l§e2§r§f уровень");
-                    $this->setLvL($damager, 2);
+                    $damager->setLvl(2);
                 }
                 break;
             case 2:
-                if ($this->getExp($damager) > 500) {
+                if ($damager->getExperience() > 500) {
                     $damager->addTitle("§l§93", "§9уровень");
                     $damager->sendMessage(Loader::Prefix . "Вы перешли на §e§l3§r§f уровень");
-                    $this->setLvL($damager, 3);
+                    $damager->setLvl(3);
                 }
                 break;
             case 3:
-                if ($this->getExp($damager) > 1500) {
+                if ($damager->getExperience() > 1500) {
                     $damager->addTitle("§l§94", "§9уровень");
                     $damager->sendMessage(Loader::Prefix . "Вы перешли на §e§l4§r§f уровень");
-                    $this->setLvL($damager, 4);
+                    $damager->setLvL(4);
                 }
                 break;
             case 4:
-                if ($this->getExp($damager) > 3000) {
+                if ($damager->getExperience() > 3000) {
                     $damager->addTitle("§l§95", "§9уровень");
                     $damager->sendMessage(Loader::Prefix . "Вы перешли на §e§l5§r§f уровень");
-                    $this->setLvL($damager, 5);
+                    $damager->setLvl(5);
                 }
                 break;
             case 5:
-                if ($this->getExp($damager) > 5000) {
+                if ($damager->getExperience() > 5000) {
                     $damager->addTitle("§l§96", "§9уровень");
                     $damager->sendMessage(Loader::Prefix . "Вы перешли на §e§l6§r§f уровень");
-                    $this->setLvL($damager, 6);
+                    $damager->setLvl(6);
                 }
                 break;
             case 6:
-                if ($this->getExp($damager) > 7000) {
+                if ($damager->getExperience() > 7000) {
                     $damager->addTitle("§l§97", "§9уровень");
                     $damager->sendMessage(Loader::Prefix . "Вы перешли на §e§l7§r§f уровень");
-                    $this->setLvL($damager, 7);
+                    $damager->setLvl(7);
                 }
                 break;
             case 7:
-                if ($this->getExp($damager) > 10000) {
+                if ($damager->getExperience() > 10000) {
                     $damager->addTitle("§l§98", "§9уровень");
                     $damager->sendMessage(Loader::Prefix . "Вы перешли на §e§l8§r§f уровень");
-                    $this->setLvL($damager, 8);
+                    $damager->setLvl(8);
                 }
                 break;
             case 8:
-                if ($this->getExp($damager) > 15000) {
+                if ($damager->getExperience() > 15000) {
                     $damager->addTitle("§l§99", "§9уровень");
                     $damager->sendMessage(Loader::Prefix . "Вы перешли на §e§l9§r§f уровень");
-                    $this->setLvL($damager, 9);
+                    $damager->setLvL(9);
                 }
                 break;
             case 9:
-                if ($this->getExp($damager) > 20000) {
+                if ($damager->getExperience() > 20000) {
                     $damager->addTitle("§l§910", "§9уровень");
                     $damager->sendMessage(Loader::Prefix . "Вы перешли на §e§l10§r§f уровень");
-                    $this->setLvL($damager, 10);
+                    $damager->setLvl(10);
                 }
                 break;
             case 10:
-                if ($this->getExp($damager) > 30000) {
+                if ($damager->getExperience() > 30000) {
                     $damager->addTitle("§l§911", "§9уровень");
                     $damager->sendMessage(Loader::Prefix . "Вы перешли на §e§l11§r§f уровень");
-                    $this->setLvL($damager, 11);
+                    $damager->setLvl(11);
                 }
                 break;
         }
@@ -1238,19 +714,18 @@ class Loader extends PluginBase implements Listener {
         return false;
     }
 
-    public function handleDeathPlayerEvent(EntityDamageEvent $event): bool
-    {
+    public function handleDeathPlayerEvent(EntityDamageEvent $event) : void{
         if ($event->getCause() === EntityDamageEvent::CAUSE_VOID && $event->getEntity() instanceof SufixPlayer && !$event->getEntity()->isSpectator()) {
             $event->setCancelled();
             $this->addPointInFFA($event->getEntity(), $this->getLastDamager($event->getEntity()));
-            return false;
+            return;
         }
         if ($event instanceof EntityDamageByEntityEvent) {
             if ($event->getDamager()->getLevel()->getFolderName() !== 'lobby' && $event->getDamager() instanceof Player) {
                 $damager = $event->getDamager();
                 $entity = $event->getEntity();
-                if ($this->getFFAMode($damager) === 'underfined') return true;
-                if ($this->getFFAMode($damager) === 'resistance') $event->setDamage(0);
+                if ($damager->getFFAMode() === 'underfined') return;
+                if ($damager->getFFAMode() === 'resistance') $event->setDamage(0);
                 if (($entity->getHealth() - $event->getFinalDamage()) <= 2 && ($entity->isAdventure() or $entity->isSurvival())) {
                     $event->setCancelled();
                     $this->addPointInFFA($entity, $damager);
@@ -1259,7 +734,6 @@ class Loader extends PluginBase implements Listener {
                 $event->setCancelled();
             }
         }
-        return false;
     }
 
     public function hadnleRespawn(PlayerRespawnEvent $event): void
@@ -1272,24 +746,14 @@ class Loader extends PluginBase implements Listener {
         $player->setGamemode(GameMode::ADVENTURE());
         $player->setHealth(20);
         $player->setFood(20);
-        $player->getInventory()->setItem(2, Item::get(388)->setCustomName("§r§aПлащи\n§7Нажмите, чтобы выбрать себе плащ."));
-        $player->getInventory()->setItem(4, Item::get(345)->setCustomName("§r§eВойти на арену\n§7Нажмите, чтобы открыть."));
-        $player->getInventory()->setItem(6, Item::get(351, 9, 1)->setCustomName("§r§dКастомизация\n§7Нажмите, чтобы изменить свою кастомизацию."));
+        $player->getInventory()->setItem(2, ClickableItemFactory::CLOAKS());
+        $player->getInventory()->setItem(4, ClickableItemFactory::JOIN_ARENA());
+        $player->getInventory()->setItem(6, ClickableItemFactory::CUSTOMIZATION());
     }
 
-    public function handleDropPlayer(PlayerDropItemEvent $event): void
-    {
-        $event->setCancelled(true);
-    }
-
-    public function getPing(Player $player): string
-    {
-        $ping = $player->getPing();
-        return match (true) {
-            $ping < 100 => '§a' . $ping . '§r',
-            $ping >= 100 && $ping < 250 => '§e' . $ping . '§r',
-            $ping >= 250 => '§c' . $ping . '§r',
-        };
+    public function handleDropPlayer(PlayerDropItemEvent $event): void{
+        if ($event->getItem() instanceof ClickableItem)
+            $event->setCancelled();
     }
 
     public static function sendHealthAttribute(Player $player, float $progress): void
@@ -1332,7 +796,7 @@ class Loader extends PluginBase implements Listener {
     public function handleQuitPlayer(PlayerQuitEvent $event): void
     {
         $event->setQuitMessage(null);
-        $this->unEquipWings($event->getPlayer());
+        $event->getPlayer()->unEquipWings();
     }
 
     public function parseWings(Vector3 $pos, mixed $character): Particle
@@ -1346,54 +810,18 @@ class Loader extends PluginBase implements Listener {
         };
     }
 
-    public function equipWings(Player $player, string $wings): bool
-    {
-        $shape = $this->getWings()[$wings]['shape'];
-        $nickname = $player->getLowerCaseName();
-        $wingstask = new WingsTask($player, $shape);
-        if (!isset($this->equip_players[$nickname])) {
-            $this->getServer()->getScheduler()->scheduleRepeatingTask($wingstask, 10);
-            $this->equip_players[$nickname]['id'] = $wingstask->getTaskId();
-            $this->equip_players[$nickname]['name'] = $wings;
-            return false;
-        }
-        if ($this->equip_players[$nickname]['name'] === $wings) {
-            $this->unEquipWings($player);
-            return false;
-        } else {
-            $this->unEquipWings($player);
-            $this->getServer()->getServer()->getScheduler()->scheduleRepeatingTask($wingstask, 10);
-            $this->equip_players[$nickname]['id'] = $wingstask->getTaskId();
-            $this->equip_players[$nickname]['name'] = $wings;
-        }
-        return false;
-    }
-
-    public function unEquipWings(Player $player): void
-    {
-        $nickname = $player->getLowerCaseName();
-        if (isset($this->equip_players[$nickname])) {
-            $this->getServer()->getScheduler()->cancelTask($this->equip_players[$nickname]['id']);
-            unset($this->equip_players[$nickname]);
-        }
-    }
-
-    public function onExhaust(PlayerExhaustEvent $event): void
-    {
-        $event->getPlayer()->setFood(20);
+    public function onExhaust(PlayerExhaustEvent $event): void{
         $event->setCancelled();
     }
 
-    public function handleFall(PlayerMoveEvent $event): void
-    {
-        if ($event->getPlayer()->getFloorY() < 0 && $event->getPlayer()->getLevel()->getName() === 'lobby') {
-            $event->getPlayer()->teleport($event->getPlayer()->getLevel()->getSpawnLocation());
+    public function handleFall(PlayerMoveEvent $event): void{
+        if (($player = $event->getPlayer())->getFloorY() < 0 && $player->getLevel()->getName() === 'lobby') {
+            $player->teleport($player->getLevel()->getSpawnLocation());
         }
     }
 
-    public function eatGappleJoin(PlayerItemConsumeEvent $event): void
-    {
-        if ($event->getItem()->getCustomName() === "§r§eFFA GAPPLE\n§7Нажмите, чтобы войти на арену." || $event->getItem()->getCustomName() === "§r§3FFA RESISTANCE\n§7Нажмите, чтобы войти на арену.") $event->setCancelled();
+    public function handleConsume(PlayerItemConsumeEvent $event): void{
+        if ($event->getItem() instanceof ClickableItem) $event->setCancelled();
     }
 
     /**

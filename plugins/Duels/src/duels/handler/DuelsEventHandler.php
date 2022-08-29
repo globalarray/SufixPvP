@@ -6,9 +6,9 @@ namespace duels\handler;
 
 use pocketmine\event\Listener;
 
-use pocketmine\event\player\{PlayerQuitEvent, PlayerExhaustEvent, PlayerInteractEvent};
+use pocketmine\event\player\{PlayerQuitEvent, PlayerExhaustEvent, PlayerInteractEvent, PlayerMoveEvent};
 
-use pocketmine\event\entity\{EntityDamageByChildEntityEvent, EntityDamageEvent, EntityDamageByEntityEvent};
+use pocketmine\event\entity\{EntityDamageByChildEntityEvent, EntityDamageEvent, EntityDamageByEntityEvent, ExplosionPrimeEvent};
 use pocketmine\event\block\{BlockBreakEvent, BlockPlaceEvent};
 use pocketmine\event\inventory\InventoryClickEvent;
 
@@ -51,6 +51,17 @@ final class DuelsEventHandler implements Listener
             return (time() - $this->pearlCountdown[$player->getName()]);
         }
         return null;
+    }
+
+    public function handleExplosion(ExplosionPrimeEvent $event) : void
+    {
+        $event->setCancelled();
+    }
+
+    public function handleMove(PlayerMoveEvent $event) : void{
+        if (ArenaManager::inGame($player = $event->getPlayer())) {
+            ArenaManager::getGameByPlayer($player)->last_move[$player->getLowerCaseName()] = microtime(true);
+        }
     }
 
     public function onDamage(EntityDamageEvent $event): void

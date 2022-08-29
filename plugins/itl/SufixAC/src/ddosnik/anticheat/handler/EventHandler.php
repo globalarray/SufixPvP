@@ -14,7 +14,7 @@ use pocketmine\event\Listener;
 use pocketmine\item\{Item, Food};
 use pocketmine\math\Vector3;
 use pocketmine\event\block\BlockBreakEvent;
-use pocketmine\event\player\{PlayerJoinEvent, PlayerQuitEvent, PlayerInteractEvent, PlayerMoveEvent};
+use pocketmine\event\player\{PlayerJoinEvent, PlayerQuitEvent, PlayerInteractEvent, PlayerMoveEvent, PlayerPreLoginEvent};
 use pocketmine\Player;
 use pocketmine\utils\TextFormat;
 use pocketmine\entity\Effect;
@@ -39,6 +39,13 @@ class EventHandler implements Listener{
         }
     }
 
+    public function handlePlayerPreLogin(PlayerPreLoginEvent $event) : void{
+        if (($player = $event->getPlayer())->getSkinId() === 'GreekMythology_GreekMythologyZeus') {
+            $this->log('Игрок '. TextFormat::RED . $player->getName() . TextFormat::WHITE . ' пытался зайти на сервер с невидимым скином');
+            $player->close($player->getLeaveMessage(), TextFormat::RED . 'Запрещено использовать невидимый скин');
+        }
+    }
+
     public function filterMessage(string $message) : string{
         return preg_replace_callback($this->main->regex, function($matches) {
             return str_replace($matches[1], "***", $matches[0]);
@@ -49,7 +56,7 @@ class EventHandler implements Listener{
         if (!$event->getInstaBreak()) {
             $player = $event->getPlayer();
             if (!isset($this->breakTime[$secret = $player->getUUID()])) {
-                $this->log('Игрок '.$player->getName().' пытался сломать блок без начала ломания блока.');
+                $this->log('Игрок '. TextFormat::RED . $player->getName() . TextFormat::WHITE . ' пытался сломать блок без начала ломания блока.');
                 $event->setCancel();
                 return;
             }

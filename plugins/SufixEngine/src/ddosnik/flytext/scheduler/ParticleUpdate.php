@@ -36,7 +36,7 @@ final class ParticleUpdate extends PluginTask{
     }
 	
 	private function duels() : void{
-		$modes = ['sumo', 'mlgrush'];
+		$modes = ['sumo', 'tntrun'];
 		$i = 3;
 		foreach($modes as $mode){
 			$this->getOwner()->getParticles()[$i]->setTitle('§fИгроков§7: §c' . ArenaManager::getPlayers($mode));
@@ -49,9 +49,9 @@ final class ParticleUpdate extends PluginTask{
 		foreach($owner->getServer()->getDefaultLevel()->getPlayers() as $player){
 			$particles[5]->setTitle(Translate::tr($player->getLocale(), 'sufixpvp.floatingtext.statistics'), [$player]);
 			$particles[6]->setTitle(Translate::tr($player->getLocale(), 'sufixpvp.floatingtext.statistics.nickname', [$player->getName()]), [$player]);
-			$particles[7]->setTitle(Translate::tr($player->getLocale(), 'sufixpvp.floatingtext.statistics.rank', [$this->api->getRankColor($player) . $this->api->getGroup($player)]), [$player]);
-			$particles[8]->setTitle(Translate::tr($player->getLocale(), 'sufixpvp.floatingtext.statistics.wins', [$this->api->getPlayerData($player, 'WINS')['wins']]), [$player]);
-			$particles[9]->setTitle(Translate::tr($player->getLocale(), 'sufixpvp.floatingtext.statistics.kills', [$this->api->getPlayerData($player, 'KILLS')['kills']]), [$player]);
+			$particles[7]->setTitle(Translate::tr($player->getLocale(), 'sufixpvp.floatingtext.statistics.rank', [$player->getRankColor() . $player->getRank()]), [$player]);
+			$particles[8]->setTitle(Translate::tr($player->getLocale(), 'sufixpvp.floatingtext.statistics.wins', [$player->getWins()]), [$player]);
+			$particles[9]->setTitle(Translate::tr($player->getLocale(), 'sufixpvp.floatingtext.statistics.kills', [$player->getKills()]), [$player]);
 		}
 	}
 
@@ -59,9 +59,9 @@ final class ParticleUpdate extends PluginTask{
         $particles = &$owner->particles;
         $particles[5]->setTitle(Translate::tr($player->getLocale(), 'sufixpvp.floatingtext.statistics'), [$player]);
         $particles[6]->setTitle(Translate::tr($player->getLocale(), 'sufixpvp.floatingtext.statistics.nickname', [$player->getName()]), [$player]);
-        $particles[7]->setTitle(Translate::tr($player->getLocale(), 'sufixpvp.floatingtext.statistics.rank', [$this->api->getRankColor($player) . $this->api->getGroup($player)]), [$player]);
-        $particles[8]->setTitle(Translate::tr($player->getLocale(), 'sufixpvp.floatingtext.statistics.wins', [$this->api->getPlayerData($player, 'WINS')['wins']]), [$player]);
-        $particles[9]->setTitle(Translate::tr($player->getLocale(), 'sufixpvp.floatingtext.statistics.kills', [$this->api->getPlayerData($player, 'KILLS')['kills']]), [$player]);
+        $particles[7]->setTitle(Translate::tr($player->getLocale(), 'sufixpvp.floatingtext.statistics.rank', [$player->getRankColor() . $this->api->getGroup($player)]), [$player]);
+        $particles[8]->setTitle(Translate::tr($player->getLocale(), 'sufixpvp.floatingtext.statistics.wins', [$player->getWins()]), [$player]);
+        $particles[9]->setTitle(Translate::tr($player->getLocale(), 'sufixpvp.floatingtext.statistics.kills', [$player->getKills()]), [$player]);
     }
 
 

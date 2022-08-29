@@ -14,6 +14,7 @@ use pocketmine\level\particle\{
 	RainSplashParticle,
 	FlameParticle
 };
+use ddosnik\player\SufixPlayer;
 
 use function lcg_value;
 use function cos;
@@ -58,7 +59,7 @@ final class ParticlesManager extends PluginTask {
 		}
 	}
 
-	private function drawCenter(Player $player, int $id, float $radius, float $step) : void{
+	private function drawCenter(Player $player, int $id, float $radius) : void{
 		for ($i = 0; $i < 361; $i++) {
 			$x = $player->getX() + ($radius * cos($i));
 			$z = $player->getZ() + ($radius * sin($i));
@@ -68,7 +69,6 @@ final class ParticlesManager extends PluginTask {
 			$pk->y = $player->getX() + 2.2;
 			$pk->z = $z;
 			$pk->data = 0;
-			var_dump($pk);
 			foreach ($player->getLevel()->getPlayers() as $player) {
 				$player->dataPacket($pk);
 			}
@@ -77,10 +77,10 @@ final class ParticlesManager extends PluginTask {
 
 	public function onRun(int $tickDiff) : void{
 		 $particles = [
-		 	'HEART' => [HeartParticle::class, 2],
-		 	'HAPPY' => [HappyVillagerParticle::class, 2],
-		 	'RAIN' => [RainSplashParticle::class, 3],
-		 	'FLAME' => [FlameParticle::class, 3]
+		 	'HEART' => [HeartParticle::class, 5],
+		 	'HAPPY' => [HappyVillagerParticle::class, 5],
+		 	'RAIN' => [RainSplashParticle::class, 7],
+		 	'FLAME' => [FlameParticle::class, 4]
 		 ];
 		foreach ($this->getOwner()->getServer()->getOnlinePlayers() as $player) {
 			if ($player instanceof SufixPlayer) {
@@ -98,7 +98,7 @@ final class ParticlesManager extends PluginTask {
 					return;
 				}
 
-				$this->sendWithClass($player, $particles[$particle][0], $particles[$particle][0]);
+				$this->sendWithClass($player, $particles[$particle][0], $particles[$particle][1]);
 			}
 		}
 	}

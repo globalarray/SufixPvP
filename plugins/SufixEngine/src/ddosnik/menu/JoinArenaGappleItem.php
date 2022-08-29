@@ -26,6 +26,7 @@ use pocketmine\Server;
 use ddosnik\player\SufixPlayer;
 use ddosnik\utils\ArmorUtils;
 use const PHP_EOL;
+use function sizeof;
 
 final class JoinArenaGappleItem extends ClickableItem {
 
@@ -36,7 +37,7 @@ final class JoinArenaGappleItem extends ClickableItem {
 
 	public function handleClick(SufixPlayer $player) : void{
 		$player->getInventory()->clearAll();
-		$player->teleport(Server::getInstance()->getLevelByName('6GAPPLE')->getSafeSpawn());
+		$player->teleport(($level = Server::getInstance()->getLevelByName('6GAPPLE'))->getSafeSpawn());
 		$player->setMaxHealth(20);
         $player->setHealth(20);
         $player->setFood(20);
@@ -47,9 +48,9 @@ final class JoinArenaGappleItem extends ClickableItem {
 			}
 			$player->getInventory()->addItem($item);
 		}
-		foreach (Server::getInstance()->getLevelByName('6GAPPLE')->getPlayers() as $playerOnArena) {
+		foreach ($level->getPlayers() as $playerOnArena) {
 			$playerOnArena->sendMessage(Loader::Prefix . ' §fИгрок §l' . $player->getName() . '§f§r присоединился к арене §l§eFFA-GAPPLE§r.');
-			$playerOnArena->sendMessage(Loader::Prefix . ' §fИгроков на арене: §l§c' . sizeof(Server::getInstance()->getLevelByName('6GAPPLE')->getPlayers()) . '§r');
+			$playerOnArena->sendMessage(Loader::Prefix . ' §fИгроков на арене: §l§c' . sizeof($level->getPlayers()) . '§r');
 		}
 		$player->sendMessage(Loader::Prefix . ' Чтобы выйти с §l§aарены§r используйте команду §e/quit§r');
 	}

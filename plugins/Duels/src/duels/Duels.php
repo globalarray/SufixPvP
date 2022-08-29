@@ -20,7 +20,7 @@ class Duels extends PluginBase {
         self::$instance = &$this;
         
         $this->getServer()->getPluginManager()->registerEvents(new DuelsEventHandler, $this);
-        $this->getServer()->getScheduler()->scheduleRepeatingTask(new DuelsArenaUpdate($this), 20);
+        $this->getServer()->getScheduler()->scheduleRepeatingTask(new DuelsArenaUpdate($this), 10);
 
         new InventoryUtils;
         new ArenaManager();

@@ -24,6 +24,7 @@ use ddosnik\Loader;
 use pocketmine\Server;
 use ddosnik\player\SufixPlayer;
 use const PHP_EOL;
+use function sizeof;
 
 final class JoinArenaResistanceItem extends ClickableItem {
 
@@ -34,13 +35,13 @@ final class JoinArenaResistanceItem extends ClickableItem {
 
 	public function handleClick(SufixPlayer $player) : void{
 		$player->getInventory()->clearAll();
-		$player->teleport(Server::getInstance()->getLevelByName('aCOMBO')->getSafeSpawn());
+		$player->teleport(($level = Server::getInstance()->getLevelByName('aCOMBO'))->getSafeSpawn());
 		$player->setMaxHealth(20);
         $player->setHealth(20);
         $player->setFood(20);
-		foreach (Server::getInstance()->getLevelByName('aCOMBO')->getPlayers() as $playerOnArena) {
+		foreach ($level->getPlayers() as $playerOnArena) {
 			$playerOnArena->sendMessage(Loader::Prefix . ' §fИгрок §l' . $player->getName() . '§f§r присоединился к арене §l§3FFA-RESISTANCE§r');
-			$playerOnArena->sendMessage(Loader::Prefix . ' §fИгроков на арене: §l§c' . sizeof($this->getServer()->getLevelByName('aCOMBO')->getPlayers()) . '§r');
+			$playerOnArena->sendMessage(Loader::Prefix . ' §fИгроков на арене: §l§c' . sizeof($level->getPlayers()) . '§r');
 		}
 		$player->sendMessage(Loader::Prefix . ' Чтобы выйти с §l§aарены§r используйте команду §e/quit§r');
 	}

@@ -6,7 +6,11 @@ namespace duels\arena;
 
 use pocketmine\utils\Config;
 
-use pocketmine\{Player, Server};
+use pocketmine\{
+    Player,
+    Server,
+    GameMode
+};
 use pocketmine\tile\Chest;
 use pocketmine\level\{Level, Position};
 use pocketmine\level\sound\{ExperienceOrbSound,
@@ -31,8 +35,10 @@ final class DuelsArena
 
     public const STATUS_TIMEOUT = 4;
 
+    public array $last_move = [];
+
     private Config $config;
-    private $gamemode;
+    private string $gamemode;
 
     private int $status = 0;
 
@@ -103,6 +109,11 @@ final class DuelsArena
         return $this->gamemode;
     }
 
+    public function isStarted() : bool
+    {
+        return ($this->status === self::STATUS_RUNNING);
+    }
+
     public function getState(): int
     {
         return $this->status;
@@ -110,7 +121,7 @@ final class DuelsArena
 
     final public function canBlockPlace(): bool
     {
-        return ($this->gamemode === 'mlgrush' or $this->gamemode === 'builduhc' and $this->status === self::STATUS_RUNNING);
+        return ($this->gamemode === 'sw' && $this->status === self::STATUS_RUNNING);
     }
 
     final public function canBlockBreak(): bool
@@ -170,58 +181,15 @@ final class DuelsArena
         return $this->points[$player->getName()] ?? 0;
     }
 
-    final public function addPoint(Player $player): void
-    {
-        ++$this->points[$player->getName()];
-        $world = $this->getArenaLevel();
-        $this->startWorldClear();
-        $player->getLevel()->addSound(new ExperienceOrbSound($player), [$player]);
-        foreach ($this->players as $players) {
-            if ($players !== $player) {
-                $players->getLevel()->addSound(new MinecraftSound($players, 'mob.wither.death'), [$players]);
-            }
-            $players->addTitle($this->api->getRankColor($player) . $player->getName(true), Translate::tr($players->getLocale(), 'saintpvp.mlgrush.point', [$this->api->getRankColor($player) . $player->getName(true)]));
-            InventoryUtils::addItemsByGamemode($players->getInventory(), 'mlgrush');
-            $player->setImmobile(true);
-            $player->teleport($this->getSpawn($player));
-        }
-        $points = $this->getPoints($player);
-        if ($points >= 5) {
-            foreach ($this->players as $players) {
-                $players->getInventory()->clearAll();
-                if ($players !== $player) {
-                    $players->setImmobile(false);
-                    $this->setLoser($players);
-                }
-            }
-            $player->setImmobile(false);
-        } else {
-            foreach ($this->players as $players) {
-                $players->teleport($this->getSpawn($players));
-                $players->setImmobile(true);
-            }
-            $this->status = self::STATUS_TIMEOUT;
-            $this->countdown = 6;
-        }
-    }
-
     final public function kill(Player $player): void
     {
-        if ($this->gamemode === 'mlgrush') {
-            $player->teleport($this->getSpawn($player));
-            $player->setGamemode(0);
-            $player->setFood(20);
-            $player->setHealth(20);
-            InventoryUtils::addItemsByGamemode($player->getInventory(), 'mlgrush');
-        } else {
-            $this->setLoser($player);
-        }
+        $this->setLoser($player);
     }
 
     public function joinGame(Player $player): bool
     {
         if ($this->canJoin()) {
-            $player->setGamemode(2);
+            $player->setGamemode(GameMode::ADVENTURE());
             $player->getInventory()->clearAll();
             $player->removeAllEffects();
             $player->setMaxHealth(20);
@@ -239,7 +207,7 @@ final class DuelsArena
             $player->teleport($this->getSpawnPos());
 
             foreach ($this->players as $players) {
-                $players->sendMessage(Translate::tr($player->getLocale(), 'saintpvp.duels.join', [$this->api->getRankColor($player) . $player->getName(true), count($this->players)]));
+                $players->sendMessage(Translate::tr($player->getLocale(), 'saintpvp.duels.join', [$player->getRankColor() . $player->getName(true), count($this->players)]));
             }
             $player->getInventory()->setItem(1, Item::get(Item::DYE, 8)->setCustomName(Translate::tr($player->getLocale(), 'saintpvp.duels.ready'))->setType('saintpvp.duels.ready'));
             $player->getInventory()->setItem(8, Item::get(Item::BED, 14)->setCustomName(Translate::tr($player->getLocale(), 'saintpvp.duels.quit'))->setType('sainntpvp.duels.quit'));
@@ -262,14 +230,13 @@ final class DuelsArena
             }
             $player->teleport(Server::getInstance()->getDefaultLevel()->getSafeSpawn());
             $inv = $player->getInventory();
-            $inv->setItem(2, Item::get(388, 0, 1)->setCustomName("§r§aПлащи\n§7Нажмите, чтобы выбрать себе плащ."));
-            $inv->setItem(4, Item::get(345, 0, 1)->setCustomName("§r§eВойти на арену\n§7Нажмите, чтобы открыть."));
-            $inv->setItem(6, Item::get(351, 9, 1)->setCustomName("§r§dКастомизация\n§7Нажмите, чтобы изменить свою кастомизацию."));
+            $inv->setItem(2, ClickableItemFactory::CLOAKS());
+            $inv->setItem(4, ClickableItemFactory::JOIN_ARENA());
+            $inv->setItem(6, ClickableItemFactory::CUSTOMIZATION());
         }
 
-        $player->setGamemode(2);
+        $player->setGamemode(GameMode::ADVENTURE());
         $player->removeAllEffects();
-        $player->setGamemode(2);
         $player->setMaxHealth(20);
         $player->setHealth(20);
         $player->setFood(20);
@@ -301,7 +268,7 @@ final class DuelsArena
                 $player->getInventory()->clearAll();
                 $player->removeAllEffects();
                 $player->getLevel()->addSound(new MinecraftSound($player->asVector3(), 'mob.wither.death'), [$player]);
-                $player->setGamemode(3);
+                $player->setGamemode(GameMode::SPECTATOR());
                 $player->addTitle(Translate::tr($player->getLocale(), 'saintpvp.duels.lose'));
                 $player->getInventory()->setItem(1, Item::get(Item::PAPER)->setCustomName(Translate::tr($player->getLocale(), 'saintpvp.duels.new_game')));
                 $player->getInventory()->setItem(7, Item::get(Item::BED)->setCustomName(Translate::tr($player->getLocale(), 'saintpvp.duels.quit')));
@@ -314,7 +281,7 @@ final class DuelsArena
     {
         ++$this->isReady;
         foreach ($this->players as $pl) {
-            $pl->sendMessage(Translate::tr($pl->getLocale(), 'saintpvp.duels.player_ready', [$this->api->getRankColor($player) . $player->getName(true)]));
+            $pl->sendMessage(Translate::tr($pl->getLocale(), 'saintpvp.duels.player_ready', [$player->getRankColor() . $player->getName(true)]));
         }
         $player->getInventory()->setItem(1, Item::get(Item::DYE, 10)->setCustomName('§l§d» §rВы готовы!'));
     }
@@ -349,9 +316,6 @@ final class DuelsArena
                         }
                         InventoryUtils::addItemsByGamemode($player->getInventory(), $this->gamemode);
                         $player->sendMessage(Translate::tr($player->getLocale(), 'saintpvp.duels.start'));
-                        if ($this->gamemode === 'mlgrush') {
-                            $player->setGamemode(0);
-                        }
                         
                         if ($this->gamemode === 'sw') {
                             foreach ($this->getArenaLevel()->getTiles() as $tile) {
@@ -366,6 +330,7 @@ final class DuelsArena
                                 }
                             }
                         }
+                        $this->last_move[$player->getLowerCaseName()] = microtime(true);
                     }
                     $this->status = self::STATUS_RUNNING;
                     return true;
@@ -378,7 +343,7 @@ final class DuelsArena
                 }
                 $opponent = $this->getOpponent($players);
                 if ($opponent !== null) {
-                    $players->sendTip(Translate::tr($players->getLocale(), 'saintpvp.duels.running_hotbar', [$this->api->getRankColor($opponent) . $opponent->getName(), $this->getPrefixMode()]));
+                    $players->sendTip(Translate::tr($players->getLocale(), 'saintpvp.duels.running_hotbar', [$opponent->getRankColor() . $opponent->getName(), $this->getPrefixMode()]));
                 }
             }
             if (count($this->players) <= 1) {
@@ -393,9 +358,7 @@ final class DuelsArena
                     }
                     InventoryUtils::addItemsByGamemode($player->getInventory(), $this->gamemode);
                     $player->sendMessage(Translate::tr($player->getLocale(), 'saintpvp.duels.start'));
-                    if ($this->gamemode === 'mlgrush') {
-                        $player->setGamemode(0);
-                    }
+                    $this->last_move[$player->getLowerCaseName()] = microtime(true);
                 }
                 $this->status = self::STATUS_RUNNING;
             }
@@ -413,7 +376,7 @@ final class DuelsArena
             if ($this->gamemode === 'mlgrush') {
                 foreach ($this->players as $player) {
                     if (($opponent = $this->getOpponent($player)) !== null) {
-                        $player->sendTip('§r§b' . $this->api->getRankColor($player) . $player->getName(true) . '§7: §1' . $this->getPoints($player) . ' §l§8| §r§b' . $this->api->getRankColor($opponent) . $opponent->getName() . '§7: §c' . $this->getPoints($opponent));
+                        $player->sendTip('§r§b' . $player->getRankColor() . $player->getName(true) . '§7: §1' . $this->getPoints($player) . ' §l§8| §r§b' . $opponent->getRankColor() . $opponent->getName() . '§7: §c' . $this->getPoints($opponent));
                     }
                 }
             }
@@ -459,7 +422,7 @@ final class DuelsArena
             'fist' => '§cFist',
             'mlgrush' => '§cMLGRush',
             'bow' => '§cBow',
-            'sw' => '§eＳｋｙＷａｒｓ Ｄｕｅｌｓ',
+            'sw' => '§bSkyWars',
             'tntrun' => '§cTNT§fRun'
         };
     }
@@ -475,7 +438,8 @@ final class DuelsArena
             $players->setHealth(20);
             $players->setFood(20);
             $players->removeAllEffects();
-            $players->setGamemode(2);
+            $players->setGamemode(GameMode::ADVENTURE());
+            $players->updateNameTag();
             $players->getInventory()->setItem(1, Item::get(Item::PAPER)->setCustomName(Translate::tr($players->getLocale(), 'saintpvp.duels.new_game')));
             $players->getInventory()->setItem(7, Item::get(Item::BED, 0, 1)->setCustomName(Translate::tr($players->getLocale(), 'saintpvp.duels.quit')));
         }
@@ -487,7 +451,7 @@ final class DuelsArena
             if (count($this->players) === 1) {
                 foreach ($this->players as $players) {
                     $players->addTitle('§6VICTORY!§r');
-                    $this->api->addWin($players);
+                    $players->addWin();
                     $this->spectators[$players->getName()] = $players;
                 }
             }

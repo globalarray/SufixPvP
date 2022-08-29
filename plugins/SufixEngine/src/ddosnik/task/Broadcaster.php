@@ -14,9 +14,8 @@ final class Broadcaster extends PluginTask {
     }
 
     public function onRun(int $currentTick) :void{
-        foreach($this->getOwner()->getServer()->getOnlinePlayers() as $player) {
-            Translate::tr($player->getLocale(), Loader::MESSAGES[$this->message]);
-        }
+        ($server = $this->getOwner()->getServer())->broadcastMessage(Translate::tr($server->getLanguage()->getLang(), Loader::MESSAGES[$this->message]));
+        $this->message++;
         if($this->message > (sizeof(Loader::MESSAGES) - 1)) {
             $this->message = 0;
         }

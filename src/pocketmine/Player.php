@@ -226,7 +226,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	public GameMode $gamemode;
 	public $lastProjectile;
 
-	public PlayerInfo $playerInfo;
+	public ?PlayerInfo $playerInfo = null;
 	public string $displayName;
 	public ?string $rawUUID;
 	public ?UUID $uuid;
@@ -1825,7 +1825,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		$this->sendCommandData();
 
 		if($this->isCreative()){
-			if ($this->protocol === ProtocolInfo::MULTIVERSION_PROTOCOL) {
+			if ($this->getProtocol() === ProtocolInfo::MULTIVERSION_PROTOCOL) {
 				$slots = [];
 				foreach (Item::getCreativeItems() as $item) {
 					$slots[] = clone $item;
@@ -1846,6 +1846,8 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 			return false;
 		}
 
+        $this->playerInfo = new PlayerInfo($packet);
+
         if ($packet->protocol !== ProtocolInfo::CURRENT_PROTOCOL && $packet->protocol !== ProtocolInfo::MULTIVERSION_PROTOCOL) {
 			if ($packet->protocol < ProtocolInfo::MULTIVERSION_PROTOCOL) {
 				$message = "disconnectionScreen.outdatedClient";
@@ -1858,8 +1860,6 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 
 			return true;
 		}
-
-		$this->playerInfo = new PlayerInfo($packet);
 		$this->displayName = $packet->username;
 		$this->uuid = UUID::fromString($packet->clientUUID);
 		$this->rawUUID = $this->uuid->toBinary();
@@ -2162,7 +2162,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 					$cancelled = true;
 				}
 
-				if($target instanceof Entity and $this->getGamemode() !== GameMode::SPECTATOR and $this->isAlive() and $target->isAlive()){
+				if($target instanceof Entity and $this->getGamemode() !== GameMode::SPECTATOR() and $this->isAlive() and $target->isAlive()){
 					if($target instanceof DroppedItem or $target instanceof Arrow){
 						$this->kick("Attempting to attack an invalid entity");
 						$this->server->getLogger()->warning($this->getServer()->getLanguage()->translateString("pocketmine.player.invalidEntity", [$this->getName()]));

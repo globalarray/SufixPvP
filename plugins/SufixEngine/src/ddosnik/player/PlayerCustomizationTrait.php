@@ -28,8 +28,8 @@ trait PlayerCustomizationTrait {
 		return Loader::getInstance()->getPlayerData($this, 'CURRENTCOLOR')['color'];
 	}
 
-	public function isAcceptCustomColor(string $color) : bool{
-		return match ($value) {
+	public function isHaveCustomColor(string $color) : bool{
+		return (bool) match ($color) {
             'BLUE' => Loader::getInstance()->getPlayerData($this, 'BLUETAG')['blue_tag'],
             'RED' => Loader::getInstance()->getPlayerData($this, 'REDTAG')['red_tag'],
             'GREEN' => Loader::getInstance()->getPlayerData($this, 'GREENTAG')['green_tag'],
@@ -38,7 +38,7 @@ trait PlayerCustomizationTrait {
     }
 
     public function getParticle() : string{
-        return Loader::getInstance()->getPlayerData($player, 'PARTICLE')['particle'];
+        return Loader::getInstance()->getPlayerData($this, 'PARTICLE')['particle'];
     }
 
     public function setCloak(string $skinId) : void{
