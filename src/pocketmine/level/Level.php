@@ -345,20 +345,21 @@ class Level implements ChunkManager, Metadatable{
 		$this->folderName = $name;
 		$this->scheduledBlockUpdateQueue = new ReversePriorityQueue();
 		$this->scheduledBlockUpdateQueue->setExtractFlags(\SplPriorityQueue::EXTR_BOTH);
+		$serverConfig = $this->server->getConfigGroup();
 
 		$this->neighbourBlockUpdateQueue = new \SplQueue();
 
 		$this->time = (int) $this->provider->getTime();
 
-		$this->chunkTickRadius = min($this->server->getViewDistance(), max(1, (int) $this->server->getProperty("chunk-ticking.tick-radius", 4)));
-		$this->chunksPerTick = (int) $this->server->getProperty("chunk-ticking.per-tick", 40);
-		$this->chunkGenerationQueueSize = (int) $this->server->getProperty("chunk-generation.queue-size", 8);
-		$this->chunkPopulationQueueSize = (int) $this->server->getProperty("chunk-generation.population-queue-size", 2);
+		$this->chunkTickRadius = min($this->server->getViewDistance(), max(1, $this->server->getConfigGroup()->getPropertyInt("chunk-ticking.tick-radius", 4)));
+		$this->chunksPerTick = $serverConfig->getPropertyInt("chunk-ticking.per-tick", 40);
+		$this->chunkGenerationQueueSize = $serverConfig->getPropertyInt("chunk-generation.queue-size", 8);
+		$this->chunkPopulationQueueSize = $serverConfig->getPropertyInt("chunk-generation.population-queue-size", 2);
 		$this->chunkTickList = [];
-		$this->clearChunksOnTick = (bool) $this->server->getProperty("chunk-ticking.clear-tick-list", true);
-		$this->cacheChunks = (bool) $this->server->getProperty("chunk-sending.cache-chunks", false);
+		$this->clearChunksOnTick = $serverConfig->getPropertyBool("chunk-ticking.clear-tick-list", true);
+		$this->cacheChunks = $serverConfig->getPropertyBool("chunk-sending.cache-chunks", false);
 
-		$dontTickBlocks = $this->server->getProperty("chunk-ticking.disable-block-ticking", []);
+		$dontTickBlocks = $serverConfig->getPropertyArray("chunk-ticking.disable-block-ticking", []);
 		foreach($dontTickBlocks as $id){
 			if(isset($this->randomTickBlocks[$id])){
 				unset($this->randomTickBlocks[$id]);

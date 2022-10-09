@@ -109,10 +109,7 @@ interface Plugin extends CommandExecutor{
 
 	public function saveConfig();
 
-	/**
-	 * @return bool
-	 */
-	public function saveDefaultConfig() : bool;
+	public function saveDefaultConfig() : void;
 
 	public function reloadConfig();
 

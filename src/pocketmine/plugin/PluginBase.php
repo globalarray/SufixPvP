@@ -270,7 +270,7 @@ abstract class PluginBase implements Plugin {
 	/**
 	 *
 	 */
-	public function saveDefaultConfig() : bool{
+	public function saveDefaultConfig() : void{
 		if(!file_exists($this->configFile)){
 			$this->saveResource("config.yml", false);
 		}

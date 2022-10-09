@@ -27,47 +27,83 @@ use pocketmine\event\server\LowMemoryEvent;
 use pocketmine\timings\Timings;
 use pocketmine\scheduler\GarbageCollectionTask;
 use pocketmine\utils\Utils;
+use pocketmine\utils\Process;
+use function arsort;
+use function count;
+use function fclose;
+use function file_exists;
+use function file_put_contents;
+use function fopen;
+use function fwrite;
+use function gc_collect_cycles;
+use function gc_disable;
+use function gc_enable;
+use function gc_mem_caches;
+use function get_class;
+use function get_declared_classes;
+use function get_defined_functions;
+use function ini_get;
+use function ini_set;
+use function intdiv;
+use function is_array;
+use function is_object;
+use function is_resource;
+use function is_string;
+use function json_encode;
+use function mb_strtoupper;
+use function min;
+use function mkdir;
+use function preg_match;
+use function print_r;
+use function round;
+use function spl_object_hash;
+use function sprintf;
+use function strlen;
+use function substr;
+use const JSON_PRETTY_PRINT;
+use const JSON_THROW_ON_ERROR;
+use const JSON_UNESCAPED_SLASHES;
+use const SORT_NUMERIC;
 
 class MemoryManager{
 
-	/** @var Server */
-	private $server;
+	private Server $server;
 
-	private $memoryLimit;
-	private $globalMemoryLimit;
-	private $checkRate;
-	private $checkTicker = 0;
-	private $lowMemory = false;
+	private int $memoryLimit;
+	private int $globalMemoryLimit;
+	private int $checkRate;
+	private int $checkTicker = 0;
+	private bool $lowMemory = false;
 
-	private $continuousTrigger = true;
-	private $continuousTriggerRate;
-	private $continuousTriggerCount = 0;
-	private $continuousTriggerTicker = 0;
+	private bool $continuousTrigger = true;
+	private int $continuousTriggerRate;
+	private int $continuousTriggerCount = 0;
+	private int $continuousTriggerTicker = 0;
 
-	private $garbageCollectionPeriod;
-	private $garbageCollectionTicker = 0;
-	private $garbageCollectionTrigger;
-	private $garbageCollectionAsync;
+	private int $garbageCollectionPeriod;
+	private int $garbageCollectionTicker = 0;
+	private bool $garbageCollectionTrigger;
+	private bool $garbageCollectionAsync;
 
-	private $chunkRadiusOverride;
-	private $chunkCollect;
-	private $chunkTrigger;
+	private int $chunkRadiusOverride;
+	private bool $chunkCollect;
+	private bool $chunkTrigger;
 
-	private $chunkCache;
-	private $cacheTrigger;
+	private bool $chunkCache;
+	private bool $cacheTrigger;
 
-	public function __construct(Server $server){
+	public function __construct(Server $server) {
 		$this->server = $server;
 
-		$this->init();
+		$this->init($server->getConfigGroup());
 	}
 
-	private function init(){
-		$this->memoryLimit = ((int) $this->server->getProperty("memory.main-limit", 0)) * 1024 * 1024;
+	private function init(ServerConfigGroup $config) : void{
+		$this->memoryLimit = $config->getPropertyInt("memory.main-limit", 0) * 1024 * 1024;
 
 		$defaultMemory = 1024;
 
-		if(preg_match("/([0-9]+)([KMGkmg])/", $this->server->getConfigString("memory-limit", ""), $matches) > 0){
+		if(preg_match("/([0-9]+)([KMGkmg])/", $config->getConfigString("memory-limit", ""), $matches) > 0){
 			$m = (int) $matches[1];
 			if($m <= 0){
 				$defaultMemory = 0;
@@ -89,7 +125,7 @@ class MemoryManager{
 			}
 		}
 
-		$hardLimit = ((int) $this->server->getProperty("memory.main-hard-limit", $defaultMemory));
+		$hardLimit = $config->getPropertyInt("memory.main-hard-limit", $defaultMemory);
 
 		if($hardLimit <= 0){
 			ini_set("memory_limit", '-1');
@@ -97,21 +133,21 @@ class MemoryManager{
 			ini_set("memory_limit", $hardLimit . "M");
 		}
 
-		$this->globalMemoryLimit = ((int) $this->server->getProperty("memory.global-limit", 0)) * 1024 * 1024;
-		$this->checkRate = (int) $this->server->getProperty("memory.check-rate", 20);
-		$this->continuousTrigger = (bool) $this->server->getProperty("memory.continuous-trigger", true);
-		$this->continuousTriggerRate = (int) $this->server->getProperty("memory.continuous-trigger-rate", 30);
+		$this->globalMemoryLimit = $config->getPropertyInt("memory.global-limit", 0) * 1024 * 1024;
+		$this->checkRate = $config->getPropertyInt("memory.check-rate", 20);
+		$this->continuousTrigger = $config->getPropertyBool("memory.continuous-trigger", true);
+		$this->continuousTriggerRate = $config->getPropertyInt("memory.continuous-trigger-rate", 30);
 
-		$this->garbageCollectionPeriod = (int) $this->server->getProperty("memory.garbage-collection.period", 36000);
-		$this->garbageCollectionTrigger = (bool) $this->server->getProperty("memory.garbage-collection.low-memory-trigger", true);
-		$this->garbageCollectionAsync = (bool) $this->server->getProperty("memory.garbage-collection.collect-async-worker", true);
+		$this->garbageCollectionPeriod = $config->getPropertyInt("memory.garbage-collection.period", 36000);
+		$this->garbageCollectionTrigger = $config->getPropertyBool("memory.garbage-collection.low-memory-trigger", true);
+		$this->garbageCollectionAsync = $config->getPropertyBool("memory.garbage-collection.collect-async-worker", true);
 
-		$this->chunkRadiusOverride = (int) $this->server->getProperty("memory.max-chunks.chunk-radius", 4);
-		$this->chunkCollect = (bool) $this->server->getProperty("memory.max-chunks.trigger-chunk-collect", true);
-		$this->chunkTrigger = (bool) $this->server->getProperty("memory.max-chunks.low-memory-trigger", true);
+		$this->chunkRadiusOverride = $config->getPropertyInt("memory.max-chunks.chunk-radius", 4);
+		$this->chunkCollect = $config->getPropertyBool("memory.max-chunks.trigger-chunk-collect", true);
+		$this->chunkTrigger = $config->getPropertyBool("memory.max-chunks.low-memory-trigger", true);
 
-		$this->chunkCache = (bool) $this->server->getProperty("memory.world-caches.disable-chunk-cache", true);
-		$this->cacheTrigger = (bool) $this->server->getProperty("memory.world-caches.low-memory-trigger", true);
+		$this->chunkCache = $config->getPropertyBool("memory.world-caches.disable-chunk-cache", true);
+		$this->cacheTrigger = $config->getPropertyBool("memory.world-caches.low-memory-trigger", true);
 
 		gc_enable();
 	}
@@ -166,7 +202,7 @@ class MemoryManager{
 
 		if(($this->memoryLimit > 0 or $this->globalMemoryLimit > 0) and ++$this->checkTicker >= $this->checkRate){
 			$this->checkTicker = 0;
-			$memory = Utils::getMemoryUsage(true);
+			$memory = Process::getAdvancedMemoryUsage();
 			$trigger = false;
 			if($this->memoryLimit > 0 and $memory[0] > $this->memoryLimit){
 				$trigger = 0;
@@ -209,6 +245,7 @@ class MemoryManager{
 		}
 
 		$cycles = gc_collect_cycles();
+		gc_mem_caches();
 
 		Timings::$garbageCollector->stopTiming();
 
@@ -216,7 +253,7 @@ class MemoryManager{
 	}
 
 	public function dumpServerMemory($outputFolder, $maxNesting, $maxStringSize){
-		$hardLimit = ini_get('memory_limit');
+		$hardLimit = Utils::assumeNotFalse(ini_get('memory_limit'), "memory_limit INI directive should always exist");
 		ini_set('memory_limit', '-1');
 		gc_disable();
 
@@ -224,11 +261,15 @@ class MemoryManager{
 			mkdir($outputFolder, 0777, true);
 		}
 
-		$this->server->getLogger()->notice("[Dump] After the memory dump is done, the server might crash");
+		$logger = new \PrefixedLogger($this->server->getLogger(), "Memory Dump");
+		$logger->notice("After the memory dump is done, the server might crash");
 
 		$obData = fopen($outputFolder . "/objects.js", "wb+");
 
 		$staticProperties = [];
+
+		$functionStaticVars = [];
+		$functionStaticVarsCount = 0;
 
 		$data = [];
 
@@ -252,7 +293,8 @@ class MemoryManager{
 				}
 
 				$staticCount++;
-				$this->continueDump($property->getValue(), $staticProperties[$className][$property->getName()], $objects, $refCounts, 0, $maxNesting, $maxStringSize);
+				if ($reflection->isTrait()) continue;
+				$staticProperties[$className][$property->getName()] = self::continueDump($property->getValue(), $objects, $refCounts, 0, $maxNesting, $maxStringSize);
 			}
 
 			if(count($staticProperties[$className]) === 0){
@@ -260,9 +302,50 @@ class MemoryManager{
 			}
 		}
 
-		echo "[Dump] Wrote $staticCount static properties\n";
+		$logger->info("Wrote $staticCount static properties");
 
 		$this->continueDump($this->server, $data, $objects, $refCounts, 0, $maxNesting, $maxStringSize);
+
+		$globalVariables = [];
+		$globalCount = 0;
+
+		$ignoredGlobals = [
+			'GLOBALS' => true,
+			'_SERVER' => true,
+			'_REQUEST' => true,
+			'_POST' => true,
+			'_GET' => true,
+			'_FILES' => true,
+			'_ENV' => true,
+			'_COOKIE' => true,
+			'_SESSION' => true
+		];
+
+		foreach(Utils::stringifyKeys($GLOBALS) as $varName => $value){
+			if(isset($ignoredGlobals[$varName])){
+				continue;
+			}
+
+			$globalCount++;
+			$globalVariables[$varName] = self::continueDump($value, $objects, $refCounts, 0, $maxNesting, $maxStringSize);
+		}
+
+		$logger->info("Wrote $globalCount global variables");
+
+		foreach(get_defined_functions()["user"] as $function){
+			$reflect = new \ReflectionFunction($function);
+
+			$vars = [];
+			foreach($reflect->getStaticVariables() as $varName => $variable){
+				$vars[$varName] = self::continueDump($variable, $objects, $refCounts, 0, $maxNesting, $maxStringSize);
+			}
+			if(count($vars) > 0){
+				$functionStaticVars[$function] = $vars;
+				$functionStaticVarsCount += count($vars);
+			}
+		}
+
+		$logger->info("Wrote $functionStaticVarsCount function static variables");
 
 		do{
 			$continue = false;
@@ -310,25 +393,27 @@ class MemoryManager{
 				fwrite($obData, "$hash@$className: " . json_encode($info, JSON_UNESCAPED_SLASHES) . "\n");
 			}
 
-			echo "[Dump] Wrote " . count($objects) . " objects\n";
+			$logger->info('Wrote ' . count($objects) . ' objects');
 		}while($continue);
 
 		fclose($obData);
 
-		file_put_contents($outputFolder . "/staticProperties.js", json_encode($staticProperties, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
-		file_put_contents($outputFolder . "/serverEntry.js", json_encode($data, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
-		file_put_contents($outputFolder . "/referenceCounts.js", json_encode($refCounts, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
+		file_put_contents($outputFolder . '/staticProperties.js', json_encode($staticProperties, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
+		file_put_contents($outputFolder . '/serverEntry.js', json_encode($data, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
+		file_put_contents($outputFolder . '/functionStaticVars.js', json_encode($functionStaticVars, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
+		file_put_contents($outputFolder . '/referenceCounts.js', json_encode($refCounts, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
+		file_put_contents($outputFolder . '/globalVariables.js', json_encode($globalVariables, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
 
 		arsort($instanceCounts, SORT_NUMERIC);
 		file_put_contents($outputFolder . "/instanceCounts.js", json_encode($instanceCounts, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
 
-		echo "[Dump] Finished!\n";
+		$logger->info("Finished!");
 
 		ini_set('memory_limit', $hardLimit);
 		gc_enable();
 	}
 
-	private function continueDump($from, &$data, &$objects, &$refCounts, $recursion, $maxNesting, $maxStringSize){
+	private function continueDump($from, &$objects, &$refCounts, $recursion, $maxNesting, $maxStringSize){
 		if($maxNesting <= 0){
 			$data = "(error) NESTING LIMIT REACHED";
 			return;
@@ -351,8 +436,13 @@ class MemoryManager{
 				return;
 			}
 			$data = [];
+			$numeric = 0;
 			foreach($from as $key => $value){
-				$this->continueDump($value, $data[$key], $objects, $refCounts, $recursion + 1, $maxNesting, $maxStringSize);
+				$data[$numeric] = [
+					"k" => self::continueDump($key, $objects, $refCounts, $recursion + 1, $maxNesting, $maxStringSize),
+					"v" => self::continueDump($value, $objects, $refCounts, $recursion + 1, $maxNesting, $maxStringSize),
+				];
+				$numeric++;
 			}
 		}elseif(is_string($from)){
 			$data = "(string) len(". strlen($from) .") " . substr(Utils::printable($from), 0, $maxStringSize);

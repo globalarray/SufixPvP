@@ -53,7 +53,7 @@ class MainLogger extends \AttachableThreadedLogger{
 		$this->logDebug = $logDebug;
 		$this->timezone = $timezone->getName();
 		$this->logStream = new \Threaded;
-		$this->start();
+		$this->start(PTHREADS_INHERIT_CONSTANTS);
 	}
 
 	/**

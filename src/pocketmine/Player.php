@@ -291,6 +291,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	protected $autoJump = true;
 	protected $allowFlight = false;
 	protected $flying = false;
+	protected $allowAttack = false;
 
 	private $needACK = [];
 
@@ -494,7 +495,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	public function setViewDistance(int $distance){
 		$this->viewDistance = $this->server->getAllowedViewDistance($distance);
 
-		$this->spawnThreshold = (int) (min($this->viewDistance, $this->server->getProperty("chunk-sending.spawn-radius", 4)) ** 2 * M_PI);
+		$this->spawnThreshold = (min($this->viewDistance, $this->server->getConfigGroup()->getPropertyInt("chunk-sending.spawn-radius", 4)) ** 2 * M_PI);
 
 		$pk = new ChunkRadiusUpdatedPacket();
 		$pk->radius = $this->viewDistance;
@@ -635,8 +636,9 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		$this->port = $port;
 		$this->clientID = $clientID;
 		$this->loaderId = Level::generateChunkLoaderId($this);
-		$this->chunksPerTick = (int) $this->server->getProperty("chunk-sending.per-tick", 4);
-		$this->spawnThreshold = (int) (($this->server->getProperty("chunk-sending.spawn-radius", 4) ** 2) * M_PI);
+		$this->chunksPerTick = $this->server->getConfigGroup()->getPropertyInt("chunk-sending.per-tick", 4);
+		$this->spawnThreshold = (($this->server->getConfigGroup()->getPropertyInt("chunk-sending.spawn-radius", 4) ** 2) * M_PI);
+		$this->allowAttack = $this->server->getConfigGroup()->getConfigBool("pvp", true);
 		$this->spawnPosition = null;
 		$this->gamemode = $this->server->getGamemode();
 		$this->setLevel($this->server->getDefaultLevel());
@@ -1201,7 +1203,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 
 		$this->gamemode = $gm;
 
-		$this->allowFlight = $this->isCreative();
+		$this->allowFlight = $this->gamemode->equals(GameMode::CREATIVE());
 		if ($this->isSpectator()) {
 			$this->flying = true;
 			$this->despawnFromAll();
@@ -1866,7 +1868,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 
 		$this->setDataProperty(self::DATA_NAMETAG, self::DATA_TYPE_STRING, $this->playerInfo->username, false);
 
-		if($this->server->getConfigBoolean("online-mode", false) && $packet->identityPublicKey === null){
+		if($this->server->getConfigGroup()->getConfigBool("online-mode", false) && $packet->identityPublicKey === null){
 			$this->kick("disconnectionScreen.notAuthenticated", false);
 			return true;
 		}
@@ -2158,7 +2160,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 		$cancelled = false;
 		switch($packet->action){
 			case InteractPacket::ACTION_LEFT_CLICK: //Attack
-				if($target instanceof Player and $this->server->getConfigBoolean("pvp", true) === false){
+				if ($target instanceof Player and !$this->allowAttack) {
 					$cancelled = true;
 				}
 
@@ -2176,7 +2178,7 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 					}elseif($target instanceof Player){
 						if((GameModeIdMap::getInstance()->toId($target->getGamemode()) & 0x01) > 0) {
 							break;
-						}elseif($this->server->getConfigBoolean("pvp") !== true or $this->server->getDifficulty() === 0){
+						}elseif(!$this->allowAttack or $this->server->getDifficulty() === 0){
 							$cancelled = true;
 						}
 					}

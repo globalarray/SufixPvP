@@ -50,10 +50,10 @@ final class GameMode{
 
 	protected static function setup() : void{
 		self::registerAll(
-			new self("survival", "Survival", Server::getInstance()->getLanguage()->get('gameMode.survival'), ["survival", "s", "0"]),
-			new self("creative", "Creative", Server::getInstance()->getLanguage()->get('gameMode.creative'), ["creative", "c", "1"]),
-			new self("adventure", "Adventure", Server::getInstance()->getLanguage()->get('gameMode.adventure'), ["adventure", "a", "2"]),
-			new self("spectator", "Spectator", Server::getInstance()->getLanguage()->get('gameMode.spectator'), ["spectator", "v", "view", "3"])
+			new self("survival", "Survival", 'Survival Mode', ["survival", "s", "0"]),
+			new self("creative", "Creative", 'Creative Mode', ["creative", "c", "1"]),
+			new self("adventure", "Adventure", 'Adventure Mode', ["adventure", "a", "2"]),
+			new self("spectator", "Spectator", 'Spectator Mode', ["spectator", "v", "view", "3"])
 		);
 	}
 

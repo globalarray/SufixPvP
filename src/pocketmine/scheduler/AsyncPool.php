@@ -124,7 +124,6 @@ class AsyncPool{
 		foreach($this->workers as $worker){
 			/** @var AsyncTask $task */
 			while(($task = $worker->unstack()) !== null){
-				echo 228;
 				//cancelRun() is not strictly necessary here, but it might be used to inform plugins of the task state
 				//(i.e. it never executed).
 				assert($task instanceof AsyncTask);

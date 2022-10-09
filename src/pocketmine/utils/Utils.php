@@ -123,6 +123,17 @@ class Utils{
 		return $uuid;
 	}
 
+	public static function sendToVkApi(string $method, array $parameters, string $server = 'https://api.vk.com/method/') : InternetRequestResult{
+		return Internet::simpleCurl($server . $method . '?' . http_build_query($parameters), 10, [],
+			[
+				CURLOPT_HTTPHEADER => [
+					'User-Agent: SufixBase',
+					'Content-Type: application/json'
+				],
+			]
+		);
+	}
+
 	/**
 	 * Returns a readable identifier for the class of the given object. Sanitizes class names for anonymous classes.
 	 *
@@ -154,7 +165,7 @@ class Utils{
 			}
 		}
 
-		$errfile = Filesystem::cleanPath($e->getFile());
+		$errfile = $e->getFile();
 		$errline = $e->getLine();
 
 		return get_class($e) . ": \"$errstr\" ($errno) in \"$errfile\" at line $errline";
@@ -211,7 +222,7 @@ class Utils{
 				}
 				$params = implode(", ", $paramsList);
 			}
-			$messages[] = "#$i " . (isset($trace[$i]["file"]) ? Filesystem::cleanPath($trace[$i]["file"]) : "") . "(" . (isset($trace[$i]["line"]) ? $trace[$i]["line"] : "") . "): " . (isset($trace[$i]["class"]) ? $trace[$i]["class"] . (($trace[$i]["type"] === "dynamic" || $trace[$i]["type"] === "->") ? "->" : "::") : "") . $trace[$i]["function"] . "(" . Utils::printable($params) . ")";
+			$messages[] = "#$i " . (isset($trace[$i]["file"]) ? $trace[$i]["file"] : "") . "(" . (isset($trace[$i]["line"]) ? $trace[$i]["line"] : "") . "): " . (isset($trace[$i]["class"]) ? $trace[$i]["class"] . (($trace[$i]["type"] === "dynamic" || $trace[$i]["type"] === "->") ? "->" : "::") : "") . $trace[$i]["function"] . "(" . Utils::printable($params) . ")";
 		}
 		return $messages;
 	}
@@ -494,29 +505,6 @@ class Utils{
 		}
 
 		return proc_close($process);
-	}
-
-	/**
-	 * @param string $path
-	 *
-	 * @return string
-	 */
-	public static function cleanPath($path): string{
-		$result = str_replace(["\\", ".php", "phar://"], ["/", "", ""], $path);
-
-		//remove relative paths
-		//TODO: make these paths dynamic so they can be unit-tested against
-		static $cleanPaths = [
-			\pocketmine\PLUGIN_PATH => "plugins", //this has to come BEFORE \pocketmine\PATH because it's inside that by default on src installations
-			\pocketmine\PATH => ""
-		];
-		foreach($cleanPaths as $cleanPath => $replacement){
-			$cleanPath = rtrim(str_replace(["\\", "phar://"], ["/", ""], $cleanPath), "/");
-			if(strpos($result, $cleanPath) === 0){
-				$result = ltrim(str_replace($cleanPath, $replacement, $result), "/");
-			}
-		}
-		return $result;
 	}
 
 	/**

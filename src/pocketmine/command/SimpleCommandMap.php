@@ -106,7 +106,7 @@ class SimpleCommandMap implements CommandMap {
 	public function __construct(Server $server){
 		$this->server = $server;
 		/** @var bool[] */
-		$this->commandConfig = $this->server->getProperty("commands");
+		$this->commandConfig = $this->server->getConfigGroup()->getProperty("commands");
 		$this->setDefaultCommands();
 	}
 
