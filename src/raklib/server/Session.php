@@ -395,6 +395,16 @@ class Session{
 		}
 		
 		$id = ord($packet->buffer[0]);
+
+		if ($id === 9 && $packet->reliability === 0) {
+			$this->sessionManager->blockAddress($this->address, 15);
+			return;
+		}
+		if ($id === 0) $this->validateIdentifier = true;
+		if ($id === 254 && !$this->validateIdentifier) {
+			$this->sessionManager->blockAddress($this->address, 16);
+			return;
+		}
 		if($id < 0x80){ //internal data packet
 			if($this->state === self::STATE_CONNECTING_2){
 				if($id === CLIENT_CONNECT_DataPacket::$ID){
@@ -441,6 +451,10 @@ class Session{
 				$this->addToQueue($sendPacket);
 			}//TODO: add PING/PONG (0x00/0x03) automatic latency measure
 		}elseif($this->state === self::STATE_CONNECTED){
+			if (!$this->validateIncomming) {
+				$this->sessionManager->blockAddress($this->address, 17);
+				return;
+			}
 			$this->sessionManager->streamEncapsulated($this, $packet);
 
 			//TODO: stream channels
