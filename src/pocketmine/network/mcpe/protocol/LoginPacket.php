@@ -25,7 +25,6 @@ namespace pocketmine\network\mcpe\protocol;
 
 #include <rules/DataPacket.h>
 
-
 use pocketmine\network\mcpe\NetworkSession;
 use pocketmine\utils\Binary;
 use pocketmine\Server;
@@ -89,7 +88,7 @@ class LoginPacket extends DataPacket{
 
 		$this->chainData = json_decode($this->get($this->getLInt()));
 		$chainKey = self::MOJANG_PUBKEY;
-		foreach($this->chainData->{"chain"} as $chain){
+		foreach($this->chainData->chain as $chain){
 			list($verified, $webtoken) = $this->decodeToken($chain, $chainKey);
 			if(isset($webtoken["extraData"])){
 				if(isset($webtoken["extraData"]["displayName"])){
@@ -99,10 +98,8 @@ class LoginPacket extends DataPacket{
 					$this->clientUUID = $webtoken["extraData"]["identity"];
 				}
 			}
-			if ($verified and isset($webtoken["identityPublicKey"])){
-				if ($webtoken["identityPublicKey"] != self::MOJANG_PUBKEY){
-					$this->identityPublicKey = $webtoken["identityPublicKey"];
-				}
+			if(isset($webtoken["identityPublicKey"])){
+				$this->identityPublicKey = $webtoken["identityPublicKey"];
 			}
 		}
 

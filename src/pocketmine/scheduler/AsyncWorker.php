@@ -62,6 +62,10 @@ class AsyncWorker extends Worker{
 		$this->logger->logException($e);
 	}
 
+	public function getAsyncWorkerId() : int{
+		return $this->id;
+	}
+
 	public function getThreadName() : string{
 		return "Asynchronous Worker #" . $this->id;
 	}

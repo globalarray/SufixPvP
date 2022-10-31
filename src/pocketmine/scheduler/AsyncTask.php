@@ -40,7 +40,7 @@ use function spl_object_id;
  */
 abstract class AsyncTask extends \Threaded implements \Collectable{
 
-	private static ?ArrayObject $threadLocalStorage = null;
+	private static mixed $threadLocalStorage = null;
 
 	/** @var AsyncWorker $worker */
 	public $worker = null;

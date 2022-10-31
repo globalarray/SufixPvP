@@ -114,6 +114,7 @@ use pocketmine\utils\Utils;
 use pocketmine\utils\UUID;
 use pocketmine\utils\VersionString;
 use pocketmine\utils\GameModeIdMap;
+use raklib\utils\InternetAddress;
 use function array_sum;
 use function base64_encode;
 use function cli_set_process_title;
@@ -1393,8 +1394,7 @@ class Server{
 					$this->rcon = new RCON(
 						$this,
 						$this->configGroup->getConfigString("rcon.password", ""),
-						$this->configGroup->getConfigInt("rcon.port", $this->getPort()),
-						$this->getIp(),
+						new InternetAddress($this->getIp(), $this->configGroup->getConfigInt("rcon.port", $this->getPort()), 4),
 						$this->configGroup->getConfigInt("rcon.max-clients", 50)
 					);
 				}catch(\Exception $e){

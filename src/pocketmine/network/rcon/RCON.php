@@ -32,6 +32,7 @@ use pocketmine\event\server\RemoteServerCommandEvent;
 use pocketmine\Server;
 use pocketmine\snooze\SleeperNotifier;
 use pocketmine\utils\TextFormat;
+use raklib\utils\InternetAddress;
 use function max;
 use function socket_bind;
 use function socket_close;
@@ -56,19 +57,19 @@ use const SOL_TCP;
 
 class RCON{
 	/** @var Server */
-	private $server;
-	/** @var resource */
-	private $socket;
+	private Server $server;
+	/** @var \Socket */
+	private \Socket $socket;
 
 	/** @var RCONInstance */
-	private $instance;
+	private RCONInstance $instance;
 
-	/** @var resource */
-	private $ipcMainSocket;
-	/** @var resource */
-	private $ipcThreadSocket;
+	/** @var \Socket */
+	private \Socket $ipcMainSocket;
+	/** @var \Socket */
+	private \Socket $ipcThreadSocket;
 
-	public function __construct(Server $server, string $password, int $port = 19132, string $interface = "0.0.0.0", int $maxClients = 50){
+	public function __construct(Server $server, string $password, InternetAddress $address, int $maxClients = 50){
 		$this->server = $server;
 		$this->server->getLogger()->info("Starting remote control listener");
 		if($password === ""){
@@ -85,7 +86,7 @@ class RCON{
 			throw new \RuntimeException("Unable to set option on socket: " . trim(socket_strerror(socket_last_error())));
 		}
 
-		if(!@socket_bind($this->socket, $interface, $port) or !@socket_listen($this->socket, 5)){
+		if(!@socket_bind($this->socket, $address->getIp(), $address->getPort()) or !@socket_listen($this->socket, 5)){
 			throw new \RuntimeException(trim(socket_strerror(socket_last_error())));
 		}
 

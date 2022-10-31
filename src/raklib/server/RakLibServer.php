@@ -17,16 +17,39 @@ namespace raklib\server;
 
 use raklib\utils\InternetAddress;
 use raklib\generic\Socket;
-use \ByteBuffer;
-use \Threaded;
-use \ThreadedLogger;
-use \ClassLoader;
+use Threaded;
+use ThreadedLogger;
+use ClassLoader;
+use function array_reverse;
+use function error_get_last;
+use function error_reporting;
+use function function_exists;
+use function gc_enable;
+use function get_class;
+use function getcwd;
+use function gettype;
+use function ini_set;
+use function is_object;
+use function method_exists;
+use function mt_rand;
+use function realpath;
+use function register_shutdown_function;
+use function str_replace;
+use function strval;
+use function substr;
+use function xdebug_get_function_stack;
+use const DIRECTORY_SEPARATOR;
+use const PHP_INT_MAX;
+use const PTHREADS_INHERIT_NONE;
 
 class RakLibServer extends \Thread{
 	/** @var \ThreadedLogger */
 	protected ThreadedLogger $logger;
 	/** @var \ClassLoader */
 	protected ClassLoader $loader;
+
+	/** @var bool */
+	protected $ready = false;
 
 	/** @var InternetAddress */
 	public InternetAddress $bindAddress;
@@ -48,6 +71,9 @@ class RakLibServer extends \Thread{
 	/** @var int */
 	protected int $serverId = 0;
 
+	/** @var \Throwable|null */
+	public ?\Throwable $crashInfo = null;
+
 	/**
 	 * @param \ThreadedLogger $logger
 	 * @param \ClassLoader    $loader
@@ -58,7 +84,6 @@ class RakLibServer extends \Thread{
 	 */
 	public function __construct(ThreadedLogger $logger, ClassLoader $loader, InternetAddress $bindAddress) {
 		$this->bindAddress = $bindAddress;
-		//$this->binary = new ByteBuffer("\x00");
 		$this->logger = $logger;
 		$this->loader = $loader;
 		$loadPaths = [];
@@ -75,7 +100,18 @@ class RakLibServer extends \Thread{
 		}else{
 			$this->mainPath = \getcwd() . DIRECTORY_SEPARATOR;
 		}
-		$this->start();
+	}
+
+	public function startAndWait(int $options = PTHREADS_INHERIT_NONE) : void{
+		$this->start($options);
+		$this->synchronized(function(){
+			while(!$this->ready and $this->crashInfo === null){
+				$this->wait();
+			}
+			if($this->crashInfo !== null){
+				throw $this->crashInfo;
+			}
+		});
 	}
 
 	protected function addDependency(array &$loadPaths, \ReflectionClass $dep){
@@ -92,11 +128,11 @@ class RakLibServer extends \Thread{
 		}
 	}
 
-	public function isShutdown(){
+	public function isShutdown() : bool{
 		return $this->shutdown === true;
 	}
 
-	public function shutdown(){
+	public function shutdown() : void{
 		$this->shutdown = true;
 	}
 
@@ -105,55 +141,65 @@ class RakLibServer extends \Thread{
 	 *
 	 * @return int
 	 */
-	public function getServerId(){
+	public function getServerId() : int{
 		return $this->serverId;
 	}
 
 	/**
 	 * @return \ThreadedLogger
 	 */
-	public function getLogger(){
+	public function getLogger() : \ThreadedLogger{
 		return $this->logger;
 	}
 
 	/**
 	 * @return \Threaded
 	 */
-	public function getExternalQueue(){
+	public function getExternalQueue() : \Threaded{
 		return $this->externalQueue;
 	}
 
 	/**
 	 * @return \Threaded
 	 */
-	public function getInternalQueue(){
+	public function getInternalQueue() : \Threaded{
 		return $this->internalQueue;
 	}
 
-	public function pushMainToThreadPacket($str){
+	public function pushMainToThreadPacket(string $str) : void{
 		$this->internalQueue[] = $str;
 	}
 
-	public function readMainToThreadPacket(){
+	public function readMainToThreadPacket() : mixed{
 		return $this->internalQueue->shift();
 	}
 
-	public function getBinary() : ByteBuffer{
-		return $this->binary;
-	}
-
-	public function pushThreadToMainPacket($str){
+	public function pushThreadToMainPacket(string $str) : void{
 		$this->externalQueue[] = $str;
 	}
 
-	public function readThreadToMainPacket(){
+	public function readThreadToMainPacket() : mixed{
 		return $this->externalQueue->shift();
 	}
 
 	public function shutdownHandler(){
 		if($this->shutdown !== true){
-			$this->getLogger()->emergency("RakLib crashed!");
+			$error = error_get_last();
+			if($error !== null){ //fatal error
+				$this->setCrashInfo(new \ErrorException($error['message'], 0, $error['type'], $error['file'], $error['line']));
+			}
 		}
+	}
+
+	public function getCrashInfo() : ?\Throwable{
+		return $this->crashInfo;
+	}
+
+	private function setCrashInfo(\Throwable $e){
+		$this->synchronized(function($e){
+			$this->crashInfo = $e;
+			$this->notify();
+		}, $e);
 	}
 
 	public function errorHandler($errno, $errstr, $errfile, $errline){
@@ -224,7 +270,7 @@ class RakLibServer extends \Thread{
 		return $messages;
 	}
 
-	public function cleanPath($path){
+	public function cleanPath($path) : string{
 		return rtrim(str_replace(["\\", ".php", "phar://", rtrim(str_replace(["\\", "phar://"], ["/", ""], $this->mainPath), "/")], ["/", "", "", ""], $path), "/");
 	}
 
@@ -250,6 +296,10 @@ class RakLibServer extends \Thread{
 			$socket = new Socket($this->bindAddress);
 			$manager = new SessionManager($this, $socket);
 			$this->serverId = $manager->getID();
+			$this->synchronized(function(){
+				$this->ready = true;
+				$this->notify();
+			});
 			$manager->run();
 		}catch(\Throwable $e){
 			$this->logger->logException($e);

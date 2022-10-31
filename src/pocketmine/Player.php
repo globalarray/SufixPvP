@@ -118,6 +118,7 @@ use pocketmine\network\mcpe\protocol\BlockEntityDataPacket;
 use pocketmine\network\mcpe\protocol\BlockPickRequestPacket;
 use pocketmine\network\mcpe\protocol\BossEventPacket;
 use pocketmine\network\mcpe\protocol\ChunkRadiusUpdatedPacket;
+use pocketmine\network\mcpe\protocol\ServerToClientHandshakePacket;
 use pocketmine\network\mcpe\protocol\ClientToServerHandshakePacket;
 use pocketmine\network\mcpe\protocol\CommandBlockUpdatePacket;
 use pocketmine\network\mcpe\protocol\CommandStepPacket;
@@ -164,6 +165,8 @@ use pocketmine\network\mcpe\protocol\UpdateAttributesPacket;
 use pocketmine\network\mcpe\protocol\UpdateBlockPacket;
 use pocketmine\network\mcpe\protocol\UseItemPacket;
 use pocketmine\network\SourceInterface;
+use pocketmine\network\encryption\EncryptionContext;
+use pocketmine\network\encryption\PrepareEncryptionTask;
 use pocketmine\permission\PermissibleBase;
 use pocketmine\permission\PermissionAttachment;
 use pocketmine\permission\PermissionAttachmentInfo;
@@ -176,7 +179,6 @@ use pocketmine\tile\Tile;
 use pocketmine\utils\TextFormat;
 use pocketmine\utils\UUID;
 use pocketmine\utils\GameModeIdMap;
-
 
 /**
  * Main class that handles networking, recovery, and packet sending to the server part
@@ -218,6 +220,9 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 	 * TODO: remove this once player and network are divorced properly
 	 */
 	protected $sessionAdapter;
+
+	protected bool $awaitingEncryptionHandshake;
+	protected ?EncryptionContext $cipher = null;
 
 	public $playedBefore;
 	public bool $spawned = false;
@@ -1901,10 +1906,46 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 			return true;
 		}
 
-		//TODO: add JWT verification, add encryption
+		if (EncryptionContext::$ENABLED) {
+			$this->startEncryption($packet);
+		} else {
+			$this->processLogin();
+		}
 
+		return true;
+	}
+
+	public function startEncryption(LoginPacket $packet) : void{
+		if ($this->closed) {
+			return;
+		}
+		$identityPublicKey = base64_decode($packet->identityPublicKey, true);
+		$this->getServer()->getScheduler()->scheduleAsyncTask(new PrepareEncryptionTask(
+			$identityPublicKey,
+			function(string $encryptionKey, string $_, string $publicServerKey, string $serverToken) : void{
+				if (!$this->isConnected()) {
+					return;
+				}
+				$packet = new ServerToClientHandshakePacket();
+				$packet->publicKey = $publicServerKey;
+				$packet->serverToken = $serverToken;
+				$this->dataPacket($packet);
+
+				$this->awaitingEncryptionHandshake = true;
+				$this->cipher = EncryptionContext::cfb8($encryptionKey);
+				$this->server->getLogger()->debug('Starting encryption for ' . $this->getName());
+			}
+		));
+	}
+
+	public function onEncryptionCompleted() : bool{
+		if (!$this->awaitingEncryptionHandshake) {
+			return false;
+		}
+
+		$this->awaitingEncryptionHandshake = false;
+		$this->server->getLogger()->debug('Encryption handshake completed for ' . $this->getName() . ', key: ' . $this->cipher->getKey());
 		$this->processLogin();
-
 		return true;
 	}
 
@@ -4021,6 +4062,13 @@ class Player extends Human implements CommandSender, ChunkLoader, IPlayer{
 
 	public function getProtocol() : int{
 		return $this->playerInfo->protocol ?? ProtocolInfo::CURRENT_PROTOCOL;
+	}
+
+	/**
+	 * @internal
+	 */
+	public function getCipher() : ?EncryptionContext{
+		return $this->cipher;
 	}
 
 	public function isLoaderActive() : bool{

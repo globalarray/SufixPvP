@@ -13,13 +13,22 @@
  *
  */
 
+declare(strict_types=1);
+
 namespace raklib;
 
+use function defined;
+use function extension_loaded;
+use function phpversion;
+use function substr_count;
+use function version_compare;
+use const PHP_EOL;
+use const PHP_VERSION;
 
 //Dependencies check
 $errors = 0;
-if(version_compare("7.0", PHP_VERSION) > 0){
-	echo "[CRITICAL] Use PHP >= 7.0" . PHP_EOL;
+if(version_compare("8.1", PHP_VERSION) > 0){
+	echo "[CRITICAL] Use PHP >= 8.1" . PHP_EOL;
 	++$errors;
 }
 
@@ -37,8 +46,8 @@ if(!extension_loaded("pthreads")){
 		$pthreads_version = "0.$pthreads_version";
 	}
 
-	if(version_compare($pthreads_version, "3.0.0") < 0){
-		echo "[CRITICAL] pthreads >= 3.0.0 is required, while you have $pthreads_version.";
+	if(version_compare($pthreads_version, "4.1.3") < 0){
+		echo "[CRITICAL] pthreads >= 4.1.3 is required, while you have $pthreads_version.";
 		++$errors;
 	}
 }
@@ -49,110 +58,20 @@ if($errors > 0){
 unset($errors);
 
 abstract class RakLib{
-	const VERSION = "0.8.0";
-	const PROTOCOL = 6;
-	const MAGIC = "\x00\xff\xff\x00\xfe\xfe\xfe\xfe\xfd\xfd\xfd\xfd\x12\x34\x56\x78";
+	public const VERSION = "0.8.0-SE";
+	public const PROTOCOL = 6;
+	public const MAGIC = "\x00\xff\xff\x00\xfe\xfe\xfe\xfe\xfd\xfd\xfd\xfd\x12\x34\x56\x78";
 
-	const PRIORITY_NORMAL = 0;
-	const PRIORITY_IMMEDIATE = 1;
+	public const PRIORITY_NORMAL = 0;
+	public const PRIORITY_IMMEDIATE = 1;
 
-	const FLAG_NEED_ACK = 0b00001000;
+	public const FLAG_NEED_ACK = 0b00001000;
 
-	/*
-	 * Internal Packet:
-	 * int32 (length without this field)
-	 * byte (packet ID)
-	 * payload
+	/**
+	 * Regular RakNet uses 10 by default. MCPE uses 20. Configure this value as appropriate.
+	 * @var int
 	 */
-
-	/*
-	 * ENCAPSULATED payload:
-	 * byte (identifier length)
-	 * byte[] (identifier)
-	 * byte (flags, last 3 bits, priority)
-	 * payload (binary internal EncapsulatedPacket)
-	 */
-	const PACKET_ENCAPSULATED = 0x01;
-
-	/*
-	 * OPEN_SESSION payload:
-	 * byte (identifier length)
-	 * byte[] (identifier)
-	 * byte (address length)
-	 * byte[] (address)
-	 * short (port)
-	 * long (clientID)
-	 */
-	const PACKET_OPEN_SESSION = 0x02;
-
-	/*
-	 * CLOSE_SESSION payload:
-	 * byte (identifier length)
-	 * byte[] (identifier)
-	 * string (reason)
-	 */
-	const PACKET_CLOSE_SESSION = 0x03;
-
-	/*
-	 * INVALID_SESSION payload:
-	 * byte (identifier length)
-	 * byte[] (identifier)
-	 */
-	const PACKET_INVALID_SESSION = 0x04;
-
-	/* TODO: implement this
-	 * SEND_QUEUE payload:
-	 * byte (identifier length)
-	 * byte[] (identifier)
-	 */
-	const PACKET_SEND_QUEUE = 0x05;
-
-	/*
-	 * ACK_NOTIFICATION payload:
-	 * byte (identifier length)
-	 * byte[] (identifier)
-	 * int (identifierACK)
-	 */
-	const PACKET_ACK_NOTIFICATION = 0x06;
-
-	/*
-	 * SET_OPTION payload:
-	 * byte (option name length)
-	 * byte[] (option name)
-	 * byte[] (option value)
-	 */
-	const PACKET_SET_OPTION = 0x07;
-
-	/*
-	 * RAW payload:
-	 * byte (address length)
-	 * byte[] (address from/to)
-	 * short (port)
-	 * byte[] (payload)
-	 */
-	const PACKET_RAW = 0x08;
-    const PACKET_PING = 0x0a;
-	/*
-	 * RAW payload:
-	 * byte (address length)
-	 * byte[] (address)
-	 * int (timeout)
-	 */
-	const PACKET_BLOCK_ADDRESS = 0x09;
-
-	/*
-	 * No payload
-	 *
-	 * Sends the disconnect message, removes sessions correctly, closes sockets.
-	 */
-	const PACKET_SHUTDOWN = 0x7e;
-
-	/*
-	 * No payload
-	 *
-	 * Leaves everything as-is and halts, other Threads can be in a post-crash condition.
-	 */
-	const PACKET_EMERGENCY_SHUTDOWN = 0x7f;
+	public static $SYSTEM_ADDRESS_COUNT = 20;
 
 	public static function bootstrap(\ClassLoader $loader){
 		$loader->addPath(dirname(__FILE__) . DIRECTORY_SEPARATOR . "..");

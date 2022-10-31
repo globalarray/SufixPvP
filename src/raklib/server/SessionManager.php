@@ -44,8 +44,8 @@ use raklib\protocol\Packet;
 use raklib\protocol\UNCONNECTED_PING;
 use raklib\protocol\UNCONNECTED_PING_OPEN_CONNECTIONS;
 use raklib\protocol\UNCONNECTED_PONG;
-use raklib\RakLib;
 use raklib\generic\Socket;
+use raklib\RakLib;
 use pocketmine\utils\Binary;
 
 class SessionManager{
@@ -210,44 +210,45 @@ class SessionManager{
 
 	public function streamEncapsulated(Session $session, EncapsulatedPacket $packet, $flags = RakLib::PRIORITY_NORMAL){
 		$id = $session->getAddress() . ":" . $session->getPort();
-		$buffer = chr(RakLib::PACKET_ENCAPSULATED) . chr(strlen($id)) . $id . chr($flags) . $packet->toBinary(true);
+		$buffer = chr(ITCProtocol::PACKET_ENCAPSULATED) . chr(strlen($id)) . $id . chr($flags) . $packet->toBinary(true);
 		$this->server->pushThreadToMainPacket($buffer);
 	}
-		public function streamPing(Session $session){
+
+	public function streamPing(Session $session){
         $id = $session->getAddress() . ":" . $session->getPort();
 		$ping = $session->getPing();
-        $buffer = chr(RakLib::PACKET_PING) . chr(strlen($id)) . $id .  chr(strlen($ping)) . $ping;
+        $buffer = chr(ITCProtocol::PACKET_REPORT_PING) . chr(strlen($id)) . $id .  chr(strlen($ping)) . $ping;
         $this->server->pushThreadToMainPacket($buffer);
     }
 
 	public function streamRaw($address, $port, $payload){
-		$buffer = chr(RakLib::PACKET_RAW) . chr(strlen($address)) . $address . Binary::writeShort($port) . $payload;
+		$buffer = chr(ITCProtocol::PACKET_RAW) . chr(strlen($address)) . $address . Binary::writeShort($port) . $payload;
 		$this->server->pushThreadToMainPacket($buffer);
 	}
 
 	protected function streamClose($identifier, $reason){
-		$buffer = chr(RakLib::PACKET_CLOSE_SESSION) . chr(strlen($identifier)) . $identifier . chr(strlen($reason)) . $reason;
+		$buffer = chr(ITCProtocol::PACKET_CLOSE_SESSION) . chr(strlen($identifier)) . $identifier . chr(strlen($reason)) . $reason;
 		$this->server->pushThreadToMainPacket($buffer);
 	}
 
 	protected function streamInvalid($identifier){
-		$buffer = chr(RakLib::PACKET_INVALID_SESSION) . chr(strlen($identifier)) . $identifier;
+		$buffer = chr(ITCProtocol::PACKET_INVALID_SESSION) . chr(strlen($identifier)) . $identifier;
 		$this->server->pushThreadToMainPacket($buffer);
 	}
 
 	protected function streamOpen(Session $session){
 		$identifier = $session->getAddress() . ":" . $session->getPort();
-		$buffer = chr(RakLib::PACKET_OPEN_SESSION) . chr(strlen($identifier)) . $identifier . chr(strlen($session->getAddress())) . $session->getAddress() . Binary::writeShort($session->getPort()) . Binary::writeLong($session->getID());
+		$buffer = chr(ITCProtocol::PACKET_OPEN_SESSION) . chr(strlen($identifier)) . $identifier . chr(strlen($session->getAddress())) . $session->getAddress() . Binary::writeShort($session->getPort()) . Binary::writeLong($session->getID());
 		$this->server->pushThreadToMainPacket($buffer);
 	}
 
 	protected function streamACK($identifier, $identifierACK){
-		$buffer = chr(RakLib::PACKET_ACK_NOTIFICATION) . chr(strlen($identifier)) . $identifier . Binary::writeInt($identifierACK);
+		$buffer = chr(ITCProtocol::PACKET_ACK_NOTIFICATION) . chr(strlen($identifier)) . $identifier . Binary::writeInt($identifierACK);
 		$this->server->pushThreadToMainPacket($buffer);
 	}
 
 	protected function streamOption($name, $value){
-		$buffer = chr(RakLib::PACKET_SET_OPTION) . chr(strlen($name)) . $name . $value;
+		$buffer = chr(ITCProtocol::PACKET_SET_OPTION) . chr(strlen($name)) . $name . $value;
 		$this->server->pushThreadToMainPacket($buffer);
 	}
 
@@ -269,7 +270,7 @@ class SessionManager{
 		if (strlen($packet) > 0) {
 			$id = ord($packet[0]);
 			$offset = 1;
-			if($id === RakLib::PACKET_ENCAPSULATED){
+			if($id === ITCProtocol::PACKET_ENCAPSULATED){
 				$len = ord($packet[$offset++]);
 				$identifier = substr($packet, $offset, $len);
 				$offset += $len;
@@ -280,7 +281,7 @@ class SessionManager{
 				}else{
 					$this->streamInvalid($identifier);
 				}
-			}elseif($id === RakLib::PACKET_RAW){
+			}elseif($id === ITCProtocol::PACKET_RAW){
 				$len = ord($packet[$offset++]);
 				$address = substr($packet, $offset, $len);
 				$offset += $len;
@@ -288,7 +289,7 @@ class SessionManager{
 				$offset += 2;
 				$payload = substr($packet, $offset);
 				$this->socket->writePacket($payload, $address, $port);
-			}elseif($id === RakLib::PACKET_CLOSE_SESSION){
+			}elseif($id === ITCProtocol::PACKET_CLOSE_SESSION){
 				$len = ord($packet[$offset++]);
 				$identifier = substr($packet, $offset, $len);
 				if(isset($this->sessions[$identifier])){
@@ -296,13 +297,13 @@ class SessionManager{
 				}else{
 					$this->streamInvalid($identifier);
 				}
-			}elseif($id === RakLib::PACKET_INVALID_SESSION){
+			}elseif($id === ITCProtocol::PACKET_INVALID_SESSION){
 				$len = ord($packet[$offset++]);
 				$identifier = substr($packet, $offset, $len);
 				if(isset($this->sessions[$identifier])){
 					$this->removeSession($this->sessions[$identifier]);
 				}
-			}elseif($id === RakLib::PACKET_SET_OPTION){
+			}elseif($id === ITCProtocol::PACKET_SET_OPTION){
 				$len = ord($packet[$offset++]);
 				$name = substr($packet, $offset, $len);
 				$offset += $len;
@@ -318,20 +319,20 @@ class SessionManager{
 						$this->packetLimit = (int) $value;
 						break;
 				}
-			}elseif($id === RakLib::PACKET_BLOCK_ADDRESS){
+			}elseif($id === ITCProtocol::PACKET_BLOCK_ADDRESS){
 				$len = ord($packet[$offset++]);
 				$address = substr($packet, $offset, $len);
 				$offset += $len;
 				$timeout = Binary::readInt(substr($packet, $offset, 4));
 				$this->blockAddress($address, $timeout);
-			}elseif($id === RakLib::PACKET_SHUTDOWN){
+			}elseif($id === ITCProtocol::PACKET_SHUTDOWN){
 				foreach($this->sessions as $session){
 					$this->removeSession($session);
 				}
 
 				$this->socket->close();
 				$this->shutdown = true;
-			}elseif($id === RakLib::PACKET_EMERGENCY_SHUTDOWN){
+			}elseif($id === ITCProtocol::PACKET_EMERGENCY_SHUTDOWN){
 				$this->shutdown = true;
 			}else{
 				return false;

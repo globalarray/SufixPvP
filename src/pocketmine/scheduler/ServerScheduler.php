@@ -122,6 +122,10 @@ class ServerScheduler{
 		$this->objectStore[$for] = $cmplx;
 	}
 
+	public function getAsyncPool() : ?AsyncPool{
+		return $this->asyncPool;
+	}
+	
 	/**
 	 * Fetches data that must not be passed to other threads or be serialized, previously stored with
 	 * {@link ServerScheduler#storeLocalComplex}, without deletion of the data.

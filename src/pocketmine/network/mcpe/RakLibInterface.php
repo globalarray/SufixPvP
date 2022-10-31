@@ -31,6 +31,7 @@ use pocketmine\network\mcpe\protocol\DataPacket;
 use pocketmine\network\mcpe\protocol\PacketPool;
 use pocketmine\network\mcpe\protocol\PacketPool120;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
+use pocketmine\network\mcpe\encryption\DecryptionException;
 use pocketmine\network\Network;
 use pocketmine\Player;
 use pocketmine\Server;
@@ -46,26 +47,28 @@ use function spl_object_hash;
 
 class RakLibInterface implements ServerInstance, AdvancedSourceInterface{
 
+	private const MCPE_RAKNET_PACKET_ID = "\xfe";
+
 	/** @var Server */
-	private $server;
+	private Server $server;
 
 	/** @var Network */
-	private $network;
+	private Network $network;
 
 	/** @var RakLibServer */
-	private $rakLib;
+	private RakLibServer $rakLib;
 
 	/** @var Player[] */
-	private $players = [];
+	private array $players = [];
 
 	/** @var string[] */
-	private $identifiers;
+	private array $identifiers;
 
 	/** @var int[] */
-	private $identifiersACK = [];
+	private array $identifiersACK = [];
 
 	/** @var ServerHandler */
-	private $interface;
+	private ServerHandler $interface;
 
 	public function __construct(Server $server){
 
@@ -78,12 +81,15 @@ class RakLibInterface implements ServerInstance, AdvancedSourceInterface{
 			new InternetAddress($this->server->getIp(), $this->server->getPort(), 4)
 		);
 		$this->interface = new ServerHandler($this->rakLib, $this);
+		$this->server->getLogger()->debug("Waiting for RakLib to start...");
+		$this->rakLib->startAndWait(PTHREADS_INHERIT_CONSTANTS); //HACK: MainLogger needs constants for exception logging
+		$this->server->getLogger()->debug("RakLib booted successfully");
 	}
 
 	public function setNetwork(Network $network){
 		$this->network = $network;
 	}
-
+	
 	public function process() : bool{
 		$work = false;
 		if($this->interface->handlePacket()){
@@ -95,7 +101,11 @@ class RakLibInterface implements ServerInstance, AdvancedSourceInterface{
 		if(!$this->rakLib->isRunning() and !$this->rakLib->isShutdown()){
 			$this->network->unregisterInterface($this);
 
-			throw new Exception("RakLib Thread crashed");
+			$e = $this->rakLib->getCrashInfo();
+			if($e !== null){
+				throw $e;
+			}
+			throw new \Exception("RakLib Thread crashed without crash information");
 		}
 
 		return $work;
@@ -140,12 +150,22 @@ class RakLibInterface implements ServerInstance, AdvancedSourceInterface{
 		$this->server->addPlayer($identifier, $player);
 	}
 
-	public function handleEncapsulated($identifier, EncapsulatedPacket $packet, $flags){
+	public function handleEncapsulated($identifier, EncapsulatedPacket $packet, $flags) {
 		if(isset($this->players[$identifier])){
 			try{
-				if($packet->buffer !== ""){
-					$pk = $this->getPacket($packet->buffer, $this->players[$identifier]->getProtocol());
-					$this->players[$identifier]->handleDataPacket($pk);
+				if(!empty($packet->buffer)){
+					if($packet->buffer[0] !== self::MCPE_RAKNET_PACKET_ID){
+						throw new \UnexpectedValueException("Unexpected non-FE packet");
+					}
+					$cipher = ($player = &$this->players[$identifier])->getCipher();
+					$buffer = substr($packet->buffer, 1);
+					try {
+						if($cipher !== null) {
+							$buffer = $cipher->decrypt($buffer);
+						}
+					} catch (DecryptionException $e) {}
+					$pk = $this->getPacket(self::MCPE_RAKNET_PACKET_ID . $buffer, $player->getProtocol());
+					$player->handleDataPacket($pk);
 				}
 			}catch(\Throwable $e){
 				$logger = $this->server->getLogger();
@@ -221,32 +241,35 @@ class RakLibInterface implements ServerInstance, AdvancedSourceInterface{
 			}
 
 			if($packet instanceof BatchPacket){
-				if($needACK){
-					$pk = new EncapsulatedPacket();
-					$pk->buffer = $packet->buffer;
-					$pk->reliability = $immediate ? PacketReliability::RELIABLE : PacketReliability::RELIABLE_ORDERED;
-					$pk->orderChannel = 0;
-
-					if($needACK === true){
-						$pk->identifierACK = $this->identifiersACK[$identifier]++;
-					}
-				}else{
-					if(!isset($packet->__encapsulatedPacket)){
-						$packet->__encapsulatedPacket = new CachedEncapsulatedPacket;
-						$packet->__encapsulatedPacket->identifierACK = null;
-						$packet->__encapsulatedPacket->buffer = $packet->buffer; // #blameshoghi
-						$packet->__encapsulatedPacket->reliability = $immediate ? PacketReliability::RELIABLE : PacketReliability::RELIABLE_ORDERED;
-						$packet->__encapsulatedPacket->orderChannel = 0;
-					}
-					$pk = $packet->__encapsulatedPacket;
-				}
-
-				$this->interface->sendEncapsulated($identifier, $pk, ($needACK === true ? RakLib::FLAG_NEED_ACK : 0) | ($immediate === true ? RakLib::PRIORITY_IMMEDIATE : RakLib::PRIORITY_NORMAL));
-				return $pk->identifierACK;
+				return $this->putBuffer($player, $packet->buffer, $needACK, $immediate);
 			}else{
 				$this->server->batchPackets([$player], [$packet], true, $immediate);
 				return null;
 			}
+		}
+
+		return null;
+	}
+
+	public function putBuffer(Player $player, string $buffer, bool $needACK = false, bool $immediate = true) : ?int{
+		if(isset($this->identifiers[$h = spl_object_hash($player)])){
+			$sessionId = $this->identifiers[$h];
+
+			$cipher = $player->getCipher();
+			$rawBuffer = substr($buffer, 1);
+			$buffer = self::MCPE_RAKNET_PACKET_ID . ($cipher !== null ? $cipher->encrypt($rawBuffer) : $rawBuffer);
+
+			$pk = new EncapsulatedPacket();
+			$pk->buffer = $buffer;
+			$pk->reliability = $immediate ? PacketReliability::RELIABLE : PacketReliability::RELIABLE_ORDERED;
+			$pk->orderChannel = 0;
+
+			if($needACK === true){
+				$pk->identifierACK = $this->identifiersACK[$sessionId]++;
+			}
+
+			$this->interface->sendEncapsulated($sessionId, $pk, ($needACK === true ? RakLib::FLAG_NEED_ACK : 0) | ($immediate === true ? RakLib::PRIORITY_IMMEDIATE : RakLib::PRIORITY_NORMAL));
+			return $pk->identifierACK;
 		}
 
 		return null;

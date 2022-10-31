@@ -351,7 +351,7 @@ class Level implements ChunkManager, Metadatable{
 
 		$this->time = (int) $this->provider->getTime();
 
-		$this->chunkTickRadius = min($this->server->getViewDistance(), max(1, $this->server->getConfigGroup()->getPropertyInt("chunk-ticking.tick-radius", 4)));
+		$this->chunkTickRadius = min($this->server->getViewDistance(), max(1, $serverConfig->getPropertyInt("chunk-ticking.tick-radius", 4)));
 		$this->chunksPerTick = $serverConfig->getPropertyInt("chunk-ticking.per-tick", 40);
 		$this->chunkGenerationQueueSize = $serverConfig->getPropertyInt("chunk-generation.queue-size", 8);
 		$this->chunkPopulationQueueSize = $serverConfig->getPropertyInt("chunk-generation.population-queue-size", 2);

@@ -39,6 +39,7 @@ class LevelTimings {
 	public TimingsHandler $entityTick;
 	public TimingsHandler $tileEntityTick;
 	public TimingsHandler $doTick;
+	public TimingsHandler $doTickPending;
 
 	public TimingsHandler $syncChunkSend;
 	public TimingsHandler $syncChunkSendPrepare;
@@ -77,5 +78,6 @@ class LevelTimings {
 		$this->syncChunkSave = new TimingsHandler(Timings::INCLUDED_BY_OTHER_TIMINGS_PREFIX . $name . "Chunk Save", Timings::$worldSave);
 
 		$this->doTick = new TimingsHandler($name . "World Tick");
+		$this->doTickPending = new TimingsHandler($name . 'Block Updates');
 	}
 }

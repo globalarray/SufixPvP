@@ -48,34 +48,38 @@ use function trim;
 use const PTHREADS_INHERIT_NONE;
 use const SO_KEEPALIVE;
 use const SO_LINGER;
-use const SOCKET_ECONNRESET;
-use const SOL_SOCKET;
+use const socket_ECONNRESET;
+use const SOL_\Socket;
 
 class RCONInstance extends Thread{
 
 	/** @var string */
-	public $cmd;
+	public string $cmd;
 	/** @var string */
-	public $response;
+	public string $response;
 
 	/** @var bool */
-	private $stop;
-	/** @var resource */
-	private $socket;
+	private bool $stop;
+	/** @var \Socket */
+	private \Socket $socket;
 	/** @var string */
-	private $password;
+	private string $password;
 	/** @var int */
-	private $maxClients;
+	private int $maxClients;
 	/** @var \ThreadedLogger */
-	private $logger;
-	/** @var resource */
-	private $ipcSocket;
+	private \ThreadedLogger $logger;
+	/** @var \Socket */
+	private \Socket $ipcSocket;
 	/** @var SleeperNotifier|null */
-	private $notifier;
+	private ?SleeperNotifier $notifier;
 
 	/**
-	 * @param resource             $socket
-	 * @param resource             $ipcSocket
+	 * @param \Socket             $socket
+	 * @param string              $password
+	 * @param int                 $maxClients
+	 * @param \ThreadedLogger     $logger
+	 * @param \Socket             $ipcSocket
+	 * @param ?SleeperNotifier    $notifier
 	 */
 	public function __construct($socket, string $password, int $maxClients, \ThreadedLogger $logger, $ipcSocket, ?SleeperNotifier $notifier){
 		$this->stop = false;
@@ -92,11 +96,11 @@ class RCONInstance extends Thread{
 	}
 
 	/**
-	 * @param resource $client
+	 * @param \Socket $client
 	 *
 	 * @return int|false
 	 */
-	private function writePacket($client, int $requestID, int $packetType, string $payload){
+	private function writePacket($client, int $requestID, int $packetType, string $payload) : mixed{
 		$pk = Binary::writeLInt($requestID)
 			. Binary::writeLInt($packetType)
 			. $payload
@@ -105,14 +109,14 @@ class RCONInstance extends Thread{
 	}
 
 	/**
-	 * @param resource $client
+	 * @param \Socket   $client
 	 * @param int      $requestID reference parameter
 	 * @param int      $packetType reference parameter
 	 * @param string   $payload reference parameter
 	 *
 	 * @return bool
 	 */
-	private function readPacket($client, ?int &$requestID, ?int &$packetType, ?string &$payload){
+	private function readPacket($client, ?int &$requestID, ?int &$packetType, ?string &$payload) : bool{
 		$d = @socket_read($client, 4);
 
 		socket_getpeername($client, $ip, $port);
@@ -155,7 +159,7 @@ class RCONInstance extends Thread{
 	/**
 	 * @return void
 	 */
-	public function close(){
+	public function close() : void{
 		$this->stop = true;
 	}
 
@@ -165,7 +169,7 @@ class RCONInstance extends Thread{
 	public function onRun() : void{
 		$this->registerClassLoader();
 
-		/** @var resource[] $clients */
+		/** @var \Socket] $clients */
 		$clients = [];
 		/** @var bool[] $authenticated */
 		$authenticated = [];
@@ -192,7 +196,7 @@ class RCONInstance extends Thread{
 								@socket_close($client);
 							}else{
 								socket_set_nonblock($client);
-								socket_set_option($client, SOL_SOCKET, SO_KEEPALIVE, 1);
+								socket_set_option($client, SOL_\Socket, SO_KEEPALIVE, 1);
 
 								$id = $nextClientId++;
 								$clients[$id] = $client;
@@ -265,11 +269,11 @@ class RCONInstance extends Thread{
 	}
 
 	/**
-	 * @param resource $client
+	 * @param \Socket $client
 	 */
 	private function disconnectClient($client) : void{
 		socket_getpeername($client, $ip, $port);
-		@socket_set_option($client, SOL_SOCKET, SO_LINGER, ["l_onoff" => 1, "l_linger" => 1]);
+		@socket_set_option($client, SOL_\Socket, SO_LINGER, ["l_onoff" => 1, "l_linger" => 1]);
 		@socket_shutdown($client, 2);
 		@socket_set_block($client);
 		@socket_read($client, 1);

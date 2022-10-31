@@ -87,6 +87,40 @@ class AsyncPool{
 		$this->taskWorkers[$task->getTaskId()] = $worker;
 	}
 
+	/**
+	 * Selects a worker ID to run a task.
+	 *
+	 * - if an idle worker is found, it will be selected
+	 * - else, if the worker pool is not full, a new worker will be selected
+	 * - else, the worker with the smallest backlog is chosen.
+	 */
+	public function selectWorker() : int{
+		$worker = null;
+		$minUsage = PHP_INT_MAX;
+		foreach($this->workerUsage as $i => $usage){
+			if($usage < $minUsage){
+				$worker = $i;
+				$minUsage = $usage;
+				if($usage === 0){
+					break;
+				}
+			}
+		}
+
+		if($worker === null or ($minUsage > 0 and count($this->workers) < $this->size)){
+			//select a worker to start on the fly
+			for($i = 0; $i < $this->size; ++$i){
+				if(!isset($this->workers[$i])){
+					$worker = $i;
+					break;
+				}
+			}
+		}
+
+		assert($worker !== null);
+		return $worker;
+	}
+
 	public function submitTask(AsyncTask $task){
 		if(isset($this->tasks[$task->getTaskId()]) or $task->isGarbage()){
 			return;
@@ -119,6 +153,8 @@ class AsyncPool{
 		unset($this->tasks[$task->getTaskId()]);
 		unset($this->taskWorkers[$task->getTaskId()]);
 	}
+
+
 
 	public function removeTasks() : void{
 		foreach($this->workers as $worker){

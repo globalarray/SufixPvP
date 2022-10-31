@@ -85,6 +85,9 @@ class PlayerNetworkSessionAdapter extends NetworkSession{
 		if($packet->buffer === "\x21\x04\x00"){
 			return;
 		}
+		if(!$this->player->loggedIn and !($packet instanceof LoginPacket or $packet instanceof BatchPacket or $packet instanceof ClientToServerHandshakePacket)){ 
+ 			//return;
+		}
 
 		$timings = Timings::getReceiveDataPacketTimings($packet);
 		$timings->startTiming();
@@ -110,7 +113,7 @@ class PlayerNetworkSessionAdapter extends NetworkSession{
 	}
 
 	public function handleClientToServerHandshake(ClientToServerHandshakePacket $packet) : bool{
-		return $this->player->handleClientToServerHandshake($packet);
+		return $this->player->onEncryptionCompleted();
 	}
 
 	public function handleResourcePackClientResponse(ResourcePackClientResponsePacket $packet) : bool{
