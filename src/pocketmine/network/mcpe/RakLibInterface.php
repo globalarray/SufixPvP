@@ -48,6 +48,7 @@ use function spl_object_hash;
 class RakLibInterface implements ServerInstance, AdvancedSourceInterface{
 
 	private const MCPE_RAKNET_PACKET_ID = "\xfe";
+	private const PONG_DATA_UPDATE_RATE = 1.0;
 
 	/** @var Server */
 	private Server $server;
@@ -70,6 +71,12 @@ class RakLibInterface implements ServerInstance, AdvancedSourceInterface{
 	/** @var ServerHandler */
 	private ServerHandler $interface;
 
+	/** @var PongData */
+	private PongData $pongData;
+
+	/** @var float */
+	private float $lastPongDataUpdate = 0.0;
+
 	public function __construct(Server $server){
 
 		$this->server = $server;
@@ -78,9 +85,10 @@ class RakLibInterface implements ServerInstance, AdvancedSourceInterface{
 	    $this->rakLib = new RakLibServer(
 			$this->server->getLogger(),
 			$this->server->getLoader(),
-			new InternetAddress($this->server->getIp(), $this->server->getPort(), 4)
+			$this->server->getAddress()
 		);
 		$this->interface = new ServerHandler($this->rakLib, $this);
+		$this->setPongData(new PongData());
 		$this->server->getLogger()->debug("Waiting for RakLib to start...");
 		$this->rakLib->startAndWait(PTHREADS_INHERIT_CONSTANTS); //HACK: MainLogger needs constants for exception logging
 		$this->server->getLogger()->debug("RakLib booted successfully");
@@ -96,6 +104,10 @@ class RakLibInterface implements ServerInstance, AdvancedSourceInterface{
 			$work = true;
 			while($this->interface->handlePacket()){
 			}
+		}
+
+		if(microtime(true) - $this->lastPongDataUpdate > self::PONG_DATA_UPDATE_RATE){
+			$this->updatePongData();
 		}
 
 		if(!$this->rakLib->isRunning() and !$this->rakLib->isShutdown()){
@@ -194,6 +206,20 @@ class RakLibInterface implements ServerInstance, AdvancedSourceInterface{
 
 	}
 
+	public function updatePongData() : void{
+		$info = $this->server->getQueryInformation();
+
+		$this->pongData->setOnline($info->getPlayerCount());
+		$this->pongData->setSlots($info->getMaxPlayerCount());
+		$this->pongData->setMotd($info->getServerName());
+		$this->pongData->setSubMotd($info->getSubMotd());
+		$this->pongData->setGameMode($this->server->getGamemode()->getEnglishName());
+
+		$this->interface->sendOption("name", $this->pongData->toServerName());
+
+		$this->lastPongDataUpdate = microtime(true);
+	}
+
 	public function setName(string $name){
 		$info = $this->server->getQueryInformation();
 
@@ -290,5 +316,24 @@ class RakLibInterface implements ServerInstance, AdvancedSourceInterface{
 		}
 
 		return $data;
+	}
+
+	private function setPongData(PongData $pongData) : void{
+		if (empty($pongData->getEdition())) {
+			$pongData->setEdition('MCPE');
+		}
+
+		if (empty($pongData->getMinecraftVersion())) {
+			$pongData->setMinecraftVersion(ProtocolInfo::MINECRAFT_VERSION);
+		}
+
+		if (empty($pongData->getProtocolVersion())) {
+			$pongData->setProtocolVersion(ProtocolInfo::CURRENT_PROTOCOL);
+		}
+
+		if (empty($pongData->getServerId())) {
+			$pongData->setServerId($this->raklib->getServerId());
+		}
+		$this->pongData = $pongData;
 	}
 }

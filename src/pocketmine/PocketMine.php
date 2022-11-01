@@ -98,7 +98,7 @@ namespace pocketmine {
 	use function str_replace;
 	use function function_exists;
 
-	const VERSION = 'v0.5.3';
+	const VERSION = 'v0.5.4';
 	const DEVELOPERS = ['vk.com/ddosnik', 'vk.com/id160057084', 'vk.com/encritary'];
 	const API_VERSION = '3.0.0';
 	const CODENAME = 'David Ratnikov & Danila Stroganov & Cake';

@@ -39,8 +39,8 @@ class QueryHandler{
 	public function __construct(){
 		$this->server = Server::getInstance();
 		$this->server->getLogger()->info($this->server->getLanguage()->translateString("pocketmine.server.query.start"));
-		$addr = ($ip = $this->server->getIp()) != "" ? $ip : "0.0.0.0";
-		$port = $this->server->getPort();
+		$addr = ($ip = $this->server->getAddress()->getIp()) != "" ? $ip : "0.0.0.0";
+		$port = $this->server->getAddress()->getPort();
 		$this->server->getLogger()->info($this->server->getLanguage()->translateString("pocketmine.server.query.info", [$port]));
 		/*
 		The Query protocol is built on top of the existing Minecraft PE UDP network stack.

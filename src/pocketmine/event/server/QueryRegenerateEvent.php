@@ -28,44 +28,45 @@ use pocketmine\Player;
 use pocketmine\plugin\Plugin;
 use pocketmine\Server;
 use pocketmine\utils\Binary;
+use raklib\utils\InternetAddress;
 
 class QueryRegenerateEvent extends ServerEvent{
 	public static $handlerList = null;
 
-	const GAME_ID = "MINECRAFTPE";
+	public const GAME_ID = "MINECRAFTPE";
 
 	/** @var int */
-	private $timeout;
+	private int $timeout;
 	/** @var string */
-	private $serverName;
+	private string $serverName;
+	/** @var string */
+	private string $subMotd;
 	/** @var bool */
-	private $listPlugins;
+	private bool $listPlugins;
 	/** @var Plugin[] */
-	private $plugins;
+	private array $plugins;
 	/** @var Player[] */
-	private $players;
+	private array $players;
 
 	/** @var string */
-	private $gametype;
+	private string $gameMode;
 	/** @var string */
-	private $version;
+	private string $version;
 	/** @var string */
-	private $server_engine;
+	private string $server_engine;
 	/** @var string */
-	private $map;
+	private string $map;
 	/** @var int */
-	private $numPlayers;
+	private int $numPlayers;
 	/** @var int */
-	private $maxPlayers;
+	private int $maxPlayers;
 	/** @var string */
-	private $whitelist;
-	/** @var int */
-	private $port;
-	/** @var string */
-	private $ip;
+	private string $whitelist;
+	/** @var InternetAddress */
+	private InternetAddress $address;
 
 	/** @var array */
-	private $extraData = [];
+	private array $extraData = [];
 
 
 	/**
@@ -75,6 +76,7 @@ class QueryRegenerateEvent extends ServerEvent{
 	public function __construct(Server $server, int $timeout = 5){
 		$this->timeout = $timeout;
 		$this->serverName = $server->getMotd();
+		$this->subMotd = $server->getName() . " v" . $server->getPocketMineVersion();
 		$this->listPlugins = $server->getConfigGroup()->getPropertyBool("settings.query-plugins", true);
 		$this->plugins = $server->getPluginManager()->getPlugins();
 		$this->players = [];
@@ -83,21 +85,19 @@ class QueryRegenerateEvent extends ServerEvent{
 				$this->players[] = $player;
 			}
 		}
-
-		$this->gametype = ($server->getGamemode()->equals(GameMode::SURVIVAL()) || $server->getGamemode()->equals(GameMode::ADVENTURE())) ? "SMP" : "CMP";
+		$this->gameMode = ($server->getGamemode()->equals(GameMode::SURVIVAL()) || $server->getGamemode()->equals(GameMode::ADVENTURE())) ? "SMP" : "CMP";
 		$this->version = $server->getVersion();
 		$this->server_engine = $server->getName() . ' ' . $server->getPocketMineVersion() . ' ( ';
-		foreach (\pocketmine\DEVELOPERS as $developer) 
+		foreach (\pocketmine\DEVELOPERS as $developer) {
 			$this->server_engine .= $developer . ' & ';
+		}
 		$this->server_engine = trim($this->server_engine, '& ');
 		$this->server_engine .= ' )';
 		$this->map = $server->getDefaultLevel() === null ? "unknown" : $server->getDefaultLevel()->getName();
 		$this->numPlayers = count($this->players);
 		$this->maxPlayers = $server->getMaxPlayers();
 		$this->whitelist = $server->hasWhitelist() ? 'on' : 'off';
-		$this->port = $server->getPort();
-		$this->ip = $server->getIp();
-
+		$this->address = $server->getAddress();
 	}
 
 	/**
@@ -128,6 +128,20 @@ class QueryRegenerateEvent extends ServerEvent{
 	 */
 	public function setServerName(string $serverName){
 		$this->serverName = $serverName;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getSubMotd() : string{
+		return $this->subMotd;
+	}
+
+	/**
+	 * @param string $subMotd
+	 */
+	public function setSubMotd(string $subMotd) : void{
+		$this->subMotd = $subMotd;
 	}
 
 	/**
@@ -249,7 +263,7 @@ class QueryRegenerateEvent extends ServerEvent{
 		$KVdata = [
 			"splitnum" => chr(128),
 			"hostname" => $this->serverName,
-			"gametype" => $this->gametype,
+			"gametype" => $this->gameMode,
 			"game_id" => self::GAME_ID,
 			"version" => $this->version,
 			"server_engine" => $this->server_engine,
@@ -258,8 +272,8 @@ class QueryRegenerateEvent extends ServerEvent{
 			"numplayers" => $this->numPlayers,
 			"maxplayers" => $this->maxPlayers,
 			"whitelist" => $this->whitelist,
-			"hostip" => $this->ip,
-			"hostport" => $this->port
+			"hostip" => $this->address->getIp(),
+			"hostport" => $this->address->getPort()
 		];
 
 		foreach($KVdata as $key => $value){
@@ -283,7 +297,7 @@ class QueryRegenerateEvent extends ServerEvent{
 	 * @return string
 	 */
 	public function getShortQuery() : string{
-		return $this->serverName . "\x00" . $this->gametype . "\x00" . $this->map . "\x00" . $this->numPlayers . "\x00" . $this->maxPlayers . "\x00" . Binary::writeLShort($this->port) . $this->ip . "\x00";
+		return $this->serverName . "\x00" . $this->gameMode . "\x00" . $this->map . "\x00" . $this->numPlayers . "\x00" . $this->maxPlayers . "\x00" . Binary::writeLShort($this->address->getPort()) . $this->address->getIp() . "\x00";
 	}
 
 }

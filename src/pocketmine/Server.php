@@ -388,10 +388,10 @@ class Server{
 	}
 
 	/**
-	 * @return int
+	 * @return InternetAddress
 	 */
-	public function getPort() : int{
-		return $this->configGroup->getConfigInt("server-port", 19132);
+	public function getAddress() : InternetAddress{
+		return $this->address;
 	}
 
 	/**
@@ -410,13 +410,6 @@ class Server{
 	 */
 	public function getAllowedViewDistance(int $distance) : int{
 		return max(2, min($distance, $this->memoryManager->getViewDistance($this->getViewDistance())));
-	}
-
-	/**
-	 * @return string
-	 */
-	public function getIp() : string{
-		return $this->configGroup->getConfigString("server-ip", "0.0.0.0");
 	}
 
 	/**
@@ -1354,6 +1347,8 @@ class Server{
 				])
 			);
 
+			$this->address = new InternetAddress($this->configGroup->getConfigString("server-ip", '0.0.0.0'), $this->configGroup->getConfigInt("server-port", 19132), 4);
+
 			$this->language = new Language($this->configGroup->getPropertyString("settings.language", Language::FALLBACK_LANGUAGE));
 
 			$this->forceLanguage = $this->configGroup->getPropertyBool("settings.force-language", false);
@@ -1394,7 +1389,7 @@ class Server{
 					$this->rcon = new RCON(
 						$this,
 						$this->configGroup->getConfigString("rcon.password", ""),
-						new InternetAddress($this->getIp(), $this->configGroup->getConfigInt("rcon.port", $this->getPort()), 4),
+						$this->address,
 						$this->configGroup->getConfigInt("rcon.max-clients", 50)
 					);
 				}catch(\Exception $e){
@@ -1441,9 +1436,9 @@ class Server{
 				@cli_set_process_title($this->getName() . " " . $this->getPocketMineVersion());
 			}
 
-			$this->logger->info($this->getLanguage()->translateString("pocketmine.server.networkStart", [$this->getIp() === "" ? "*" : $this->getIp(), $this->getPort()]));
+			$this->logger->info($this->getLanguage()->translateString("pocketmine.server.networkStart", [$this->address->getIp() === "" ? "*" : $this->address->getIp(), $this->address->getPort()]));
 			define("BOOTUP_RANDOM", random_bytes(16));
-			$this->serverID = Utils::getMachineUniqueId($this->getIp() . $this->getPort());
+			$this->serverID = Utils::getMachineUniqueId($this->address->getIp() . $this->address->getPort());
 
 			$this->getLogger()->debug("Server unique id: " . $this->getServerUniqueId());
 			$this->getLogger()->debug("Machine unique id: " . Utils::getMachineUniqueId());
@@ -2354,10 +2349,9 @@ class Server{
 		}
 
 		if(($this->tickCounter % 20) === 0){
-			/*if($this->doTitleTick and Terminal::hasFormattingCodes()){
+			if($this->doTitleTick and Terminal::hasFormattingCodes()){
 				$this->titleTick();
 			}
-			*/
 			$this->currentTPS = 20;
 			$this->currentUse = 0;
 				try{
