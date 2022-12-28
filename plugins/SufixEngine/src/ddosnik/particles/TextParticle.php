@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace ddosnik\flytext\particle;
+namespace ddosnik\particles;
 
 use pocketmine\math\Vector3;
 use pocketmine\network\mcpe\protocol\{SetEntityDataPacket, AddEntityPacket, RemoveEntityPacket};
 use pocketmine\entity\Entity;
 use pocketmine\{Server, Player};
 
-class TextParticle
+final class TextParticle
 {
-	private $id;
-	private $title;
-	private $text;
-	private $position;
+	private int $id;
+	private string $title;
+	private string $text;
+	private Vector3 $position;
 	
-	private $entityRuntimeId;
+	private int $entityRuntimeId;
 	
 	public function __construct(int $id, string $title, string $text, Vector3 $pos)
 	{

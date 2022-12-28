@@ -105,8 +105,6 @@ trait SkyWarsTrait {
 
 		$finally_items = [];
 
-		var_dump(Item::get(ItemIds::EGG)->getMaxStackSize());
-
 		foreach ($items as $type => $item) {
 			$rand_item = $item[array_rand($item)];
 			$final_item = match (true) {

@@ -20,6 +20,7 @@ declare(strict_types=1);
 
 namespace ddosnik\menu;
 
+use pocketmine\utils\TextFormat;
 use pocketmine\Server;
 use ddosnik\player\SufixPlayer;
 use const PHP_EOL;
@@ -34,6 +35,7 @@ final class ParticlesListItem extends ClickableItem {
 
     public function handleClick(SufixPlayer $player) : void{
         $player->getInventory()->clearAll();
+        $player->sendPopup(TextFormat::GRAY . 'Ты открыл(а) меню выбора партикла!');
         for ($i = 0; $i < sizeof($particles = $this->getParticlesList()); $i++) {
             $player->getInventory()->setItem($particles[$i][0], $particles[$i][1]);
         }

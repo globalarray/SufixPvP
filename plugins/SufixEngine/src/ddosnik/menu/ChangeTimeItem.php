@@ -20,6 +20,7 @@ declare(strict_types=1);
 
 namespace ddosnik\menu;
 
+use pocketmine\utils\TextFormat;
 use ddosnik\player\SufixPlayer;
 use const PHP_EOL;
 
@@ -32,6 +33,7 @@ final class ChangeTimeItem extends ClickableItem {
 
     public function handleClick(SufixPlayer $player) : void{
         ($inventory = $player->getInventory())->clearAll();
+        $player->sendPopup(TextFormat::GRAY . 'Ты открыл(а) меню изменения времени!');
         $inventory->setItem(2, ClickableItemFactory::TIME_MORNING());
         $inventory->setItem(4, ClickableItemFactory::TIME_DAY());
         $inventory->setItem(6, ClickableItemFactory::TIME_EVENING());

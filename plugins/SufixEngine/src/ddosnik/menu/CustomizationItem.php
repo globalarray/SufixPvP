@@ -20,6 +20,7 @@ declare(strict_types=1);
 
 namespace ddosnik\menu;
 
+use pocketmine\utils\TextFormat;
 use pocketmine\Server;
 use ddosnik\player\SufixPlayer;
 use const PHP_EOL;
@@ -33,6 +34,7 @@ final class CustomizationItem extends ClickableItem {
 
     public function handleClick(SufixPlayer $player) : void{
         ($inventory = $player->getInventory())->clearAll();
+        $player->sendPopup(TextFormat::GRAY . 'Ты открыл(а) меню кастомизации!');
         $inventory->setItem(1, ClickableItemFactory::CHANGE_COLOR());
         $inventory->setItem(4, ClickableItemFactory::PARTICLES());
         $inventory->setItem(7, ClickableItemFactory::CHANGE_TIME());

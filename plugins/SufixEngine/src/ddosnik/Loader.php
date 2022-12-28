@@ -1,6 +1,6 @@
 <?php
 
-/*
+/**
  *
  * ╔═══╗───╔═╗───╔═══╗
  * ║╔═╗║───║╔╝───║╔══╝
@@ -16,7 +16,7 @@
  *
  */
 
-//declare(strict_types=1);
+declare(strict_types=1);
 
 namespace ddosnik;
 
@@ -29,46 +29,21 @@ use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
 use pocketmine\item\{Item, ItemIds};
 use pocketmine\level\Position;
+use ddosnik\handler\EventHandler;
 use ddosnik\task\{Hotbar, LeaveTask, Broadcaster, ParticlesManager};
 use pocketmine\math\Vector3;
 use pocketmine\entity\{Entity, Attribute, Zombie};
 use pocketmine\event\Listener;
 use pocketmine\utils\TextFormat;
 use pocketmine\plugin\PluginBase;
-use pocketmine\level\particle\{DustParticle, RedstoneParticle, Particle};
+use pocketmine\network\mcpe\protocol\{AddEntityPacket, BossEventPacket, SetEntityDataPacket, UpdateAttributesPacket};
+use pocketmine\level\particle\{DustParticle, RedstoneParticle, Particle, DestroyBlockParticle};
 use ddosnik\wings\task\WingsTask;
-use ddosnik\wings\utils\Particles;
-use ddosnik\flytext\handler\EventHandler;
-use ddosnik\flytext\particle\TextParticle;
-use ddosnik\flytext\scheduler\ParticleUpdate;
-use pocketmine\event\inventory\InventoryTransactionEvent;
-use pocketmine\network\mcpe\protocol\{
-    InteractPacket,
-    BossEventPacket,
-    AddEntityPacket,
-    MoveEntityPacket,
-    SetEntityDataPacket,
-    UpdateAttributesPacket,
-    SetTimePacket
-};
-use pocketmine\event\entity\{EntityDamageEvent, EntityDamageByEntityEvent};
-use pocketmine\event\player\{
-    PlayerJoinEvent,
-    PlayerMoveEvent,
-    PlayerChatEvent,
-    PlayerQuitEvent,
-    PlayerDeathEvent,
-    PlayerDropItemEvent,
-    PlayerCommandPreprocessEvent,
-    PlayerExhaustEvent,
-    PlayerItemConsumeEvent,
-    PlayerRespawnEvent,
-    PlayerInteractEvent,
-    PlayerPreLoginEvent,
-    PlayerCreationEvent
-};
+use ddosnik\particles\TextParticle;
+use ddosnik\task\ParticleUpdate;
 use ddosnik\commands\{
-    KickCommand
+    KickCommand,
+    PosCommand
 };
 use ddosnik\player\SufixPlayer;
 use ddosnik\menu\{
@@ -76,6 +51,7 @@ use ddosnik\menu\{
     ClickableItem
 };
 use ddosnik\sw\SkyWarsTrait;
+use ddosnik\particles\Particles;
 
 use SQLite3;
 
@@ -87,6 +63,13 @@ class Loader extends PluginBase implements Listener {
     private const BOW_ENCHANTMENTS = [19, 20, 21, 22];
 
     public const Prefix = '§l§d» §r';
+    public const DUELS_MODES = [
+        'sumo' => 6,
+        'tntrun' => 7,
+        'skywars' => 8,
+        'bow' => 9,
+        'spleef' => 10
+    ];
     public const MESSAGES = ['sufixpvp.broadcast.site', 'sufixpvp.broadcast.emoji', 'sufixpvp.broadcast.thanks', 'sufixpvp.broadcast.duels', 'sufixpvp.broadcast.follow_our'];
     public const FRANCHISES = ['GUEST' => 0, 'GUEST+' => 1, 'YT' => 2, 'SAKURA' => 3, 'MOD' => 4, 'OWNER' => 5];
     public const FFA_WORLDS = ['6GAPPLE' => 'gapple', '4FIST' => 'fist', 'aCOMBO' => 'resistance'];
@@ -110,29 +93,34 @@ class Loader extends PluginBase implements Listener {
 
     public int $interval = 10;
     /** FlyTexts */
-    public array $particles = array();
-    public array $players = array();
+    public array $particles, $players = [];
     public array $ffaworlds = [
         'aCOMBO' => 0,
         '6GAPPLE' => 1,
         '4FIST' => 2
     ];
     /** Wings */
-    private array $equip_players = [];
+    public array $equip_players = [];
     /** @var array */
     private array $lastDamage = [];
 
     public function onEnable() : void{
         $floating_texts = [
-            [1, new Vector3(11.5, 41.32, 242.5), '§l§d» §r§fDuels§7: §cSumo §7[§aNEW§7]'],
-            [2, new Vector3(9.5, 41.32, 247.5), '§l§d» §r§fDuels§7: §cMLGRush'],
-            [3, new Vector3(11.5, 41, 242.5), '§fИгроков§7: §c0'],
-            [4, new Vector3(9.5, 41, 242.5), '§fИгроков§7: §c0'],
-            [5, new Vector3(7.5, 39.9, 260), 'sufixpvp.floatingtext.statistics'],
-            [6, new Vector3(7.5, 39.7, 260), 'sufixpvp.floatingtext.nickname'],
-            [7, new Vector3(7.5, 39.3, 260), 'sufixpvp.floatingtext.rank'],
-            [8, new Vector3(7.5, 39.5, 260), 'sufixpvp.floatingtext.wins'],
-            [9, new Vector3(7.5, 39.1, 260), 'sufixpvp.floatingtext.kills']
+            [1, new Vector3(11.3, 41.64, 242.5807), '§l§d» §r§fDuels§7: §cSumo'],
+            [2, new Vector3(9.4826, 41.64, 237.5413), '§l§d» §r§fDuels§7: §cTNT§fRun §7[§aNEW§7]'],
+            [3, new Vector3(4.4455, 41.64, 234.604), '§l§d» §r§fDuels§7: §bSkyWars'],
+            [4, new Vector3(9.43, 41.64, 247.4384), '§l§d» §r§fDuels§7: §eBow'],
+            [5, new Vector3(4.5124, 41.64, 250.3339), '§l§d» §r§fDuels§7: §1Spleef'],
+            [6, new Vector3(11.3, 41.32, 242.5807), '§fИгроков§7: §c0'],
+            [7, new Vector3(9.4826, 41.32, 237.5413), '§fИгроков§7: §c0'],
+            [8, new Vector3(4.4455, 41.32, 234.604), '§fИгроков§7: §c0'],
+            [9, new Vector3(9.43, 41.32, 247.4384), '§fИгроков§7: §c0'],
+            [10, new Vector3(4.5124, 41.32, 250.3339), '§fИгроков§7: §c0'],
+            [11, new Vector3(5.9639, 39.9, 260.6636), 'sufixpvp.floatingtext.statistics'],
+            [12, new Vector3(5.9639, 39.7, 260.6636), 'sufixpvp.floatingtext.nickname'],
+            [13, new Vector3(5.9639, 39.3, 260.6636), 'sufixpvp.floatingtext.rank'],
+            [14, new Vector3(5.9639, 39.5, 260.6636), 'sufixpvp.floatingtext.wins'],
+            [15, new Vector3(5.9639, 39.1, 260.6636), 'sufixpvp.floatingtext.kills']
         ];
         for ($i = 0; $i < sizeof($floating_texts); $i++) {
             $this->registerParticle($floating_texts[$i][0], $floating_texts[$i][1], $floating_texts[$i][2], '');
@@ -162,15 +150,6 @@ class Loader extends PluginBase implements Listener {
         self::$instance = $this;
     }
 
-    public function onRegisterSufixPlayer(PlayerCreationEvent $event) : void{
-        $event->setPlayerClass(SufixPlayer::class);
-    }
-
-    public function handleInventoryTransaction(InventoryTransactionEvent $event): void
-    {
-        if ($event->getTransaction()->getPlayer()->getLevel()->getFolderName() === 'lobby') $event->setCancelled(true);
-    }
-
     /**
      * @return array
      */
@@ -198,37 +177,6 @@ class Loader extends PluginBase implements Listener {
     public function getWings(): array
     {
         return self::CUSTOM_WINGS;
-    }
-
-    /**
-     * @param Player $player
-     * @param int $value
-     * @return void
-     */
-    public function addMoney(Player $player, int $value): void
-    {
-        $money = $this->getPlayerData($player, 'MONEY')['balance'];
-        $this->setPlayerData($player, 'MONEY', $value + $money);
-    }
-
-    /**
-     * @param Player $player
-     * @return int
-     */
-    public function getMoney(Player $player): int
-    {
-        return $this->getPlayerData($player, 'MONEY')['balance'];
-    }
-
-    /**
-     * @param Player $player
-     * @param int $value
-     * @return void
-     */
-    public function remMoney(Player $player, int $value): void
-    {
-        $money = $this->getPlayerData($player, 'MONEY')['balance'];
-        $this->setPlayerData($player, 'MONEY', $money - $value);
     }
 
     /**
@@ -317,56 +265,6 @@ class Loader extends PluginBase implements Listener {
     }
 
     /**
-     * @param PlayerJoinEvent $event
-     * @return void
-     */
-    public function handleSetOS(PlayerJoinEvent $event): void
-    {
-        $player = $event->getPlayer();
-        $os = match (true) {
-            ($player->getDeviceOS() !== 1 && $player->getDeviceOS() !== 2) => '§r§8Windows 10',
-            ($player->getDeviceModel() === 'Linux') => '§r§8Bedrock Launcher',
-            ($player->getDeviceModel() !== 'Linux' && $player->getDeviceOS() === 1) => '§r§8Android',
-            ($player->getDeviceModel() !== 'Linux' && $player->getDeviceOS() === 2) => '§r§8iOS',
-        };
-        $player->setNameTag($player->getNameTag() . PHP_EOL . $os);
-    }
-
-    /**
-     * @param PlayerChatEvent $event
-     * @return void
-     */
-    public function handleChat(PlayerChatEvent $event): void
-    {
-        $player = $event->getPlayer();
-        $event->setFormat($player->getSufixNameTag() . '§7: '. self::removeColors($event->getMessage()));
-    }
-
-    /**
-     * @param string $message
-     * @return string
-     */
-    public function removeColors(string $message): string
-    {
-        return str_replace(array(TextFormat::BLACK, TextFormat::DARK_BLUE, TextFormat::DARK_GREEN, TextFormat::DARK_AQUA,
-            TextFormat::DARK_RED, TextFormat::DARK_PURPLE, TextFormat::GOLD, TextFormat::GRAY, TextFormat::DARK_GRAY, TextFormat::BLUE,
-            TextFormat::GREEN, TextFormat::AQUA, TextFormat::RED, TextFormat::LIGHT_PURPLE, TextFormat::YELLOW, TextFormat::WHITE,
-            TextFormat::OBFUSCATED, TextFormat::BOLD, TextFormat::ITALIC, TextFormat::RESET), '', $message);
-    }
-
-    /**
-     * @param PlayerPreLoginEvent $event
-     * @return void
-     */
-    public function createData(PlayerPreLoginEvent $event): void
-    {
-        $nickname = $event->getPlayer()->getLowerCaseName();
-        if (!($this->data->query("SELECT * FROM `database` WHERE `nickname` = '$nickname'")->fetchArray(SQLITE3_ASSOC))) {
-            $this->data->query("INSERT INTO `database`(`nickname`,`balance`, `particle`, `wins`, `lvl`, `color`, `blue_tag`, `red_tag`, `green_tag`, `yellow_tag`, `group`, `kills`, `exp`, `factor`, `heart`, `custom`) VALUES('{$nickname}', 0, false, 0, 1, '§7', false, false, false, false, 'GUEST', 0, 0, 1, false, false)");
-        }
-    }
-
-    /**
      * @param Player $player
      * @param string $cloak
      * @return void
@@ -386,7 +284,8 @@ class Loader extends PluginBase implements Listener {
 */
     private function registerCommands(): void{
         $commands = [
-            new KickCommand($this)
+            new KickCommand($this),
+            new PosCommand($this)
         ];
         $aliased = [];
         foreach ($commands as $cmd) {
@@ -522,67 +421,19 @@ class Loader extends PluginBase implements Listener {
         return true;
     }
 
-    /**
-     * @param PlayerJoinEvent $event
-     * @return void
-     */
-    public function handlePlayerJoin(PlayerJoinEvent $event): void{
-        $player = $event->getPlayer();
-        $event->setJoinMessage(null);
-        $player->sendMessage("§fДобро пожаловать на §l§dSufixPvP§r§f, §e§l{$player->getName()}§r§f!\n\n§fСообщество во §9ВКонтакте §8- §e@sufixpvp\n§aАвто-донат §8- §ehttps://pay.sufixpvp.fun/");
-        $player->getInventory()->clearAll();
-        $player->teleport($this->getServer()->getDefaultLevel()->getSpawnLocation());
-        $player->setMaxHealth(20);
-        $player->setXpLevel($player->getLvl());
-        $player->removeAllEffects();
-        $player->setGamemode(GameMode::ADVENTURE());
-        $player->setHealth(20);
-        $player->setFood(20);
-        $this->addMoney($player, 10000);
-        $player->updateNameTag();
-        $player->updateDisplayName();
-        $player->getInventory()->setItem(4, ClickableItemFactory::JOIN_ARENA());
-        $player->getInventory()->setItem(2, ClickableItemFactory::CLOAKS());
-        $player->getInventory()->setItem(6, ClickableItemFactory::CUSTOMIZATION());
-    }
-
-    /**
-     * @param PlayerInteractEvent $event
-     */
-    public function handleMenu(PlayerInteractEvent $event) : void{
-        $player = $event->getPlayer();
-        if ($this->auth->players[$player->getLowerCaseName()] !== 'game') return;
-        if ($event->getAction() === InteractPacket::ACTION_LEAVE_VEHICLE) {
-            if (($item = $event->getItem()) instanceof ClickableItem) {
-                $event->setCancelled();
-                $item->handleClick($player);
-            }
-        }
-    }
-
     public function setTime(Player $player): void
     {
         $this->players[$player->getName()] = time();
     }
 
-    public function handleSteal(EntityDamageEvent $event): void
-    {
-        if ($event instanceof EntityDamageByEntityEvent) {
-            if ($event->getDamager() instanceof Player && $event->getEntity() instanceof Player) {
-                $this->setTime($event->getDamager());
-                $this->setTime($event->getEntity());
-            }
-        }
-    }
-
     public static function sendBoss(Player $player, string $title): void
     {
         $pk = new BossEventPacket;
-        $pk->bossEid = 999888777;
+        $pk->bossEid = $player->getClientId();
         $pk->eventType = BossEventPacket::TYPE_SHOW;
-        $pk->healthPercent = 1.0;
+        $pk->healthPercent = 4.0;
         $pk->title = $title;
-        $pk->unknownShort = 1;
+        $pk->unknownShort = 2;
         $pk->color = 5;
         $pk->overlay = 1;
         $player->dataPacket($pk);
@@ -591,25 +442,16 @@ class Loader extends PluginBase implements Listener {
     public static function setBossTitle(Player $player, string $text): void
     {
         $pk = new SetEntityDataPacket;
-        $pk->entityRuntimeId = 999888777;
+        $pk->entityRuntimeId = $player->getClientId();
         $pk->metadata = [
             Entity::DATA_NAMETAG => [Entity::DATA_TYPE_STRING, $text]
         ];
         $player->dataPacket($pk);
     }
 
-    public function handleCommand(PlayerCommandPreprocessEvent $event): void
-    {
-        if (isset($this->players[$event->getPlayer()->getName()])) {
-            if (str_contains($event->getMessage(), '/quit')) {
-                $event->getPlayer()->sendMessage(Loader::Prefix . "§fВы находитесь в режиме поединка, команда будет доступна в течении §l§aдесяти§r секунд.");
-                $event->setCancelled(true);
-            }
-        }
-    }
-
     public function addPointInFFA(Player $entity, mixed $damager) : void{
         $entity->setGamemode(GameMode::SPECTATOR());
+        $entity->teleport($entity->getLevel()->getSpawnLocation());
         $entity->getLevel()->addParticle(new DestroyBlockParticle($entity->getPosition(), Block::get(152, 0)));
         $entity->addTitle('§cYOU DEAD!');
         $entity->getInventory()->clearAll();
@@ -619,16 +461,17 @@ class Loader extends PluginBase implements Listener {
         $entity->getInventory()->setItem(6, ClickableItemFactory::QUIT_LOBBY());
         unset($this->players[$entity->getName()]);
         if (!$damager) return;
+        $damager->getLevel()->broadcastMessage("§l§c⚔§r §l" . $damager->getName() . "§r §7->§r §l" . $entity->getName());
         $factor = $damager->getFactor();
         unset($this->players[$damager->getName()]);
         $damager->addTitle('§7KILL', '§c' . $entity->getName());
-        $damager->sendMessage(' §a+' . $rand * $factor . ' опыта! (Множитель: §l§b' . $this->getFactorString($damager) . '§r§a)');
-        $damager->sendMessage(' §e+' . $rand2 * $factor . ' монет! (Множитель: §l§b' . $this->getFactorString($damager) . '§r§e)');
+        $damager->sendMessage(' §a+' . $rand * $factor . ' опыта! (Множитель: §l§b' . $damager->getFactorToString() . '§r§a)');
+        $damager->sendMessage(' §e+' . $rand2 * $factor . ' монет! (Множитель: §l§b' . $damager->getFactorToString() . '§r§e)');
         $damager->addKill();
         $damager->setHealth(20);
         $damager->setFood(20);
-        $damager->addExp($rand * $factor);
-        $this->addMoney($damager, $rand2 * $factor);
+        $damager->addExperience($rand * $factor);
+        $damager->addMoney($rand2 * $factor);
         switch ($damager->getLvL()) {
             case 1:
                 if ($damager->getExperience() > 100) {
@@ -714,52 +557,10 @@ class Loader extends PluginBase implements Listener {
         return false;
     }
 
-    public function handleDeathPlayerEvent(EntityDamageEvent $event) : void{
-        if ($event->getCause() === EntityDamageEvent::CAUSE_VOID && $event->getEntity() instanceof SufixPlayer && !$event->getEntity()->isSpectator()) {
-            $event->setCancelled();
-            $this->addPointInFFA($event->getEntity(), $this->getLastDamager($event->getEntity()));
-            return;
-        }
-        if ($event instanceof EntityDamageByEntityEvent) {
-            if ($event->getDamager()->getLevel()->getFolderName() !== 'lobby' && $event->getDamager() instanceof Player) {
-                $damager = $event->getDamager();
-                $entity = $event->getEntity();
-                if ($damager->getFFAMode() === 'underfined') return;
-                if ($damager->getFFAMode() === 'resistance') $event->setDamage(0);
-                if (($entity->getHealth() - $event->getFinalDamage()) <= 2 && ($entity->isAdventure() or $entity->isSurvival())) {
-                    $event->setCancelled();
-                    $this->addPointInFFA($entity, $damager);
-                }
-            } else {
-                $event->setCancelled();
-            }
-        }
-    }
-
-    public function hadnleRespawn(PlayerRespawnEvent $event): void
-    {
-        $player = $event->getPlayer();
-        $player->getInventory()->clearAll();
-        $player->teleport($this->getServer()->getDefaultLevel()->getSpawnLocation());
-        $player->setMaxHealth(20);
-        $player->removeAllEffects();
-        $player->setGamemode(GameMode::ADVENTURE());
-        $player->setHealth(20);
-        $player->setFood(20);
-        $player->getInventory()->setItem(2, ClickableItemFactory::CLOAKS());
-        $player->getInventory()->setItem(4, ClickableItemFactory::JOIN_ARENA());
-        $player->getInventory()->setItem(6, ClickableItemFactory::CUSTOMIZATION());
-    }
-
-    public function handleDropPlayer(PlayerDropItemEvent $event): void{
-        if ($event->getItem() instanceof ClickableItem)
-            $event->setCancelled();
-    }
-
     public static function sendHealthAttribute(Player $player, float $progress): void
     {
         $pk = new AddEntityPacket;
-        $pk->entityRuntimeId = 999888777;
+        $pk->entityRuntimeId = $player->getClientId();
         $pk->type = Zombie::NETWORK_ID;
         $pk->position = $player->asVector3();
         $pk->x = $player->asVector3()->x;
@@ -773,30 +574,11 @@ class Loader extends PluginBase implements Listener {
         ];
         $player->dataPacket($pk);
         $pk = new UpdateAttributesPacket;
-        $pk->entityRuntimeId = 999888777;
+        $pk->entityRuntimeId = $player->getClientId();
         $pk->entries = [
             Attribute::getAttribute(Attribute::HEALTH)->setMaxValue(101)->setValue($progress)
         ];
         $player->dataPacket($pk);
-    }
-
-    public function onMove(PlayerMoveEvent $event): void
-    {
-        $player = $event->getPlayer();
-        $pk = new MoveEntityPacket;
-        $pk->entityRuntimeId = 999888777;
-        $pk->position = new Vector3($player->x, $player->y + 128, $player->z);
-        $pk->x = $player->asVector3()->x;
-        $pk->y = $player->asVector3()->y + 128;
-        $pk->z = $player->asVector3()->z;
-        $pk->yaw = $pk->headYaw = $pk->pitch = 0.0;
-        $player->dataPacket($pk);
-    }
-
-    public function handleQuitPlayer(PlayerQuitEvent $event): void
-    {
-        $event->setQuitMessage(null);
-        $event->getPlayer()->unEquipWings();
     }
 
     public function parseWings(Vector3 $pos, mixed $character): Particle
@@ -808,20 +590,6 @@ class Loader extends PluginBase implements Listener {
             4 => new DustParticle($pos, 179, 0, 0),
             'f' => new Particles(Particle::TYPE_FLAME, $pos),
         };
-    }
-
-    public function onExhaust(PlayerExhaustEvent $event): void{
-        $event->setCancelled();
-    }
-
-    public function handleFall(PlayerMoveEvent $event): void{
-        if (($player = $event->getPlayer())->getFloorY() < 0 && $player->getLevel()->getName() === 'lobby') {
-            $player->teleport($player->getLevel()->getSpawnLocation());
-        }
-    }
-
-    public function handleConsume(PlayerItemConsumeEvent $event): void{
-        if ($event->getItem() instanceof ClickableItem) $event->setCancelled();
     }
 
     /**

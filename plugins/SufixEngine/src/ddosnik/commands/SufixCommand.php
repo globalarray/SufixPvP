@@ -19,7 +19,7 @@ abstract class SufixCommand extends Command implements PluginIdentifiableCommand
     /** @var bool|string */
     private mixed $consoleUsageMessage;
 
-    public function __construct(Loader $main, string $name, string $description = "", string $usageMessage = "", $consoleUsageMessage = true, array $aliases = [])
+    public function __construct(Loader $main, string $name, string $description = "", string $usageMessage = "", mixed $consoleUsageMessage = true, array $aliases = [])
     {
         parent::__construct($name, $description, $usageMessage, $aliases);
         $this->main = $main;

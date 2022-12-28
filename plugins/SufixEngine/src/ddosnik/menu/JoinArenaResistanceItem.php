@@ -36,6 +36,7 @@ final class JoinArenaResistanceItem extends ClickableItem {
 	public function handleClick(SufixPlayer $player) : void{
 		$player->getInventory()->clearAll();
 		$player->teleport(($level = Server::getInstance()->getLevelByName('aCOMBO'))->getSafeSpawn());
+		$player->updateTime();
 		$player->setMaxHealth(20);
         $player->setHealth(20);
         $player->setFood(20);

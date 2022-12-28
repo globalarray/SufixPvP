@@ -20,6 +20,7 @@ declare(strict_types=1);
 
 namespace ddosnik\menu;
 
+use ddosnik\Loader;
 use ddosnik\player\SufixPlayer;
 use const PHP_EOL;
 
@@ -31,7 +32,8 @@ final class SetEveningTimeItem extends ClickableItem {
     }
 
     public function handleClick(SufixPlayer $player) : void{
-        $player->sendTime(13000);
-        $player->sendMessage(Loader::Prefix . '§eУстановленное время: §9Вечер §7(Время: §l§f19:00§r§7)');
+        $player->setCustomTime(13000);
+        $player->updateTime();
+        $player->sendPopup(Loader::Prefix . '§eУстановленное время: §9Вечер §7(Время: §l§f19:00§r§7)');
     }
 }

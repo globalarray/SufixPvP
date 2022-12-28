@@ -2,20 +2,18 @@
 
 declare(strict_types=1);
 
-namespace ddosnik\flytext\scheduler;
+namespace ddosnik\task;
 
-
-use pocketmine\Player;
 use pocketmine\scheduler\AsyncTask;
 use pocketmine\Server;
 use function serialize;
 use function unserialize;
 
-class ParticleSpawn extends AsyncTask{
-    private $particles;
-    private $player;
+class ParticleDespawn extends AsyncTask{
+    private string $particles;
+    private string $player;
 
-    public function __construct(array $particles, string $player){
+    public function __construct(array $particles, string $player) {
         $this->particles = serialize($particles);
         $this->player = serialize($player);
     }
@@ -29,7 +27,7 @@ class ParticleSpawn extends AsyncTask{
         $particles = unserialize($this->getResult()[1]);
         foreach($particles as $particle){
             if($particle !== null and $player !== null) {
-                $particle->spawnTo($player);
+                $particle->despawnFrom($player);
             }
         }
     }

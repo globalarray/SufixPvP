@@ -21,6 +21,7 @@ declare(strict_types=1);
 namespace ddosnik\menu;
 
 use pocketmine\Server;
+use pocketmine\GameMode;
 use pocketmine\item\{
 	Item,
 	Armor
@@ -37,10 +38,11 @@ final class RebornItem extends ClickableItem {
 
 	public function handleClick(SufixPlayer $player) : void{
 		$player->getInventory()->clearAll();
-		$player->setGamemode(2);
+		$player->setGamemode(GameMode::ADVENTURE());
 		$player->setMaxHealth(20);
 		$player->setHealth(20);
 		$player->setFood(20);
+		$player->updateTime();
 		switch ($player->getLevel()->getFolderName()) {
 			case '6GAPPLE':
 				$player->teleport(Server::getInstance()->getLevelByName('6GAPPLE')->getSafeSpawn());

@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 namespace ddosnik\player;
 
@@ -21,13 +21,13 @@ trait PlayerRankTrait {
         };
     }
 
-    public function updateNameTag() : void{
-    	$this->setNameTag($this->getSufixNameTag());
-    }
+  public function updateNameTag() : void{
+    $this->setNameTag($this->getSufixNameTag() . PHP_EOL . $this->getOsAsString());
+  }
 
-    public function updateDisplayName() : void{
-    	$this->setDisplayName($this->getSufixNameTag());
-    }
+  public function updateDisplayName() : void{
+    $this->setDisplayName($this->getSufixNameTag());
+  }
 
 	public function setRank(string $rank) : void{
 		Loader::getInstance()->setPlayerData($this, 'GROUP', $rank);

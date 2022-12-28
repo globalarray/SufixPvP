@@ -21,6 +21,7 @@ declare(strict_types=1);
 namespace ddosnik\player;
 
 use ddosnik\Loader;
+use ddosnik\task\WingsTask;
 
 trait PlayerCustomizationTrait {
 

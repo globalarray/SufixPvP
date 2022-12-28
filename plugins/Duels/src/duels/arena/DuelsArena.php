@@ -25,6 +25,7 @@ use pocketmine\math\Vector3;
 use pocketmine\item\Item;
 use pocketmine\lang\Translate;
 use duels\task\WorldClear;
+use ddosnik\menu\ClickableItemFactory;
 
 final class DuelsArena
 {
@@ -229,6 +230,7 @@ final class DuelsArena
                 $this->isReady--;
             }
             $player->teleport(Server::getInstance()->getDefaultLevel()->getSafeSpawn());
+            $player->updateTime();
             $inv = $player->getInventory();
             $inv->setItem(2, ClickableItemFactory::CLOAKS());
             $inv->setItem(4, ClickableItemFactory::JOIN_ARENA());
@@ -316,7 +318,7 @@ final class DuelsArena
                         }
                         InventoryUtils::addItemsByGamemode($player->getInventory(), $this->gamemode);
                         $player->sendMessage(Translate::tr($player->getLocale(), 'saintpvp.duels.start'));
-                        
+
                         if ($this->gamemode === 'sw') {
                             foreach ($this->getArenaLevel()->getTiles() as $tile) {
                                 for ($i = 0; $i < 27; $i++) {
@@ -324,7 +326,6 @@ final class DuelsArena
                                 }
                                 if ($tile instanceof Chest) {
                                     foreach ($this->api->getSkyWarsItems() as $item) {
-                                        var_dump($tile->getInventory()->setItem($tile_slots_free[array_rand($tile_slots_free)], $item));
                                         unset($tile_slots_free[array_rand($tile_slots_free)]);
                                     }
                                 }

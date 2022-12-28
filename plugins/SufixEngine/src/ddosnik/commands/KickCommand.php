@@ -14,18 +14,18 @@ final class KickCommand extends SufixCommand {
 		parent::__construct($loader, 'kick', 'Выгнать игрока с сервера', '/kick <ник игрока ...>', '/kick', ['kick', 'кик']);
 	}
 
-	public function execute(CommandSender $sender, $commandLabel, array $args) {
+	public function execute(CommandSender $sender, string $commandLabel, array $args) {
 		if ($sender instanceof Player) {
-			if (Loader::FRANCHISES[$this->getMain()->getGroup($sender)] < 4 && !$sender->isOp()) {
+			if (Loader::FRANCHISES[$sender->getRank()] < 4 && !$sender->isOp()) {
 				$sender->sendMessage(Loader::Prefix . '§cДанная команда доступна игрокам с привилегией §l§6Ｍｏｄｅｒａｔｏｒ§r' . PHP_EOL . Loader::Prefix . 'Повысить свой §aранг§r можно в нашем магазине §8- §epay.sufixpvp.su');
-				return true;
+				return;
 			}
 		}
 
 		if (!isset($args[0])) {
 			$sender->sendMessage(Loader::Prefix.'§cУкажите никнейм и причину кика');
 			$sender->sendMessage(Loader::Prefix.'Используйте - §a/кик §7<§fникнейм игрока§7> §7<§fпричина§7>');
-			return true;
+			return;
 		}
 
 		$reason = implode($args);
@@ -34,7 +34,7 @@ final class KickCommand extends SufixCommand {
 
 		if (!(($player = $this->getMain()->getServer()->getPlayer($args[0])) instanceof Player)) {
 			$sender->sendMessage(Loader::Prefix.'§cИгрока нету на сервере');
-			return true;
+			return;
 		}
 
 		if (empty($reason)) $reason = 'не указана.';

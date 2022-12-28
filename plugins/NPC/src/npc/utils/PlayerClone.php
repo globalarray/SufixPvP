@@ -15,24 +15,28 @@ use pocketmine\network\mcpe\protocol\RemoveEntityPacket;
 use pocketmine\Player;
 
 final class PlayerClone{
-	private $uuid;
-	private $entityId;
-	private $pos;
-	private $skinId;
-	private $skinData;
-	private $nametag;
-	private $yaw;
-	private $pitch;
+	private UUID $uuid;
+	private int $entityId;
+	private Position $pos;
+	private string $skinId;
+	private string $skinData;
+	private string $nametag;
+	private float $yaw;
+	private float $pitch;
 
 	public function __construct(Position $pos, string $skinId, string $skinData, string $nametag, float $yaw = 0.0, float $pitch = 0.0){
 		$this->uuid = UUID::fromRandom();
-		$this->entityId = ++Entity::$entityCount;
+		$this->entityId = Entity::$entityCount++;
 		$this->pos = $pos;
 		$this->skinId = $skinId;
 		$this->skinData = $skinData;
 		$this->nametag = $nametag;
 		$this->yaw = $yaw;
 		$this->pitch = $pitch;
+	}
+
+	final public function getEntityId() : int{
+		return $this->entityId;
 	}
 
 	final public function spawnTo(Player $player) : void{

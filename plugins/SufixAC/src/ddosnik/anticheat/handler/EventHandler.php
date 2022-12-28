@@ -20,18 +20,16 @@ use pocketmine\utils\TextFormat;
 use pocketmine\entity\Effect;
 
 class EventHandler implements Listener{
-    private $main;
+    private array $warnings = [];
+    private array $multiaura = [];
+    private array $animate = [];
+    private array $breakTime = [];
+    private array $eat = [];
+    private array $ticking = [];
 
-    private $warnings = [];
-    private $multiaura = [];
-    private $animate = [];
-    private $breakTime = [];
-    private $eat = [];
-    private $ticking = [];
-
-    public function __construct(Loader $main){
-        $this->main = $main;
-    }
+    public function __construct(
+        private Loader $main
+    ) {}
 
     public function handleInteract(PlayerInteractEvent $event) : void{
         if ($event->getAction() === PlayerInteractEvent::LEFT_CLICK_BLOCK) {
@@ -40,10 +38,10 @@ class EventHandler implements Listener{
     }
 
     public function handlePlayerPreLogin(PlayerPreLoginEvent $event) : void{
-        if (($player = $event->getPlayer())->getSkinId() === 'GreekMythology_GreekMythologyZeus') {
+        /*if (($player = $event->getPlayer())->getSkinId() === 'GreekMythology_GreekMythologyZeus') {
             $this->log('Игрок '. TextFormat::RED . $player->getName() . TextFormat::WHITE . ' пытался зайти на сервер с невидимым скином');
             $player->close($player->getLeaveMessage(), TextFormat::RED . 'Запрещено использовать невидимый скин');
-        }
+        }*/
     }
 
     public function filterMessage(string $message) : string{
@@ -200,7 +198,7 @@ class EventHandler implements Listener{
         }
     }
 
-    public function getMaxDistance(Player $player, $tickDifference) {
+    public function getMaxDistance(Player $player, $tickDifference) : int{
 		$effects = $player->getEffects();
 
 		$amplifier = 0;
@@ -222,17 +220,20 @@ class EventHandler implements Listener{
 
     private function log(string $message) : void{
         foreach($this->main->getServer()->getOnlinePlayers() as $player){
-            if($this->main->api->getGroup($player) === 'MOD' || $player->isOp()){
-                $player->sendMessage(TextFormat::GRAY . '[' . TextFormat::LIGHT_PURPLE . 'SUFIX-AC' . TextFormat::GRAY . '] ' . TextFormat::RESET . $message);
+            if ($player->getRank() === 'MOD' || $player->isOp()) {
+                $player->sendMessage(TextFormat::GRAY . '[' . TextFormat::AQUA . 'CRISTALIX-AC' . TextFormat::GRAY . '] ' . TextFormat::RESET . $message);
             }
         }
     }
-
 
     public function handleDamage(EntityDamageEvent $event) : void{
             if($event instanceof EntityDamageByEntityEvent and $event->getEntity() instanceof Player and $event->getDamager() instanceof Player and $event->getCause() === EntityDamageEvent::CAUSE_ENTITY_ATTACK and !$event->isCancelled()) {
                 $damager = $event->getDamager();
                 $player = $event->getEntity();
+                if ($damager->getClicksPerSecond() >= 27) {
+                    $this->log(TextFormat::GREEN . $damager->getName().' §7(§d' . $damager->getPing() . 'ms§7)' . TextFormat::WHITE . ' превышает лимит кликов в секунду, кол-во: ' . TextFormat::DARK_GREEN . $damager->getClicksPerSecond());
+                    $event->setCancelled();
+                }
                 if ($this->warnings[$damager->getUUID()]['reach'] >= 3) {
                     $damager->close($damager->getLeaveMessage(), 'Reach detected');
                     return;

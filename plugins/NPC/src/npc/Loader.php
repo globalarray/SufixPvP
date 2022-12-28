@@ -19,6 +19,10 @@ use pocketmine\event\entity\EntityDamageByEntityEvent;
 use pocketmine\event\entity\EntityLevelChangeEvent;
 use pocketmine\event\player\PlayerJoinEvent;
 use pocketmine\event\player\PlayerQuitEvent;
+use pocketmine\event\player\PlayerAnimationEvent;
+use pocketmine\event\entity\EntityEquipmentEvent;
+use pocketmine\network\mcpe\protocol\AnimatePacket;
+use pocketmine\network\mcpe\protocol\MobEquipmentPacket;
 use pocketmine\level\Position;
 use npc\utils\PlayerClone;
 use ddosnik\flytext\scheduler\ParticleUpdate;
@@ -26,15 +30,15 @@ use ddosnik\flytext\scheduler\ParticleUpdate;
 final class Loader extends PluginBase implements Listener{
 	private const COMMANDS = [
 		'duels-sumo' => 'duels join sumo',
-		'duels-fist' => 'duels join fist',
-		'duels-nodebuff' => 'duels join nodebuff',
-		'duels-combo' => 'duels join combo',
-		'duels-mlgrush' => 'duels join mlgrush',
-		'duels-uhc' => 'duels join uhc',
-        'duels-bow' => 'duels join bow'
+        'duels-bow' => 'duels join bow',
+        'duels-tntrun' => 'duels join tntrun',
+        'duels-skywars' => 'duels join sw',
+        'duels-spleef' => 'duels join spleef'
 	];
 
-	private $clones = [];
+	private array $clones = [];
+
+	private array $playerClone = [];
 
 	public function onEnable() : void{
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);
@@ -68,6 +72,37 @@ final class Loader extends PluginBase implements Listener{
 		return $entity;
 	}
 
+	public function handlePlayerJoin(PlayerJoinEvent $event) : void{
+		$this->playerClone[($player = $event->getPlayer())->getLowerCaseName()] = new PlayerClone(
+			new Position(5.9639, 38, 260.6636, $this->getServer()->getDefaultLevel()),
+			$player->getSkinId(),
+			$player->getSkinData(),
+			'',
+			180
+		);
+		$this->playerClone[$player->getLowerCaseName()]->spawnTo($player);
+	}
+
+	public function handlePlayerAnimation(PlayerAnimationEvent $event) : void{
+		if (($player = $event->getPlayer())->getLevel()->isDefault()) {
+			$packet = new AnimatePacket();
+			$packet->entityRuntimeId = $this->playerClone[$player->getLowerCaseName()]->getEntityId();
+			$packet->action = $event->getAnimationType();
+			$player->dataPacket($packet);
+		}
+	}
+
+	public function handleEntityEquipment(EntityEquipmentEvent $event) : void{
+		if (($player = $event->getEntity())->getLevel()->isDefault()) {
+			$packet = new MobEquipmentPacket();
+			$packet->entityRuntimeId = $this->playerClone[$player->getLowerCaseName()]->getEntityId();
+			$packet->item = $event->getNewItem();
+			$packet->inventorySlot = $event->getInventorySlot();
+			$packet->hotbarSlot = $event->getHotbarSlot();
+			$player->dataPacket($packet);
+		}
+	}
+
 	final public function onCommand(CommandSender $sender, Command $command, string $commandLabel, array $args) : bool{
 		if(!$sender instanceof Player){
 			return false;
@@ -83,25 +118,25 @@ final class Loader extends PluginBase implements Listener{
 		return true;
 	}
 
-	final public function clonePlayer(Player $player, Position $pos, string $nametag, float $yaw = 0.0, float $pitch = 0.0) : void{
+	/*final public function clonePlayer(Player $player, Position $pos, string $nametag, float $yaw = 0.0, float $pitch = 0.0) : void{
 		$clone = new PlayerClone($pos, $player->getSkinId(), $player->getSkinData(), $nametag, $yaw, $pitch);
-		$this->clones[$player->getName()][] = $clone;
+		$this->clones[$player->getLowerCaseName()][] = $clone;
 		$clone->spawnTo($player);
 	}
 
 	final public function removeClones(Player $player) : void{
-		foreach($this->clones[$player->getName()] as $clone){
+		foreach($this->clones[$player->getLowerCaseName()] as $clone){
 			$clone->despawnFrom($player);
 		}
-		unset($this->clones[$player->getName()]);
-	}
+		unset($this->clones[$player->getLowerCaseName()]);
+	}*/
 
 	final public function handleDamage(EntityDamageEvent $event) : void{
 		if(
-			$event instanceof EntityDamageByEntityEvent and 
-			($player = $event->getDamager()) instanceof Player and 
+			$event instanceof EntityDamageByEntityEvent and
+			($player = $event->getDamager()) instanceof Player and
 			($npc = $event->getEntity()) instanceof Human and
-			$player->getLevel() === $this->getServer()->getDefaultLevel()
+			$player->getLevel()->isDefault()
 		){
 			$event->setCancelled();
 			if(isset(Loader::COMMANDS[$npc->getNameTag()])){
@@ -113,13 +148,11 @@ final class Loader extends PluginBase implements Listener{
 	final public function handleLevelChange(EntityLevelChangeEvent $event) : void{
 		$player = $event->getEntity();
 		if($player instanceof Player){
-		    if(isset($this->clones[$player->getName()])){
-			    foreach($this->clones[$player->getName()] as $clone){
-				    if($clone->getWorld() === $event->getTarget()){
-					    $clone->spawnTo($player);
-				    }else{
-                        $clone->despawnFrom($player);
-                    }
+			if (isset($this->playerClone[$player->getLowerCaseName()])) {
+				if ($event->getTarget()->isDefault()) {
+					$this->playerClone[$player->getLowerCaseName()]->spawnTo($player);
+				} else {
+					$this->playerClone[$player->getLowerCaseName()]->despawnFrom($player);
 				}
 			}
 		}

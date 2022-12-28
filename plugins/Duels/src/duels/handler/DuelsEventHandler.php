@@ -77,12 +77,12 @@ final class DuelsEventHandler implements Listener
                         $game->kill($player);
                         if ($this->getLastDamager($player) === NULL) {
                             foreach ($game->getArenaLevel()->getPlayers() as $players) {
-                                $players->sendMessage(Translate::tr($players->getLocale(), 'saintpvp.duels.death', [$api->getRankColor($player) . $player->getName(true)]));
+                                $players->sendMessage(Translate::tr($players->getLocale(), 'saintpvp.duels.death', [$player->getRankColor() . $player->getName(true)]));
                             }
                         } else {
                             $damager = $this->getLastDamager($player);
                             foreach ($game->getArenaLevel()->getPlayers() as $players) {
-                                $players->sendMessage(Translate::tr($players->getLocale(), 'saintpvp.duels.kill', [$api->getRankColor($player) . $player->getName(true), $api->getRankColor($damager) . $damager->getName(true)]));
+                                $players->sendMessage(Translate::tr($players->getLocale(), 'saintpvp.duels.kill', [$player->getRankColor() . $player->getName(true), $damager->getRankColor() . $damager->getName(true)]));
                             }
                             $damager->getLevel()->addSound(new MinecraftSound($damager->asVector3(), 'mob.bat.death'));
                         }
@@ -114,7 +114,7 @@ final class DuelsEventHandler implements Listener
                             if ($damager instanceof Player) {
                                 $damager->getLevel()->addSound(new MinecraftSound($damager->asVector3(), 'mob.bat.death'));
                                 foreach ($game->getArenaLevel()->getPlayers() as $players) {
-                                    $players->sendMessage(Translate::tr($players->getLocale(), 'saintpvp.duels.kill', [$api->getRankColor($player) . $player->getName(true), $api->getRankColor($damager) . $damager->getName(true)]));
+                                    $players->sendMessage(Translate::tr($players->getLocale(), 'saintpvp.duels.kill', [$player->getRankColor() . $player->getName(true), $damager->getRankColor() . $damager->getName(true)]));
                                 }
                             }
                             $game->kill($player);
@@ -128,7 +128,7 @@ final class DuelsEventHandler implements Listener
                             if ($damager instanceof Player) {
                                 $damager->getLevel()->addSound(new MinecraftSound($damager->asVector3(), 'mob.bat.death'));
                                 foreach ($game->getArenaLevel()->getPlayers() as $players) {
-                                    $players->sendMessage(Translate::tr($players->getLocale(), 'saintpvp.duels.kill', [$api->getRankColor($player) . $player->getName(true), $api->getRankColor($damager) . $damager->getName(true)]));
+                                    $players->sendMessage(Translate::tr($players->getLocale(), 'saintpvp.duels.kill', [$player->getRankColor() . $player->getName(true), $damager->getRankColor() . $damager->getName(true)]));
                                 }
                             }
                         }
@@ -139,12 +139,12 @@ final class DuelsEventHandler implements Listener
                         $game->kill($player);
                         if ($this->getLastDamager($player) == null) {
                             foreach ($game->getArenaLevel()->getPlayers() as $players) {
-                                $players->sendMessage(Translate::tr($players->getLocale(), 'saintpvp.duels.death', [$api->getRankColor($player) . $player->getName(true)]));
+                                $players->sendMessage(Translate::tr($players->getLocale(), 'saintpvp.duels.death', [$player->getRankColor() . $player->getName(true)]));
                             }
                         } else {
                             $damager = $this->getLastDamager($player);
                             foreach ($game->getArenaLevel()->getPlayers() as $players) {
-                                $players->sendMessage(Translate::tr($players->getLocale(), 'saintpvp.duels.kill', [$api->getRankColor($player) . $player->getName(true), $api->getRankColor($damager) . $damager->getName(true)]));
+                                $players->sendMessage(Translate::tr($players->getLocale(), 'saintpvp.duels.kill', [$player->getRankColor() . $player->getName(true), $damager->getRankColor() . $damager->getName(true)]));
                             }
                             $damager->getLevel()->addSound(new MinecraftSound($damager->asVector3(), 'mob.bat.death'));
                         }
@@ -157,7 +157,7 @@ final class DuelsEventHandler implements Listener
     final public function onExhaust(PlayerExhaustEvent $event): void
     {
         $player = $event->getPlayer();
-        if (ArenaManager::inGame($player)) {
+        if ($player instanceof Player && ArenaManager::inGame($player)) {
             $game = ArenaManager::getGameByPlayer($player);
             if ($game->getGamemode() == 'sumo' || $game->getState() < 2 || $game->getState() == 3 || $game->getGamemode() == 'combo' || $game->getGamemode() === 'mlgrush' || $game->getGamemode() === 'resistance') {
                 $player->setFood(20);

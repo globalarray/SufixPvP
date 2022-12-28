@@ -1,11 +1,11 @@
-<?php 
+<?php
 
-namespace ddosnik\wings\task;
+namespace ddosnik\task;
 
 use pocketmine\scheduler\Task;
 use pocketmine\item\Item;
 use pocketmine\Player;
-use ddosnik\wings\CustomWing;
+use ddosnik\CustomWing;
 
 class WingsTask extends Task {
 

@@ -20,6 +20,7 @@ declare(strict_types=1);
 
 namespace ddosnik\menu;
 
+use pocketmine\utils\TextFormat;
 use ddosnik\Loader;
 use pocketmine\Server;
 use ddosnik\player\SufixPlayer;
@@ -35,10 +36,11 @@ final class CloaksListItem extends ClickableItem {
 
     public function handleClick(SufixPlayer $player) : void{
         if ($player->getRank() === 'GUEST') {
-            $player->sendMessage(Loader::Prefix . ' §cДанный раздел доступен игрокам с привилегией §l§aＧｕｅｓｔ§6+§r' . PHP_EOL . Loader::Prefix . "Повысить свой §aранг§r можно в нашем магазине §8- §epay.sufixpvp.su");
+            $player->sendMessage(Loader::Prefix . ' §cДанный раздел доступен игрокам с привилегией §l§aＧｕｅｓｔ§6+§r' . PHP_EOL . Loader::Prefix . "Повысить свой §aранг§r можно в нашем магазине §8- §epay.cristalix.fun");
             return;
         }
         $player->getInventory()->clearAll();
+        $player->sendPopup(TextFormat::GRAY . 'Ты открыл(а) меню выбора плаща!');
         for ($i = 0; $i < sizeof($cloaks = $this->getCloaksList()); $i++) {
             $player->getInventory()->setItem($cloaks[$i][0], $cloaks[$i][1]);
         }

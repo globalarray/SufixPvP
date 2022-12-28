@@ -38,6 +38,7 @@ final class JoinArenaGappleItem extends ClickableItem {
 	public function handleClick(SufixPlayer $player) : void{
 		$player->getInventory()->clearAll();
 		$player->teleport(($level = Server::getInstance()->getLevelByName('6GAPPLE'))->getSafeSpawn());
+		$player->updateTime();
 		$player->setMaxHealth(20);
         $player->setHealth(20);
         $player->setFood(20);

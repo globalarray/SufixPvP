@@ -1,8 +1,9 @@
 <?php
 
-namespace ddosnik\wings;
+declare(strict_types=1);
 
-use ddosnik\Loader;
+namespace ddosnik;
+
 use pocketmine\math\Vector3;
 use pocketmine\level\Position;
 
@@ -33,7 +34,7 @@ final class CustomWing {
 		$cos = cos(deg2rad($angle));
 		for ($i = 0; $i < sizeof($this->coords); $i++) {
 			$r = $this->scale * $this->coords[$i][0]->x;
-			$px = $r * $cos;			
+			$px = $r * $cos;
 			$pz = $r * $sin;
 			$level->addParticle(Loader::getInstance()->parseWings($pos->add($px, $this->coords[$i][0]->y, $pz), $this->coords[$i][1]));
 		}

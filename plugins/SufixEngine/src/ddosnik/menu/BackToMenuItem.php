@@ -20,6 +20,7 @@ declare(strict_types=1);
 
 namespace ddosnik\menu;
 
+use pocketmine\utils\TextFormat;
 use ddosnik\player\SufixPlayer;
 use const PHP_EOL;
 
@@ -32,6 +33,7 @@ final class BackToMenuItem extends ClickableItem {
 
 	public function handleClick(SufixPlayer $player) : void{
 		$player->getInventory()->clearAll();
+        $player->sendPopup(TextFormat::GRAY . 'Ты вернулся(-ась) в главное меню!');
         for ($i = 0; $i < sizeof($items = $this->getMainMenuItems()); $i++) {
             $player->getInventory()->setItem($items[$i][0], $items[$i][1]);
         }
